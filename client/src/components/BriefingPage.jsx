@@ -1,18 +1,11 @@
 import { useState, useEffect } from 'react';
+import { marked } from 'marked';
 
-function renderMarkdown(text) {
-  if (!text) return '';
-  return text
-    .replace(/^### (.+)$/gm, '<h3 class="text-base font-bold mt-4 mb-1" style="color:var(--text-primary)">$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2 class="text-lg font-bold mt-5 mb-2" style="color:var(--text-primary)">$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1 class="text-xl font-bold mt-6 mb-2" style="color:var(--text-primary)">$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/^- (.+)$/gm, '<li class="ml-4 list-disc">$1</li>')
-    .replace(/(<li.*<\/li>\n?)+/g, '<ul class="my-2 space-y-0.5">$&</ul>')
-    .replace(/\n\n/g, '<br/><br/>')
-    .replace(/\n/g, '<br/>');
-}
+// Configure marked
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
 
 function DateList({ dates, selected, onSelect }) {
   return (
@@ -123,46 +116,10 @@ export default function BriefingPage() {
         ) : !briefing ? (
           <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>로딩 중...</div>
         ) : (
-          <div>
-            <h2 className="text-lg font-bold mb-4">{formatDateFull(selected)} 브리핑</h2>
-
-            {/* Summary */}
-            {briefing.summary && (
-              <div
-                className="prose prose-sm max-w-none mb-6 leading-relaxed text-sm"
-                style={{ color: 'var(--text-primary)' }}
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(briefing.summary) }}
-              />
-            )}
-
-            {/* Articles */}
-            {briefing.articles?.length > 0 && (
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>
-                  🔗 관련 뉴스
-                </h3>
-                <div className="space-y-1">
-                  {briefing.articles.map((a, i) => (
-                    <a
-                      key={i}
-                      href={a.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-start gap-3 px-3 py-2 rounded-lg transition-colors"
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <span className="text-sm leading-snug flex-1 hover:text-blue-500">{a.title}</span>
-                      <div className="flex flex-col items-end shrink-0">
-                        {a.source && <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.source}</span>}
-                        {a.category && <span className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{a.category}</span>}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <article
+            className="briefing-content"
+            dangerouslySetInnerHTML={{ __html: marked.parse(briefing.summary || '') }}
+          />
         )}
       </main>
     </div>

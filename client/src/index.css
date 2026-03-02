@@ -25,3 +25,91 @@
   --accent-up: #4ade80;
   --accent-down: #f87171;
 }
+
+/* Briefing markdown styles */
+.briefing-content {
+  color: var(--text-primary);
+  line-height: 1.75;
+  font-size: 0.9375rem;
+}
+.briefing-content h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1.5rem 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.briefing-content h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 1.75rem 0 0.75rem;
+}
+.briefing-content h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+.briefing-content p {
+  margin: 0.5rem 0;
+}
+.briefing-content strong {
+  font-weight: 600;
+}
+.briefing-content a {
+  color: #3b82f6;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.briefing-content a:hover {
+  color: #60a5fa;
+}
+.briefing-content ul, .briefing-content ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+}
+.briefing-content li {
+  margin: 0.25rem 0;
+}
+.briefing-content hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.5rem 0;
+}
+.briefing-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.875rem;
+}
+.briefing-content th, .briefing-content td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+.briefing-content th {
+  font-weight: 600;
+  background: var(--bg-hover);
+}
+.briefing-content blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: var(--text-secondary);
+}
+.briefing-content code {
+  background: var(--bg-hover);
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.85em;
+}
+.briefing-content pre {
+  background: var(--bg-hover);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+.briefing-content pre code {
+  background: none;
+  padding: 0;
+}
