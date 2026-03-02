@@ -11,7 +11,7 @@ function timeAgo(dateStr) {
 function NewsSection({ icon, category, articles }) {
   return (
     <div className="mb-4">
-      <h3 className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider px-3 mb-2">
+      <h3 className="text-xs font-bold uppercase tracking-wider px-3 mb-2" style={{ color: 'var(--text-muted)' }}>
         {icon} {category}
       </h3>
       <div className="space-y-0.5">
@@ -21,14 +21,17 @@ function NewsSection({ icon, category, articles }) {
             href={a.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-start gap-2 sm:gap-3 px-3 py-2 rounded-lg hover:bg-slate-800 active:bg-slate-700 transition-colors group"
+            className="flex items-start gap-3 px-3 py-1.5 rounded-lg transition-colors group"
+            style={{ '--hover-bg': 'var(--bg-hover)' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
-            <span className="text-xs sm:text-sm text-slate-50 group-hover:text-blue-400 leading-snug flex-1">
+            <span className="text-sm leading-snug flex-1 group-hover:text-blue-500 dark:group-hover:text-blue-400">
               {a.title}
             </span>
             <div className="flex flex-col items-end shrink-0">
-              <span className="text-[10px] sm:text-xs text-slate-500">{a.source}</span>
-              <span className="text-[10px] sm:text-xs text-slate-600">{timeAgo(a.pubDate)}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.source}</span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{timeAgo(a.pubDate)}</span>
             </div>
           </a>
         ))}
@@ -40,8 +43,8 @@ function NewsSection({ icon, category, articles }) {
 export default function NewsPanel({ data }) {
   if (!data?.sections?.length) return null;
   return (
-    <div className="p-3 sm:p-4">
-      <h2 className="text-xs sm:text-sm font-semibold text-slate-400 mb-3 sm:mb-4 px-2">📰 뉴스 브리핑</h2>
+    <div className="p-4">
+      <h2 className="text-sm font-semibold mb-4 px-2" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
       {data.sections.map((section, i) => (
         <NewsSection key={i} {...section} />
       ))}

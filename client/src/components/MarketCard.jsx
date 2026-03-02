@@ -4,17 +4,20 @@ export default function MarketCard({ name, value, changeRate, sparkline }) {
   const rate = parseFloat(changeRate) || 0;
   const isUp = rate > 0;
   const isDown = rate < 0;
-  const color = isUp ? 'text-green-400' : isDown ? 'text-red-400' : 'text-slate-400';
-  const sparkColor = isUp ? '#4ade80' : isDown ? '#f87171' : '#94a3b8';
+  const colorClass = isUp ? 'text-green-500 dark:text-green-400' : isDown ? 'text-red-500 dark:text-red-400' : '';
+  const sparkColor = isUp ? 'var(--accent-up)' : isDown ? 'var(--accent-down)' : 'var(--text-muted)';
   const arrow = isUp ? '▲' : isDown ? '▼' : '';
 
   return (
-    <div className="bg-slate-800 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:bg-slate-750 transition-colors border border-slate-700/50">
+    <div
+      className="rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors"
+      style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+    >
       <div className="flex justify-between items-start">
         <div className="min-w-0 flex-1">
-          <p className="text-[10px] sm:text-xs text-slate-400 font-medium mb-0.5 sm:mb-1">{name}</p>
+          <p className="text-[10px] sm:text-xs font-medium mb-0.5 sm:mb-1" style={{ color: 'var(--text-muted)' }}>{name}</p>
           <p className="text-base sm:text-xl font-bold tabular-nums truncate">{value || '-'}</p>
-          <p className={`text-xs sm:text-sm font-medium mt-0.5 sm:mt-1 ${color}`}>
+          <p className={`text-xs sm:text-sm font-medium mt-0.5 sm:mt-1 ${colorClass}`}>
             {arrow} {changeRate || '0%'}
           </p>
         </div>
@@ -22,7 +25,7 @@ export default function MarketCard({ name, value, changeRate, sparkline }) {
           <Sparkline data={sparkline} color={sparkColor} />
         </div>
         <div className="block sm:hidden">
-          <Sparkline data={sparkline} color={sparkColor} width={48} height={18} />
+          <Sparkline data={sparkline} color={sparkColor} width={40} height={16} />
         </div>
       </div>
     </div>

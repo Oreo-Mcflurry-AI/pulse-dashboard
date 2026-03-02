@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export default function Header({ updatedAt, onRefresh }) {
+export default function Header({ updatedAt, onRefresh, dark, onToggleTheme }) {
   const [spinning, setSpinning] = useState(false);
   const time = updatedAt ? new Date(updatedAt).toLocaleTimeString('ko-KR') : '--:--:--';
 
@@ -12,16 +12,25 @@ export default function Header({ updatedAt, onRefresh }) {
   };
 
   return (
-    <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-700">
+    <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border)' }}>
       <div className="flex items-center gap-2 sm:gap-3">
         <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse" />
         <h1 className="text-base sm:text-xl font-bold tracking-tight">PULSE</h1>
       </div>
       <div className="flex items-center gap-2 sm:gap-3">
-        <span className="text-xs sm:text-sm text-slate-400">{time}</span>
+        <span className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>{time}</span>
+        <button
+          onClick={onToggleTheme}
+          className="p-1 transition-colors rounded hover:opacity-80"
+          style={{ color: 'var(--text-muted)' }}
+          title={dark ? '라이트 모드' : '다크 모드'}
+        >
+          {dark ? '☀️' : '🌙'}
+        </button>
         <button
           onClick={handleRefresh}
-          className="text-slate-400 hover:text-slate-200 transition-colors p-1"
+          className="p-1 transition-colors"
+          style={{ color: 'var(--text-muted)' }}
           title="새로고침"
         >
           <svg
