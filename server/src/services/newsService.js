@@ -4,26 +4,45 @@ import { getCache, setCache } from '../db.js';
 const parser = new RSSParser();
 const CACHE_TTL = 5 * 60_000; // 5min
 
-export async function getNews(query = 'world economy markets') {
-  const cacheKey = `news:${query}`;
-  const cached = getCache(cacheKey);
-  if (cached) return cached;
+const FEEDS = [
+  { category: '글로벌', query: 'world economy markets war', icon: '🌍' },
+  { category: '중동', query: 'Iran war Middle East oil', icon: '🔥' },
+  { category: '시장', query: 'stock market crypto oil price', icon: '📈' },
+  { category: '한국', query: 'South Korea economy KRW', icon: '🇰🇷' },
+];
 
+async function fetchFeed(query, limit = 5) {
   try {
     const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`;
     const feed = await parser.parseURL(url);
-
-    const articles = feed.items.slice(0, 15).map(item => ({
+    return feed.items.slice(0, limit).map(item => ({
       title: item.title?.replace(/ - [\w\s]+$/, '') || '',
       source: item.title?.match(/ - ([\w\s]+)$/)?.[1]?.trim() || '',
       url: item.link || '',
       pubDate: item.pubDate || ''
     }));
-
-    const data = { articles, updatedAt: new Date().toISOString() };
-    setCache(cacheKey, data, CACHE_TTL);
-    return data;
-  } catch (e) {
-    return { articles: [], updatedAt: new Date().toISOString(), error: e.message };
+  } catch {
+    return [];
   }
+}
+
+export async function getNews() {
+  const cached = getCache('news:briefing');
+  if (cached) return cached;
+
+  const results = await Promise.all(
+    FEEDS.map(async (feed) => ({
+      category: feed.category,
+      icon: feed.icon,
+      articles: await fetchFeed(feed.query, 5)
+    }))
+  );
+
+  const data = {
+    sections: results.filter(s => s.articles.length > 0),
+    updatedAt: new Date().toISOString()
+  };
+
+  setCache('news:briefing', data, CACHE_TTL);
+  return data;
 }
