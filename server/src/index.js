@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import marketRouter from './routes/market.js';
 import newsRouter from './routes/news.js';
+import briefingRouter from './routes/briefing.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -15,6 +16,7 @@ app.use(express.json());
 // API routes
 app.use('/api/market', marketRouter);
 app.use('/api/news', newsRouter);
+app.use('/api/briefings', briefingRouter);
 
 // Serve static frontend in production
 app.use(express.static(join(__dirname, '../../client/dist')));

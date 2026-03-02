@@ -51,4 +51,57 @@ export function setCache(key, value, ttlMs) {
   );
 }
 
+// Daily briefings table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS briefings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL,
+    category TEXT NOT NULL,
+    title TEXT NOT NULL,
+    summary TEXT,
+    source TEXT,
+    url TEXT,
+    created_at INTEGER NOT NULL
+  )
+`);
+db.exec(`CREATE INDEX IF NOT EXISTS idx_briefings_date ON briefings(date)`);
+
+// Briefing summaries (AI-written daily summary)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS briefing_summaries (
+    date TEXT PRIMARY KEY,
+    summary TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )
+`);
+
+export function saveBriefing(date, summary, articles) {
+  const tx = db.transaction(() => {
+    // Save summary
+    db.prepare(
+      'INSERT OR REPLACE INTO briefing_summaries (date, summary, created_at) VALUES (?, ?, ?)'
+    ).run(date, summary, Date.now());
+
+    // Clear old articles for this date, then insert new
+    db.prepare('DELETE FROM briefings WHERE date = ?').run(date);
+    const insert = db.prepare(
+      'INSERT INTO briefings (date, category, title, summary, source, url, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+    for (const a of articles) {
+      insert.run(date, a.category || '', a.title, a.summary || '', a.source || '', a.url || '', Date.now());
+    }
+  });
+  tx();
+}
+
+export function getBriefingDates() {
+  return db.prepare('SELECT DISTINCT date FROM briefing_summaries ORDER BY date DESC LIMIT 60').all().map(r => r.date);
+}
+
+export function getBriefingByDate(date) {
+  const sum = db.prepare('SELECT summary FROM briefing_summaries WHERE date = ?').get(date);
+  const articles = db.prepare('SELECT * FROM briefings WHERE date = ? ORDER BY category, id').all(date);
+  return { summary: sum?.summary || '', articles };
+}
+
 export default db;
