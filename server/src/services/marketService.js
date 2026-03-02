@@ -1,4 +1,4 @@
-import { getCache, setCache } from '../db.js';
+import { getCache, setCache, addHistory, getHistory } from '../db.js';
 
 const CACHE_TTL = 30_000; // 30s
 
@@ -96,6 +96,27 @@ export async function getMarketData() {
     updatedAt: new Date().toISOString()
   };
 
+  // Record history for sparklines
+  const symbols = { kospi, kosdaq, usdkrw, oil, btc, sp500, nasdaq, dow };
+  for (const [key, val] of Object.entries(symbols)) {
+    const num = parseFloat(String(val.value).replace(/,/g, ''));
+    if (!isNaN(num) && num > 0) addHistory(key, num);
+  }
+
   setCache('market', data, CACHE_TTL);
   return data;
+}
+
+export async function getSparklines() {
+  const cached = getCache('sparklines');
+  if (cached) return cached;
+
+  const keys = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'btc', 'sp500', 'nasdaq', 'dow'];
+  const result = {};
+  for (const key of keys) {
+    result[key] = getHistory(key, 48).map(r => r.value);
+  }
+
+  setCache('sparklines', result, 30_000);
+  return result;
 }
