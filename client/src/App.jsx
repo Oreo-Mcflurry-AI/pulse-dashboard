@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Header from './components/Header';
 import MarketGrid from './components/MarketGrid';
+import MarketSentiment from './components/MarketSentiment';
 import NewsPanel from './components/NewsPanel';
 import BriefingPage from './components/BriefingPage';
 import { useMarketData } from './hooks/useMarketData';
@@ -87,6 +88,7 @@ export default function App() {
 
         {page === 'dashboard' ? (
           <>
+            <MarketSentiment data={market} />
             <MarketGrid data={market} />
             <div style={{ borderTop: '1px solid var(--border)' }} />
             <NewsPanel data={news} />
