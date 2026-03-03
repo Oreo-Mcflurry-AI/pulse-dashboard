@@ -73,7 +73,7 @@ export async function getMarketData() {
   const cached = getCache('market');
   if (cached) return cached;
 
-  const [kospi, kosdaq, usdkrw, btc, sp500, nasdaq, dow, oil] = await Promise.all([
+  const [kospi, kosdaq, usdkrw, btc, sp500, nasdaq, dow, oil, vix] = await Promise.all([
     fetchIndex('KOSPI'),
     fetchIndex('KOSDAQ'),
     fetchUSDKRW(),
@@ -81,7 +81,8 @@ export async function getMarketData() {
     fetchIndex('.INX'),
     fetchIndex('.IXIC'),
     fetchIndex('.DJI'),
-    fetchOil()
+    fetchOil(),
+    fetchIndex('.VIX')
   ]);
 
   const data = {
@@ -93,11 +94,12 @@ export async function getMarketData() {
     sp500: { name: 'S&P 500', ...sp500 },
     nasdaq: { name: 'NASDAQ', ...nasdaq },
     dow: { name: 'DOW', ...dow },
+    vix: { name: 'VIX', ...vix },
     updatedAt: new Date().toISOString()
   };
 
   // Record history for sparklines
-  const symbols = { kospi, kosdaq, usdkrw, oil, btc, sp500, nasdaq, dow };
+  const symbols = { kospi, kosdaq, usdkrw, oil, btc, sp500, nasdaq, dow, vix };
   for (const [key, val] of Object.entries(symbols)) {
     const num = parseFloat(String(val.value).replace(/,/g, ''));
     if (!isNaN(num) && num > 0) addHistory(key, num);
@@ -111,7 +113,7 @@ export async function getSparklines() {
   const cached = getCache('sparklines');
   if (cached) return cached;
 
-  const keys = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'btc', 'sp500', 'nasdaq', 'dow'];
+  const keys = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
   const result = {};
   for (const key of keys) {
     result[key] = getHistory(key, 48).map(r => r.value);
