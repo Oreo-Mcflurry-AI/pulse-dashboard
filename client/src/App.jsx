@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from './components/Header';
 import MarketGrid from './components/MarketGrid';
 import MarketSentiment from './components/MarketSentiment';
@@ -11,6 +11,17 @@ export default function App() {
   const [page, setPage] = useState(window.location.hash === '#briefings' ? 'briefings' : 'dashboard');
   const { market, news, loading, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
+
+  const relativeTime = (iso) => {
+    if (!iso) return '--:--:--';
+    const diff = Math.floor((now - new Date(iso).getTime()) / 1000);
+    if (diff < 5) return '방금';
+    if (diff < 60) return `${diff}초 전`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    return new Date(iso).toLocaleTimeString('ko-KR');
+  };
 
   const navigate = (p) => {
     setPage(p);
@@ -60,7 +71,7 @@ export default function App() {
           <div className="flex items-center gap-2 sm:gap-3">
             {page === 'dashboard' && (
               <span className="text-xs sm:text-sm" style={{ color: 'var(--text-muted)' }}>
-                {market?.updatedAt ? new Date(market.updatedAt).toLocaleTimeString('ko-KR') : '--:--:--'}
+                {relativeTime(market?.updatedAt)}
               </span>
             )}
             <button
