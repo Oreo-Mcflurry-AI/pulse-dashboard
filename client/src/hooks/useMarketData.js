@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export function useMarketData(interval = 30000) {
   const [market, setMarket] = useState(null);
   const [news, setNews] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     try {
       const [mRes, nRes] = await Promise.all([
         fetch('/api/market'),
@@ -20,13 +20,38 @@ export function useMarketData(interval = 30000) {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
     fetchData();
-    const id = setInterval(fetchData, interval);
-    return () => clearInterval(id);
-  }, [interval]);
+
+    let id = null;
+
+    function start() {
+      if (!id) id = setInterval(fetchData, interval);
+    }
+    function stop() {
+      if (id) { clearInterval(id); id = null; }
+    }
+
+    // Pause polling when tab is hidden, resume when visible
+    function onVisibility() {
+      if (document.hidden) {
+        stop();
+      } else {
+        fetchData(); // refresh immediately on return
+        start();
+      }
+    }
+
+    start();
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [interval, fetchData]);
 
   return { market, news, loading, refetch: fetchData };
 }
