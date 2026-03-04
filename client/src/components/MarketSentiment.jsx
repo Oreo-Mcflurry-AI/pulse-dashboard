@@ -1,5 +1,6 @@
 /**
  * VIX (CBOE Volatility Index) 기반 시장 심리 인디케이터
+ * + 장 상태 표시 (코스피/미국장 OPEN/CLOSE)
  * 
  * VIX 구간:
  * 0-12:  극도의 탐욕 (과열)
@@ -22,12 +23,32 @@ function getVixSentiment(vixValue) {
   return { label: '극도의 탐욕', color: '#a855f7', emoji: '🟣', desc: '과매수 주의 — 안일함 경고', barPct: 10 };
 }
 
+function MarketStatus({ label, status }) {
+  const isOpen = status === 'OPEN' || status === 'PREOPEN';
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded"
+      style={{
+        background: isOpen ? 'rgba(34,197,94,0.15)' : 'rgba(107,114,128,0.15)',
+        color: isOpen ? '#22c55e' : 'var(--text-muted)',
+      }}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'animate-pulse' : ''}`}
+        style={{ background: isOpen ? '#22c55e' : '#6b7280' }}
+      />
+      {label} {isOpen ? '장중' : '마감'}
+    </span>
+  );
+}
+
 export default function MarketSentiment({ data }) {
   if (!data?.vix) return null;
 
   const vixVal = parseFloat(String(data.vix.value).replace(/,/g, ''));
   const sentiment = getVixSentiment(vixVal);
   const vixChange = data.vix.changeRate;
+
+  const kospiStatus = data.kospi?.status;
+  const usStatus = data.sp500?.status;
 
   return (
     <div
@@ -43,11 +64,13 @@ export default function MarketSentiment({ data }) {
           <span className="text-sm sm:text-base font-bold" style={{ color: sentiment.color }}>
             {sentiment.label}
           </span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          <span className="text-xs hidden sm:inline" style={{ color: 'var(--text-muted)' }}>
             {sentiment.desc}
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+          {kospiStatus && <MarketStatus label="🇰🇷" status={kospiStatus} />}
+          {usStatus && <MarketStatus label="🇺🇸" status={usStatus} />}
           <span style={{ color: sentiment.color, fontWeight: 700 }}>VIX {vixVal.toFixed(2)}</span>
           <span>({vixChange})</span>
         </div>
