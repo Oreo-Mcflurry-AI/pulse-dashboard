@@ -33,14 +33,13 @@ export default function MarketCard({ name, value, changeRate, sparkline, status 
           <div className="flex items-center gap-1 mb-0.5 sm:mb-1">
             <p className="text-[10px] sm:text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{name}</p>
             {status === 'OPEN' && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="장중" />}
-            {status === 'PREOPEN' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" title="프리마켓" />}
+            {status === 'PREOPEN' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" title="프리마켓" />}
             {status && (
               <span className="text-[8px] sm:text-[9px] px-1 py-0.5 rounded" style={{
-                background: status === 'OPEN' ? 'rgba(34,197,94,0.15)' : 'rgba(107,114,128,0.15)',
-                color: status === 'OPEN' ? '#22c55e' : 'var(--text-muted)',
-              }}>{status === 'OPEN' ? '장중' : '마감'}</span>
+                background: status === 'OPEN' ? 'rgba(34,197,94,0.15)' : status === 'PREOPEN' ? 'rgba(234,179,8,0.15)' : 'rgba(107,114,128,0.15)',
+                color: status === 'OPEN' ? '#22c55e' : status === 'PREOPEN' ? '#eab308' : 'var(--text-muted)',
+              }}>{status === 'OPEN' ? 'LIVE' : status === 'PREOPEN' ? '프리' : '마감'}</span>
             )}
-            {status === 'OPEN' && <span className="text-[8px] px-1 py-0.5 rounded-full font-medium" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>LIVE</span>}
             {absRate >= 5 && <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: isDown ? 'rgba(220,38,38,0.2)' : 'rgba(34,197,94,0.2)', color: isDown ? '#dc2626' : '#22c55e' }}>급{isDown ? '락' : '등'}</span>}
           </div>
           <p className="text-base sm:text-xl font-bold tabular-nums truncate">{value || '-'}</p>
