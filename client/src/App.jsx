@@ -103,8 +103,9 @@ export default function App() {
             <MarketGrid data={market} />
             <div style={{ borderTop: '1px solid var(--border)' }} />
             <NewsPanel data={news} />
-            <footer className="text-center text-xs py-4" style={{ color: 'var(--text-muted)' }}>
-              30초마다 자동 업데이트 · Powered by Pulse Dashboard
+            <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
+              <div>30초마다 자동 업데이트 · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}</div>
+              <div style={{ opacity: 0.6 }}>KRX 09:00-15:30 · NYSE 23:30-06:00 (KST)</div>
             </footer>
           </>
         ) : (
