@@ -1,6 +1,6 @@
 import Sparkline from './Sparkline';
 
-export default function MarketCard({ name, value, changeRate, sparkline }) {
+export default function MarketCard({ name, value, changeRate, sparkline, status }) {
   const rate = parseFloat(changeRate) || 0;
   const isUp = rate > 0;
   const isDown = rate < 0;
@@ -32,6 +32,7 @@ export default function MarketCard({ name, value, changeRate, sparkline }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1 mb-0.5 sm:mb-1">
             <p className="text-[10px] sm:text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{name}</p>
+            {status === 'OPEN' && <span className="text-[8px] px-1 py-0.5 rounded-full font-medium" style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>LIVE</span>}
             {absRate >= 5 && <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: isDown ? 'rgba(220,38,38,0.2)' : 'rgba(34,197,94,0.2)', color: isDown ? '#dc2626' : '#22c55e' }}>급{isDown ? '락' : '등'}</span>}
           </div>
           <p className="text-base sm:text-xl font-bold tabular-nums truncate">{value || '-'}</p>
