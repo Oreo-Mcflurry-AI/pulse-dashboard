@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -22,7 +24,6 @@ function NewsSection({ icon, category, articles }) {
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-start gap-3 px-3 py-1.5 rounded-lg transition-colors group"
-            style={{ '--hover-bg': 'var(--bg-hover)' }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
@@ -41,11 +42,39 @@ function NewsSection({ icon, category, articles }) {
 }
 
 export default function NewsPanel({ data }) {
+  const [filter, setFilter] = useState('all');
+
   if (!data?.sections?.length) return null;
+
+  const categories = ['all', ...data.sections.map(s => s.category)];
+  const filtered = filter === 'all' ? data.sections : data.sections.filter(s => s.category === filter);
+
   return (
     <div className="p-4">
-      <h2 className="text-sm font-semibold mb-4 px-2" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
-      {data.sections.map((section, i) => (
+      <div className="flex items-center justify-between mb-3 px-2">
+        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
+        <span className="text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+          {data.sections.reduce((sum, s) => sum + (s.articles?.length || 0), 0)}건
+        </span>
+      </div>
+      {/* Category filter tabs */}
+      <div className="flex gap-1 px-2 mb-3 overflow-x-auto scrollbar-hide">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setFilter(cat)}
+            className="px-2.5 py-1 text-[11px] rounded-full whitespace-nowrap transition-colors"
+            style={{
+              background: filter === cat ? 'var(--text-primary)' : 'var(--bg-hover)',
+              color: filter === cat ? 'var(--bg-primary)' : 'var(--text-muted)',
+              fontWeight: filter === cat ? 600 : 400,
+            }}
+          >
+            {cat === 'all' ? '전체' : (data.sections.find(s => s.category === cat)?.icon || '') + ' ' + cat}
+          </button>
+        ))}
+      </div>
+      {filtered.map((section, i) => (
         <NewsSection key={i} {...section} />
       ))}
     </div>
