@@ -28,6 +28,10 @@ function NewsSection({ icon, category, articles }) {
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
             <span className="text-sm leading-snug flex-1 group-hover:text-blue-500 dark:group-hover:text-blue-400">
+              {a.pubDate && (Date.now() - new Date(a.pubDate).getTime()) < 3600000 && (
+                <span className="inline-block text-[9px] px-1 py-0.5 mr-1 rounded font-bold align-middle"
+                  style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>속보</span>
+              )}
               {a.title}
             </span>
             <div className="flex flex-col items-end shrink-0">
