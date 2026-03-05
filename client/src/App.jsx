@@ -9,7 +9,7 @@ import { useTheme } from './hooks/useTheme';
 
 export default function App() {
   const [page, setPage] = useState(window.location.hash === '#briefings' ? 'briefings' : 'dashboard');
-  const { market, news, loading, refetch } = useMarketData(30000);
+  const { market, news, loading, live, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
   const [now, setNow] = useState(Date.now());
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
@@ -41,7 +41,7 @@ export default function App() {
       <div className="max-w-5xl mx-auto">
         <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded-full animate-pulse" />
+            <span className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${live ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} title={live ? 'LIVE (실시간)' : 'Polling (30s)'} />
             <h1 className="text-base sm:text-xl font-bold tracking-tight cursor-pointer" onClick={() => navigate('dashboard')}>PULSE</h1>
             <nav className="flex items-center gap-1 ml-2 sm:ml-4">
               <button
@@ -104,7 +104,7 @@ export default function App() {
             <div style={{ borderTop: '1px solid var(--border)' }} />
             <NewsPanel data={news} />
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
-              <div>30초마다 자동 업데이트 · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}</div>
+              <div>{live ? '🟢 실시간 스트리밍' : '30초마다 자동 업데이트'} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}</div>
               <div style={{ opacity: 0.6 }}>KRX 09:00-15:30 · NYSE 23:30-06:00 (KST)</div>
             </footer>
           </>
