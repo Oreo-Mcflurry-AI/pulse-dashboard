@@ -90,6 +90,23 @@ export default function MarketSentiment({ data }) {
         <span>탐욕</span>
         <span>공포</span>
       </div>
+      {/* KOSPI extreme move alert */}
+      {data.kospi && (() => {
+        const kr = parseFloat(String(data.kospi.changeRate).replace('%',''));
+        if (isNaN(kr) || Math.abs(kr) < 5) return null;
+        const up = kr > 0;
+        return (
+          <div className="mt-2 px-2 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5"
+            style={{
+              background: up ? 'rgba(34,197,94,0.1)' : 'rgba(220,38,38,0.1)',
+              color: up ? '#22c55e' : '#dc2626',
+              border: `1px solid ${up ? 'rgba(34,197,94,0.3)' : 'rgba(220,38,38,0.3)'}`,
+            }}>
+            <span>{up ? '🚀' : '🔻'}</span>
+            <span>코스피 {data.kospi.changeRate} {Math.abs(kr) >= 8 ? (up ? '서킷브레이커급 급등' : '서킷브레이커급 급락') : (up ? '급등' : '급락')}</span>
+          </div>
+        );
+      })()}
     </div>
   );
 }
