@@ -55,6 +55,7 @@ export default function NewsPanel({ data }) {
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
         <span className="text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
           {data.sections.reduce((sum, s) => sum + (s.articles?.length || 0), 0)}건
+          {data.updatedAt && ` · ${new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`}
         </span>
       </div>
       {/* Category filter tabs */}
