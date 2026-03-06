@@ -2,11 +2,17 @@ import Sparkline from './Sparkline';
 
 export default function MarketCard({ name, value, changeRate, sparkline, status }) {
   const rate = parseFloat(changeRate) || 0;
-  const isUp = rate > 0;
-  const isDown = rate < 0;
+  const isVix = name === 'VIX';
+  // VIX: up = fear (red), down = calm (green) — inverted colors
+  const isUp = isVix ? rate < 0 : rate > 0;
+  const isDown = isVix ? rate > 0 : rate < 0;
   const colorClass = isUp ? 'text-green-500 dark:text-green-400' : isDown ? 'text-red-500 dark:text-red-400' : '';
   const sparkColor = isUp ? 'var(--accent-up)' : isDown ? 'var(--accent-down)' : 'var(--text-muted)';
-  const arrow = isUp ? '▲' : isDown ? '▼' : '';
+  const arrow = rate > 0 ? '▲' : rate < 0 ? '▼' : '';
+
+  // VIX fear level badge
+  const vixVal = isVix ? parseFloat(String(value).replace(/,/g, '')) : 0;
+  const vixLevel = isVix ? (vixVal >= 30 ? '🔴 극공포' : vixVal >= 20 ? '🟡 경계' : '🟢 안정') : '';
 
   // Alert styling for extreme moves (±3% or more)
   const absRate = Math.abs(rate);
@@ -41,6 +47,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status 
               }}>{status === 'OPEN' ? 'LIVE' : status === 'PREOPEN' ? '프리' : '마감'}</span>
             )}
             {absRate >= 5 && <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: isDown ? 'rgba(220,38,38,0.2)' : 'rgba(34,197,94,0.2)', color: isDown ? '#dc2626' : '#22c55e' }}>급{isDown ? '락' : '등'}</span>}
+            {vixLevel && <span className="text-[8px] sm:text-[9px]">{vixLevel}</span>}
           </div>
           <p className="text-base sm:text-xl font-bold tabular-nums truncate">{value || '-'}</p>
           <p className={`text-xs sm:text-sm font-medium mt-0.5 sm:mt-1 ${colorClass}`}>
