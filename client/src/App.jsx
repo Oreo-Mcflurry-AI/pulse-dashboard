@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import Header from './components/Header';
 import MarketGrid from './components/MarketGrid';
 import MarketSentiment from './components/MarketSentiment';
 import NewsPanel from './components/NewsPanel';
@@ -7,12 +6,29 @@ import BriefingPage from './components/BriefingPage';
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
 
+function getMarketStatus() {
+  const now = new Date();
+  const kst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const kstH = kst.getHours(), kstM = kst.getMinutes(), kstDay = kst.getDay();
+  const etH = et.getHours(), etM = et.getMinutes(), etDay = et.getDay();
+  const kstMin = kstH * 60 + kstM;
+  const etMin = etH * 60 + etM;
+  const krxOpen = kstDay >= 1 && kstDay <= 5 && kstMin >= 540 && kstMin < 930; // 09:00-15:30
+  const nyseOpen = etDay >= 1 && etDay <= 5 && etMin >= 570 && etMin < 960; // 09:30-16:00
+  return { krxOpen, nyseOpen };
+}
+
 export default function App() {
   const [page, setPage] = useState(window.location.hash === '#briefings' ? 'briefings' : 'dashboard');
   const { market, news, loading, live, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
   const [now, setNow] = useState(Date.now());
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
+  const [mktStatus, setMktStatus] = useState(getMarketStatus());
+  useEffect(() => {
+    const t = setInterval(() => { setNow(Date.now()); setMktStatus(getMarketStatus()); }, 5000);
+    return () => clearInterval(t);
+  }, []);
 
   const relativeTime = (iso) => {
     if (!iso) return '--:--:--';
@@ -105,7 +121,11 @@ export default function App() {
             <NewsPanel data={news} />
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
               <div>{live ? '🟢 실시간 스트리밍' : '30초마다 자동 업데이트'} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}</div>
-              <div style={{ opacity: 0.6 }}>KRX 09:00-15:30 · NYSE 23:30-06:00 (KST)</div>
+              <div style={{ opacity: 0.6 }}>
+                {mktStatus.krxOpen ? '🟢' : '⚫'} KRX {mktStatus.krxOpen ? '장중' : '장외'} (09:00-15:30)
+                {' · '}
+                {mktStatus.nyseOpen ? '🟢' : '⚫'} NYSE {mktStatus.nyseOpen ? '장중' : '장외'} (23:30-06:00 KST)
+              </div>
             </footer>
           </>
         ) : (
