@@ -16,7 +16,44 @@ function getMarketStatus() {
   const etMin = etH * 60 + etM;
   const krxOpen = kstDay >= 1 && kstDay <= 5 && kstMin >= 540 && kstMin < 930; // 09:00-15:30
   const nyseOpen = etDay >= 1 && etDay <= 5 && etMin >= 570 && etMin < 960; // 09:30-16:00
-  return { krxOpen, nyseOpen };
+
+  // Next open countdown
+  function nextOpen(tzNow, day, min, openMin, closeMin) {
+    // Returns minutes until next open, or null if open now
+    if (day >= 1 && day <= 5 && min >= openMin && min < closeMin) return null; // open now
+    let daysAhead = 0;
+    let targetDay = day;
+    let targetMin = openMin;
+    if (day >= 1 && day <= 5 && min < openMin) {
+      daysAhead = 0; // today, before open
+    } else if (day === 5 && min >= closeMin) {
+      daysAhead = 3; // Friday after close -> Monday
+    } else if (day === 6) {
+      daysAhead = 2; // Saturday -> Monday
+    } else if (day === 0) {
+      daysAhead = 1; // Sunday -> Monday
+    } else {
+      daysAhead = 1; // weekday after close -> next day
+    }
+    const minsLeft = (daysAhead * 24 * 60) + (targetMin - min);
+    if (minsLeft <= 0) return (minsLeft + 7 * 24 * 60); // fallback
+    return minsLeft;
+  }
+
+  const krxNext = krxOpen ? null : nextOpen(kst, kstDay, kstMin, 540, 930);
+  const nyseNext = nyseOpen ? null : nextOpen(et, etDay, etMin, 570, 960);
+
+  function fmtCountdown(mins) {
+    if (mins == null) return null;
+    const d = Math.floor(mins / 1440);
+    const h = Math.floor((mins % 1440) / 60);
+    const m = mins % 60;
+    if (d > 0) return `${d}일 ${h}시간`;
+    if (h > 0) return `${h}시간 ${m}분`;
+    return `${m}분`;
+  }
+
+  return { krxOpen, nyseOpen, krxCountdown: fmtCountdown(krxNext), nyseCountdown: fmtCountdown(nyseNext) };
 }
 
 export default function App() {
@@ -122,9 +159,9 @@ export default function App() {
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
               <div>{live ? '🟢 실시간 스트리밍' : '30초마다 자동 업데이트'} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}</div>
               <div style={{ opacity: 0.6 }}>
-                {mktStatus.krxOpen ? '🟢' : '⚫'} KRX {mktStatus.krxOpen ? '장중' : '장외'} (09:00-15:30)
+                {mktStatus.krxOpen ? '🟢' : '⚫'} KRX {mktStatus.krxOpen ? '장중' : '장외'}{mktStatus.krxCountdown ? ` (${mktStatus.krxCountdown} 후 개장)` : ' (09:00-15:30)'}
                 {' · '}
-                {mktStatus.nyseOpen ? '🟢' : '⚫'} NYSE {mktStatus.nyseOpen ? '장중' : '장외'} (23:30-06:00 KST)
+                {mktStatus.nyseOpen ? '🟢' : '⚫'} NYSE {mktStatus.nyseOpen ? '장중' : '장외'}{mktStatus.nyseCountdown ? ` (${mktStatus.nyseCountdown} 후 개장)` : ' (23:30-06:00 KST)'}
               </div>
             </footer>
           </>
