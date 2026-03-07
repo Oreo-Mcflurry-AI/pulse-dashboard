@@ -130,9 +130,26 @@ export default function BriefingPage() {
               >
                 ← 이전
               </button>
-              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                {formatDateFull(selected)}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                  {formatDateFull(selected)}
+                </span>
+                <button
+                  onClick={() => {
+                    const text = `📰 ${formatDateFull(selected)} 브리핑\n\n${briefing?.summary || ''}`;
+                    navigator.clipboard.writeText(text).then(() => {
+                      const el = document.getElementById('copy-feedback');
+                      if (el) { el.textContent = '복사됨!'; setTimeout(() => { el.textContent = ''; }, 2000); }
+                    });
+                  }}
+                  className="text-[10px] px-1.5 py-0.5 rounded transition-colors"
+                  style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                  title="브리핑 텍스트 복사"
+                >
+                  📋
+                </button>
+                <span id="copy-feedback" className="text-[10px]" style={{ color: '#22c55e' }} />
+              </div>
               <button
                 onClick={() => {
                   const idx = dates.indexOf(selected);
