@@ -3,6 +3,7 @@ import MarketGrid from './components/MarketGrid';
 import MarketSentiment from './components/MarketSentiment';
 import NewsPanel from './components/NewsPanel';
 import BriefingPage from './components/BriefingPage';
+import PortfolioPage from './components/PortfolioPage';
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
 
@@ -57,7 +58,10 @@ function getMarketStatus() {
 }
 
 export default function App() {
-  const [page, setPage] = useState(window.location.hash === '#briefings' ? 'briefings' : 'dashboard');
+  const [page, setPage] = useState(
+    window.location.hash === '#briefings' ? 'briefings' :
+    window.location.hash === '#portfolio' ? 'portfolio' : 'dashboard'
+  );
   const { market, news, loading, live, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
   const [now, setNow] = useState(Date.now());
@@ -119,6 +123,17 @@ export default function App() {
               >
                 📰 브리핑
               </button>
+              <button
+                onClick={() => navigate('portfolio')}
+                className="px-2 py-1 text-xs sm:text-sm rounded-md transition-colors"
+                style={{
+                  background: page === 'portfolio' ? 'var(--bg-hover)' : 'transparent',
+                  color: page === 'portfolio' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  fontWeight: page === 'portfolio' ? 600 : 400,
+                }}
+              >
+                💼 포트폴리오
+              </button>
             </nav>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
@@ -165,8 +180,10 @@ export default function App() {
               </div>
             </footer>
           </>
-        ) : (
+        ) : page === 'briefings' ? (
           <BriefingPage />
+        ) : (
+          <PortfolioPage />
         )}
       </div>
     </div>
