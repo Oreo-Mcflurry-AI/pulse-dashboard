@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 const STORAGE_KEY = 'pulse_portfolio';
+const HISTORY_KEY = 'pulse_portfolio_history';
 
 const PRESETS = [
   { symbol: 'KOSPI', name: '코스피', type: 'index' },
@@ -31,6 +32,138 @@ function pctColor(pct) {
   if (pct > 0) return 'var(--up, #ef4444)';
   if (pct < 0) return 'var(--down, #3b82f6)';
   return 'var(--text-muted)';
+}
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+}
+function saveHistory(h) {
+  // Keep last 90 days max
+  const trimmed = h.slice(-90);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+}
+function recordSnapshot(totalValue, totalPnl) {
+  if (totalValue === 0) return;
+  const today = new Date().toISOString().slice(0, 10);
+  const history = loadHistory();
+  const existing = history.findIndex(h => h.date === today);
+  const entry = { date: today, value: Math.round(totalValue), pnl: Math.round(totalPnl) };
+  if (existing >= 0) {
+    history[existing] = entry;
+  } else {
+    history.push(entry);
+  }
+  saveHistory(history);
+}
+
+function PortfolioChart({ history }) {
+  const canvasRef = useRef(null);
+  const w = 460, h = 140;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || history.length < 2) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const pad = { top: 10, right: 10, bottom: 30, left: 60 };
+    const cw = w - pad.left - pad.right;
+    const ch = h - pad.top - pad.bottom;
+
+    const values = history.map(d => d.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+
+    const isUp = values[values.length - 1] >= values[0];
+    const lineColor = isUp ? '#22c55e' : '#ef4444';
+
+    // Grid
+    ctx.strokeStyle = 'rgba(128,128,128,0.12)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 3; i++) {
+      const y = pad.top + (ch / 3) * i;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(pad.left + cw, y);
+      ctx.stroke();
+      const val = max - (range / 3) * i;
+      ctx.fillStyle = 'rgba(128,128,128,0.5)';
+      ctx.font = '9px system-ui';
+      ctx.textAlign = 'right';
+      ctx.fillText(val >= 10000 ? `${(val / 10000).toFixed(0)}만` : fmt(val), pad.left - 5, y + 3);
+    }
+
+    // X-axis date labels
+    ctx.fillStyle = 'rgba(128,128,128,0.5)';
+    ctx.font = '9px system-ui';
+    ctx.textAlign = 'center';
+    const labelInterval = Math.max(1, Math.floor(history.length / 5));
+    history.forEach((d, i) => {
+      if (i % labelInterval === 0 || i === history.length - 1) {
+        const x = pad.left + (i / (history.length - 1)) * cw;
+        ctx.fillText(d.date.slice(5), x, h - 5);
+      }
+    });
+
+    // Area
+    ctx.beginPath();
+    values.forEach((v, i) => {
+      const x = pad.left + (i / (values.length - 1)) * cw;
+      const y = pad.top + ch - ((v - min) / range) * ch;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(pad.left + cw, pad.top + ch);
+    ctx.lineTo(pad.left, pad.top + ch);
+    ctx.closePath();
+    ctx.fillStyle = lineColor + '12';
+    ctx.fill();
+
+    // Line
+    ctx.beginPath();
+    values.forEach((v, i) => {
+      const x = pad.left + (i / (values.length - 1)) * cw;
+      const y = pad.top + ch - ((v - min) / range) * ch;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // End dot
+    const lastX = pad.left + cw;
+    const lastY = pad.top + ch - ((values[values.length - 1] - min) / range) * ch;
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = lineColor;
+    ctx.fill();
+  }, [history]);
+
+  if (history.length < 2) return null;
+
+  const first = history[0].value;
+  const last = history[history.length - 1].value;
+  const totalReturn = ((last - first) / first * 100);
+
+  return (
+    <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📈 포트폴리오 추이</span>
+        <span className="text-xs font-medium" style={{ color: totalReturn >= 0 ? '#22c55e' : '#ef4444' }}>
+          {totalReturn >= 0 ? '+' : ''}{totalReturn.toFixed(1)}% ({history.length}일)
+        </span>
+      </div>
+      <div className="flex justify-center overflow-x-auto">
+        <canvas ref={canvasRef} style={{ width: w, height: h, maxWidth: '100%' }} />
+      </div>
+    </div>
+  );
 }
 
 export default function PortfolioPage() {
@@ -112,7 +245,22 @@ export default function PortfolioPage() {
     return sum + (p.price - h.buyPrice) * h.qty;
   }, 0);
 
+  const totalValue = holdings.reduce((sum, h) => {
+    const p = prices[h.symbol];
+    if (!p || !h.qty) return sum;
+    return sum + p.price * h.qty;
+  }, 0);
+
   const hasPnl = holdings.some(h => h.buyPrice && h.qty && prices[h.symbol]);
+
+  // Record daily snapshot
+  useEffect(() => {
+    if (totalValue > 0 && Object.keys(prices).length > 0) {
+      recordSnapshot(totalValue, totalPnl);
+    }
+  }, [totalValue, totalPnl, prices]);
+
+  const history = loadHistory();
 
   return (
     <div className="px-4 sm:px-6 py-4 sm:py-6">
@@ -134,6 +282,9 @@ export default function PortfolioPage() {
           {showAdd ? '취소' : '+ 추가'}
         </button>
       </div>
+
+      {/* Performance Chart */}
+      <PortfolioChart history={history} />
 
       {/* Add Form */}
       {showAdd && (
