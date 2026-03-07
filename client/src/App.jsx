@@ -113,8 +113,47 @@ export default function App() {
 
   if (loading && page === 'dashboard') {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
-        <div className="animate-pulse text-lg" style={{ color: 'var(--text-muted)' }}>Loading...</div>
+      <div className="min-h-screen" style={{ background: 'var(--bg-primary)' }}>
+        <div className="max-w-5xl mx-auto">
+          {/* Skeleton header */}
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full animate-pulse" style={{ background: 'var(--bg-hover)' }} />
+              <div className="w-16 h-5 rounded animate-pulse" style={{ background: 'var(--bg-hover)' }} />
+            </div>
+            <div className="w-20 h-4 rounded animate-pulse" style={{ background: 'var(--bg-hover)' }} />
+          </div>
+          {/* Skeleton sentiment bar */}
+          <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 p-4 rounded-xl animate-pulse" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-6 h-6 rounded-full" style={{ background: 'var(--bg-hover)' }} />
+              <div className="w-24 h-4 rounded" style={{ background: 'var(--bg-hover)' }} />
+            </div>
+            <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--bg-hover)' }} />
+          </div>
+          {/* Skeleton market cards */}
+          <div className="px-3 sm:px-4 mt-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="rounded-lg sm:rounded-xl p-3 sm:p-4 animate-pulse" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                  <div className="w-16 h-3 rounded mb-2" style={{ background: 'var(--bg-hover)' }} />
+                  <div className="w-24 h-5 rounded mb-1" style={{ background: 'var(--bg-hover)' }} />
+                  <div className="w-14 h-3 rounded" style={{ background: 'var(--bg-hover)' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Skeleton news */}
+          <div className="p-4 mt-3" style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="w-24 h-4 rounded mb-3 animate-pulse" style={{ background: 'var(--bg-hover)' }} />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2 animate-pulse">
+                <div className="flex-1 h-4 rounded" style={{ background: 'var(--bg-hover)' }} />
+                <div className="w-16 h-3 rounded" style={{ background: 'var(--bg-hover)' }} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
