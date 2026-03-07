@@ -116,10 +116,40 @@ export default function BriefingPage() {
         ) : !briefing ? (
           <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>로딩 중...</div>
         ) : (
-          <article
-            className="briefing-content"
-            dangerouslySetInnerHTML={{ __html: marked.parse(briefing.summary || '') }}
-          />
+          <>
+            {/* Date navigation header */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => {
+                  const idx = dates.indexOf(selected);
+                  if (idx < dates.length - 1) handleSelect(dates[idx + 1]);
+                }}
+                disabled={dates.indexOf(selected) >= dates.length - 1}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-30"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              >
+                ← 이전
+              </button>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                {formatDateFull(selected)}
+              </span>
+              <button
+                onClick={() => {
+                  const idx = dates.indexOf(selected);
+                  if (idx > 0) handleSelect(dates[idx - 1]);
+                }}
+                disabled={dates.indexOf(selected) <= 0}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-30"
+                style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              >
+                다음 →
+              </button>
+            </div>
+            <article
+              className="briefing-content"
+              dangerouslySetInnerHTML={{ __html: marked.parse(briefing.summary || '') }}
+            />
+          </>
         )}
       </main>
     </div>
