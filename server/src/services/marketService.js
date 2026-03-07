@@ -56,9 +56,9 @@ async function fetchBTC() {
   }
 }
 
-async function fetchOil() {
+async function fetchCommodity(category, code) {
   try {
-    const d = await fetchJSON('https://api.stock.naver.com/marketindex/productPrice/OIL_CL');
+    const d = await fetchJSON(`https://api.stock.naver.com/marketindex/${category}/${code}`);
     return {
       value: d.closePrice || '-',
       change: d.compareToPreviousClosePrice || '',
@@ -73,7 +73,7 @@ export async function getMarketData() {
   const cached = getCache('market');
   if (cached) return cached;
 
-  const [kospi, kosdaq, usdkrw, btc, sp500, nasdaq, dow, oil, vix] = await Promise.all([
+  const [kospi, kosdaq, usdkrw, btc, sp500, nasdaq, dow, oil, gold, vix] = await Promise.all([
     fetchIndex('KOSPI'),
     fetchIndex('KOSDAQ'),
     fetchUSDKRW(),
@@ -81,7 +81,8 @@ export async function getMarketData() {
     fetchIndex('.INX'),
     fetchIndex('.IXIC'),
     fetchIndex('.DJI'),
-    fetchOil(),
+    fetchCommodity('energy', 'CLcv1'),
+    fetchCommodity('metals', 'GCcv1'),
     fetchIndex('.VIX')
   ]);
 
@@ -90,6 +91,7 @@ export async function getMarketData() {
     kosdaq: { name: 'KOSDAQ', ...kosdaq },
     usdkrw: { name: 'USD/KRW', ...usdkrw },
     oil: { name: 'WTI', ...oil },
+    gold: { name: 'GOLD', ...gold },
     btc: { name: 'BTC/KRW', ...btc },
     sp500: { name: 'S&P 500', ...sp500 },
     nasdaq: { name: 'NASDAQ', ...nasdaq },
@@ -99,7 +101,7 @@ export async function getMarketData() {
   };
 
   // Record history for sparklines
-  const symbols = { kospi, kosdaq, usdkrw, oil, btc, sp500, nasdaq, dow, vix };
+  const symbols = { kospi, kosdaq, usdkrw, oil, gold, btc, sp500, nasdaq, dow, vix };
   for (const [key, val] of Object.entries(symbols)) {
     const num = parseFloat(String(val.value).replace(/,/g, ''));
     if (!isNaN(num) && num > 0) addHistory(key, num);
@@ -113,7 +115,7 @@ export async function getSparklines() {
   const cached = getCache('sparklines');
   if (cached) return cached;
 
-  const keys = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
+  const keys = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'gold', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
   const result = {};
   for (const key of keys) {
     result[key] = getHistory(key, 48).map(r => r.value);

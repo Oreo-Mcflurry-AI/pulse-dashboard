@@ -1,6 +1,6 @@
 import MarketCard from './MarketCard';
 
-const KEYS = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
+const KEYS = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'gold', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
 
 export default function MarketGrid({ data }) {
   if (!data) return null;
