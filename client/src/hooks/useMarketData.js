@@ -6,11 +6,13 @@ export function useMarketData(interval = 30000) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null); // { message, since }
   const [live, setLive] = useState(false); // true = SSE connected
+  const [latency, setLatency] = useState(null); // ms
   const esRef = useRef(null);
   const failCountRef = useRef(0);
 
   // Fallback: REST polling
   const fetchData = useCallback(async () => {
+    const t0 = performance.now();
     try {
       const [mRes, nRes] = await Promise.all([
         fetch('/api/market'),
@@ -19,6 +21,7 @@ export function useMarketData(interval = 30000) {
       if (!mRes.ok || !nRes.ok) throw new Error(`API ${mRes.status}/${nRes.status}`);
       const mData = await mRes.json();
       const nData = await nRes.json();
+      setLatency(Math.round(performance.now() - t0));
       setMarket(mData);
       setNews(nData);
       setError(null);
@@ -114,5 +117,5 @@ export function useMarketData(interval = 30000) {
     };
   }, [interval, fetchData]);
 
-  return { market, news, loading, live, error, refetch: fetchData };
+  return { market, news, loading, live, error, latency, refetch: fetchData };
 }

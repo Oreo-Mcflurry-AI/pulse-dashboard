@@ -62,7 +62,7 @@ export default function App() {
     window.location.hash === '#briefings' ? 'briefings' :
     window.location.hash === '#portfolio' ? 'portfolio' : 'dashboard'
   );
-  const { market, news, loading, live, error, refetch } = useMarketData(30000);
+  const { market, news, loading, live, error, latency, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
   const [now, setNow] = useState(Date.now());
   const [mktStatus, setMktStatus] = useState(getMarketStatus());
@@ -218,7 +218,7 @@ export default function App() {
             <div style={{ borderTop: '1px solid var(--border)' }} />
             <NewsPanel data={news} />
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
-              <div>{live ? '🟢 실시간 스트리밍' : '30초마다 자동 업데이트'} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}</div>
+              <div>{live ? '🟢 실시간 스트리밍' : '30초마다 자동 업데이트'} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}{latency != null ? ` · ${latency}ms` : ''}</div>
               <div style={{ opacity: 0.6 }}>
                 {mktStatus.krxOpen ? '🟢' : '⚫'} KRX {mktStatus.krxOpen ? '장중' : '장외'}{mktStatus.krxCountdown ? ` (${mktStatus.krxCountdown} 후 개장)` : ' (09:00-15:30)'}
                 {' · '}
