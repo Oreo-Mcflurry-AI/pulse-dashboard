@@ -172,6 +172,8 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ symbol: '', name: '', buyPrice: '', qty: '', memo: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [editMemo, setEditMemo] = useState('');
 
   // Fetch live prices
   const fetchPrices = useCallback(async () => {
@@ -230,6 +232,12 @@ export default function PortfolioPage() {
 
   const removeHolding = (id) => {
     const next = holdings.filter(h => h.id !== id);
+    setHoldings(next);
+    savePortfolio(next);
+  };
+
+  const updateHolding = (id, updates) => {
+    const next = holdings.map(h => h.id === id ? { ...h, ...updates } : h);
     setHoldings(next);
     savePortfolio(next);
   };
@@ -381,7 +389,32 @@ export default function PortfolioPage() {
                     <span className="font-semibold text-sm sm:text-base truncate">{h.name}</span>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{h.symbol}</span>
                   </div>
-                  {h.memo && <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{h.memo}</p>}
+                  {editingId === h.id ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <input
+                        autoFocus
+                        value={editMemo}
+                        onChange={e => setEditMemo(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { updateHolding(h.id, { memo: editMemo }); setEditingId(null); }
+                          if (e.key === 'Escape') setEditingId(null);
+                        }}
+                        className="flex-1 px-1.5 py-0.5 text-xs rounded"
+                        style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
+                        placeholder="메모 입력..."
+                      />
+                      <button onClick={() => { updateHolding(h.id, { memo: editMemo }); setEditingId(null); }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>✓</button>
+                    </div>
+                  ) : (
+                    <p
+                      className="text-xs mt-0.5 cursor-pointer hover:underline"
+                      style={{ color: 'var(--text-muted)' }}
+                      onClick={() => { setEditingId(h.id); setEditMemo(h.memo || ''); }}
+                      title="클릭하여 메모 수정"
+                    >
+                      {h.memo || '메모 추가...'}
+                    </p>
+                  )}
                   {h.buyPrice && (
                     <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
                       매수 {fmt(h.buyPrice)} × {h.qty || '-'}
