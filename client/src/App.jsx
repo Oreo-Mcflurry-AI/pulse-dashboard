@@ -85,6 +85,23 @@ export default function App() {
     window.location.hash = p === 'dashboard' ? '' : p;
   };
 
+  // Keyboard shortcuts: 1=대시보드, 2=브리핑, 3=포트폴리오, r=새로고침
+  useEffect(() => {
+    const onKey = (e) => {
+      // Ignore when typing in inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      switch (e.key) {
+        case '1': navigate('dashboard'); break;
+        case '2': navigate('briefings'); break;
+        case '3': navigate('portfolio'); break;
+        case 'r': if (page === 'dashboard') refetch(); break;
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [page, refetch]);
+
   if (loading && page === 'dashboard') {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
