@@ -1,0 +1,18 @@
+{
+  "name": "Pulse Dashboard",
+  "short_name": "Pulse",
+  "description": "실시간 글로벌 시세 · 뉴스 대시보드",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
