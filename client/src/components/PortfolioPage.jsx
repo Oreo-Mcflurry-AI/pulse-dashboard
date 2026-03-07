@@ -173,7 +173,10 @@ export default function PortfolioPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ symbol: '', name: '', buyPrice: '', qty: '', memo: '' });
   const [editingId, setEditingId] = useState(null);
+  const [editField, setEditField] = useState(null); // 'memo' | 'buyPrice' | 'qty'
   const [editMemo, setEditMemo] = useState('');
+  const [editBuyPrice, setEditBuyPrice] = useState('');
+  const [editQty, setEditQty] = useState('');
 
   // Fetch live prices
   const fetchPrices = useCallback(async () => {
@@ -389,35 +392,79 @@ export default function PortfolioPage() {
                     <span className="font-semibold text-sm sm:text-base truncate">{h.name}</span>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{h.symbol}</span>
                   </div>
-                  {editingId === h.id ? (
+                  {editingId === h.id && editField === 'memo' ? (
                     <div className="flex items-center gap-1 mt-0.5">
                       <input
                         autoFocus
                         value={editMemo}
                         onChange={e => setEditMemo(e.target.value)}
                         onKeyDown={e => {
-                          if (e.key === 'Enter') { updateHolding(h.id, { memo: editMemo }); setEditingId(null); }
-                          if (e.key === 'Escape') setEditingId(null);
+                          if (e.key === 'Enter') { updateHolding(h.id, { memo: editMemo }); setEditingId(null); setEditField(null); }
+                          if (e.key === 'Escape') { setEditingId(null); setEditField(null); }
                         }}
                         className="flex-1 px-1.5 py-0.5 text-xs rounded"
                         style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
                         placeholder="메모 입력..."
                       />
-                      <button onClick={() => { updateHolding(h.id, { memo: editMemo }); setEditingId(null); }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>✓</button>
+                      <button onClick={() => { updateHolding(h.id, { memo: editMemo }); setEditingId(null); setEditField(null); }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>✓</button>
                     </div>
                   ) : (
                     <p
                       className="text-xs mt-0.5 cursor-pointer hover:underline"
                       style={{ color: 'var(--text-muted)' }}
-                      onClick={() => { setEditingId(h.id); setEditMemo(h.memo || ''); }}
+                      onClick={() => { setEditingId(h.id); setEditField('memo'); setEditMemo(h.memo || ''); }}
                       title="클릭하여 메모 수정"
                     >
                       {h.memo || '메모 추가...'}
                     </p>
                   )}
-                  {h.buyPrice && (
-                    <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      매수 {fmt(h.buyPrice)} × {h.qty || '-'}
+                  {editingId === h.id && editField === 'trade' ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <input
+                        autoFocus
+                        type="number"
+                        value={editBuyPrice}
+                        onChange={e => setEditBuyPrice(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            updateHolding(h.id, { buyPrice: editBuyPrice ? parseFloat(editBuyPrice) : null, qty: editQty ? parseFloat(editQty) : null });
+                            setEditingId(null); setEditField(null);
+                          }
+                          if (e.key === 'Escape') { setEditingId(null); setEditField(null); }
+                        }}
+                        className="w-20 px-1.5 py-0.5 text-xs rounded"
+                        style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
+                        placeholder="매수가"
+                      />
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>×</span>
+                      <input
+                        type="number"
+                        value={editQty}
+                        onChange={e => setEditQty(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            updateHolding(h.id, { buyPrice: editBuyPrice ? parseFloat(editBuyPrice) : null, qty: editQty ? parseFloat(editQty) : null });
+                            setEditingId(null); setEditField(null);
+                          }
+                          if (e.key === 'Escape') { setEditingId(null); setEditField(null); }
+                        }}
+                        className="w-16 px-1.5 py-0.5 text-xs rounded"
+                        style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
+                        placeholder="수량"
+                      />
+                      <button onClick={() => {
+                        updateHolding(h.id, { buyPrice: editBuyPrice ? parseFloat(editBuyPrice) : null, qty: editQty ? parseFloat(editQty) : null });
+                        setEditingId(null); setEditField(null);
+                      }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>✓</button>
+                    </div>
+                  ) : (
+                    <p
+                      className="text-xs mt-0.5 cursor-pointer hover:underline"
+                      style={{ color: 'var(--text-muted)' }}
+                      onClick={() => { setEditingId(h.id); setEditField('trade'); setEditBuyPrice(h.buyPrice ? String(h.buyPrice) : ''); setEditQty(h.qty ? String(h.qty) : ''); }}
+                      title="클릭하여 매수가/수량 수정"
+                    >
+                      {h.buyPrice ? `매수 ${fmt(h.buyPrice)} × ${h.qty || '-'}` : '매수가/수량 입력...'}
                     </p>
                   )}
                 </div>
