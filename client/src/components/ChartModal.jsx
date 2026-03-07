@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 function DetailChart({ data = [], color = '#94a3b8', width = 500, height = 200 }) {
   const canvasRef = useRef(null);
@@ -92,6 +92,65 @@ function DetailChart({ data = [], color = '#94a3b8', width = 500, height = 200 }
   return <canvas ref={canvasRef} style={{ width, height }} />;
 }
 
+function CurrencyConverter({ exchangeRate }) {
+  const [usd, setUsd] = useState('1');
+  const [krw, setKrw] = useState(String(Math.round(exchangeRate)));
+  const [direction, setDirection] = useState('usd'); // which field was last edited
+
+  const handleUsd = (v) => {
+    setUsd(v);
+    setDirection('usd');
+    const num = parseFloat(v);
+    if (!isNaN(num)) setKrw(String(Math.round(num * exchangeRate)));
+    else setKrw('');
+  };
+  const handleKrw = (v) => {
+    setKrw(v);
+    setDirection('krw');
+    const num = parseFloat(v);
+    if (!isNaN(num)) setUsd((num / exchangeRate).toFixed(2));
+    else setUsd('');
+  };
+
+  return (
+    <div className="mt-4 rounded-xl p-3" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
+      <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+        💱 환율 계산기
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <label className="text-[10px] block mb-1" style={{ color: 'var(--text-muted)' }}>USD ($)</label>
+          <input
+            type="number"
+            value={usd}
+            onChange={e => handleUsd(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg text-sm font-bold tabular-nums outline-none"
+            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+            onFocus={e => e.target.style.borderColor = 'var(--text-muted)'}
+            onBlur={e => e.target.style.borderColor = 'var(--border)'}
+          />
+        </div>
+        <span className="text-lg mt-4" style={{ color: 'var(--text-muted)' }}>⇄</span>
+        <div className="flex-1">
+          <label className="text-[10px] block mb-1" style={{ color: 'var(--text-muted)' }}>KRW (₩)</label>
+          <input
+            type="number"
+            value={krw}
+            onChange={e => handleKrw(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg text-sm font-bold tabular-nums outline-none"
+            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+            onFocus={e => e.target.style.borderColor = 'var(--text-muted)'}
+            onBlur={e => e.target.style.borderColor = 'var(--border)'}
+          />
+        </div>
+      </div>
+      <div className="text-[10px] mt-1.5 text-right" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+        1 USD = {exchangeRate.toLocaleString('ko-KR')} KRW
+      </div>
+    </div>
+  );
+}
+
 export default function ChartModal({ card, sparkline, onClose }) {
   if (!card) return null;
 
@@ -163,6 +222,12 @@ export default function ChartModal({ card, sparkline, onClose }) {
             ))}
           </div>
         )}
+
+        {/* Currency converter for USD/KRW */}
+        {card.name && card.name.includes('USD/KRW') && (() => {
+          const exRate = parseFloat(String(card.value).replace(/,/g, ''));
+          return !isNaN(exRate) ? <CurrencyConverter exchangeRate={exRate} /> : null;
+        })()}
       </div>
     </div>
   );
