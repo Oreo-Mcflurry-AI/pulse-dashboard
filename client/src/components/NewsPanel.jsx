@@ -47,20 +47,63 @@ function NewsSection({ icon, category, articles }) {
 
 export default function NewsPanel({ data }) {
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
 
   if (!data?.sections?.length) return null;
 
   const categories = ['all', ...data.sections.map(s => s.category)];
-  const filtered = filter === 'all' ? data.sections : data.sections.filter(s => s.category === filter);
+  const q = search.trim().toLowerCase();
+
+  // Apply category filter, then search filter
+  let filtered = filter === 'all' ? data.sections : data.sections.filter(s => s.category === filter);
+  if (q) {
+    filtered = filtered.map(section => ({
+      ...section,
+      articles: section.articles.filter(a =>
+        (a.title || '').toLowerCase().includes(q) ||
+        (a.source || '').toLowerCase().includes(q)
+      ),
+    })).filter(s => s.articles.length > 0);
+  }
+
+  const totalCount = data.sections.reduce((sum, s) => sum + (s.articles?.length || 0), 0);
+  const filteredCount = filtered.reduce((sum, s) => sum + (s.articles?.length || 0), 0);
 
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-3 px-2">
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
         <span className="text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
-          {data.sections.reduce((sum, s) => sum + (s.articles?.length || 0), 0)}건
+          {q ? `${filteredCount}/${totalCount}건` : `${totalCount}건`}
           {data.updatedAt && ` · ${new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`}
         </span>
+      </div>
+      {/* Search bar */}
+      <div className="px-2 mb-2">
+        <div className="relative">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}>🔍</span>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="뉴스 검색..."
+            className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg outline-none transition-colors"
+            style={{
+              background: 'var(--bg-hover)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border)',
+            }}
+            onFocus={e => e.target.style.borderColor = 'var(--text-muted)'}
+            onBlur={e => e.target.style.borderColor = 'var(--border)'}
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs"
+              style={{ color: 'var(--text-muted)' }}
+            >✕</button>
+          )}
+        </div>
       </div>
       {/* Category filter tabs */}
       <div className="flex gap-1 px-2 mb-3 overflow-x-auto scrollbar-hide">
@@ -79,7 +122,11 @@ export default function NewsPanel({ data }) {
           </button>
         ))}
       </div>
-      {filtered.map((section, i) => (
+      {filtered.length === 0 && q ? (
+        <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>
+          '{search}'에 대한 검색 결과가 없습니다
+        </div>
+      ) : filtered.map((section, i) => (
         <NewsSection key={i} {...section} />
       ))}
     </div>
