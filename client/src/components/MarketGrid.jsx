@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import MarketCard from './MarketCard';
+import ChartModal from './ChartModal';
 
 const KEYS = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'gold', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
 
@@ -28,6 +30,8 @@ function exportCSV(data) {
 }
 
 export default function MarketGrid({ data }) {
+  const [modal, setModal] = useState(null);
+
   if (!data) return null;
   const sparklines = data.sparklines || {};
   return (
@@ -44,9 +48,22 @@ export default function MarketGrid({ data }) {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {KEYS.map(key => data[key] && (
-          <MarketCard key={key} {...data[key]} sparkline={sparklines[key]} status={data[key].status} />
+          <MarketCard
+            key={key}
+            {...data[key]}
+            sparkline={sparklines[key]}
+            status={data[key].status}
+            onClick={(card) => setModal({ ...card, sparkline: sparklines[key] })}
+          />
         ))}
       </div>
+      {modal && (
+        <ChartModal
+          card={modal}
+          sparkline={modal.sparkline}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 }

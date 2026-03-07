@@ -1,6 +1,6 @@
 import Sparkline from './Sparkline';
 
-export default function MarketCard({ name, value, changeRate, sparkline, status }) {
+export default function MarketCard({ name, value, changeRate, sparkline, status, onClick }) {
   const rate = parseFloat(changeRate) || 0;
   const isVix = name === 'VIX';
   // VIX: up = fear (red), down = calm (green) — inverted colors
@@ -28,11 +28,12 @@ export default function MarketCard({ name, value, changeRate, sparkline, status 
 
   return (
     <div
-      className="rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors"
+      className="rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors cursor-pointer hover:opacity-90"
       style={{
         background: alertBg || 'var(--bg-card)',
         border: `1px solid ${alertBorder || 'var(--border)'}`,
       }}
+      onClick={() => onClick && onClick({ name, value, changeRate, sparkline, status })}
     >
       <div className="flex justify-between items-start">
         <div className="min-w-0 flex-1">
