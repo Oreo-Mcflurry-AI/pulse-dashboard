@@ -62,7 +62,7 @@ export default function App() {
     window.location.hash === '#briefings' ? 'briefings' :
     window.location.hash === '#portfolio' ? 'portfolio' : 'dashboard'
   );
-  const { market, news, loading, live, refetch } = useMarketData(30000);
+  const { market, news, loading, live, error, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
   const [now, setNow] = useState(Date.now());
   const [mktStatus, setMktStatus] = useState(getMarketStatus());
@@ -181,6 +181,35 @@ export default function App() {
             )}
           </div>
         </header>
+
+        {/* Error banner */}
+        {error && (
+          <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 px-3 py-2 rounded-lg flex items-center justify-between text-xs sm:text-sm"
+            style={{
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#ef4444',
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <span>⚠️</span>
+              <span>서버 연결 실패 — {error.message}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                (마지막 데이터 표시 중)
+              </span>
+            </div>
+            <button
+              onClick={refetch}
+              className="px-2 py-1 rounded text-xs font-medium transition-colors"
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#ef4444',
+              }}
+            >
+              재시도
+            </button>
+          </div>
+        )}
 
         {page === 'dashboard' ? (
           <>

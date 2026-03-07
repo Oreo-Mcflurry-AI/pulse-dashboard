@@ -4,8 +4,10 @@ export function useMarketData(interval = 30000) {
   const [market, setMarket] = useState(null);
   const [news, setNews] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // { message, since }
   const [live, setLive] = useState(false); // true = SSE connected
   const esRef = useRef(null);
+  const failCountRef = useRef(0);
 
   // Fallback: REST polling
   const fetchData = useCallback(async () => {
@@ -14,12 +16,23 @@ export function useMarketData(interval = 30000) {
         fetch('/api/market'),
         fetch('/api/news'),
       ]);
+      if (!mRes.ok || !nRes.ok) throw new Error(`API ${mRes.status}/${nRes.status}`);
       const mData = await mRes.json();
       const nData = await nRes.json();
       setMarket(mData);
       setNews(nData);
+      setError(null);
+      failCountRef.current = 0;
     } catch (e) {
       console.error('Fetch error:', e);
+      failCountRef.current += 1;
+      // Only show error after 2+ consecutive failures (avoid flashing on transient network blips)
+      if (failCountRef.current >= 2) {
+        setError(prev => ({
+          message: e.message || '서버 연결 실패',
+          since: prev?.since || new Date().toISOString(),
+        }));
+      }
     } finally {
       setLoading(false);
     }
@@ -46,6 +59,8 @@ export function useMarketData(interval = 30000) {
 
         es.onopen = () => {
           setLive(true);
+          setError(null);
+          failCountRef.current = 0;
           stopPolling(); // SSE connected, stop polling
         };
 
@@ -55,6 +70,8 @@ export function useMarketData(interval = 30000) {
             if (data.market) setMarket(data.market);
             if (data.news) setNews(data.news);
             setLoading(false);
+            setError(null);
+            failCountRef.current = 0;
           } catch { /* ignore parse errors */ }
         };
 
@@ -97,5 +114,5 @@ export function useMarketData(interval = 30000) {
     };
   }, [interval, fetchData]);
 
-  return { market, news, loading, live, refetch: fetchData };
+  return { market, news, loading, live, error, refetch: fetchData };
 }
