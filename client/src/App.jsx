@@ -71,6 +71,15 @@ export default function App() {
     return () => clearInterval(t);
   }, []);
 
+  // Update browser tab title with live market data
+  useEffect(() => {
+    if (!market?.kospi) { document.title = 'PULSE'; return; }
+    const k = market.kospi;
+    const rate = parseFloat(k.changeRate) || 0;
+    const arrow = rate > 0 ? '▲' : rate < 0 ? '▼' : '';
+    document.title = `${k.value} ${arrow}${k.changeRate || ''} | PULSE`;
+  }, [market]);
+
   const relativeTime = (iso) => {
     if (!iso) return '--:--:--';
     const diff = Math.floor((now - new Date(iso).getTime()) / 1000);
