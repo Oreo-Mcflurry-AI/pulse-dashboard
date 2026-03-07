@@ -49,14 +49,32 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark }) 
                 <span className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{timeAgo(a.pubDate)}</span>
               </div>
             </a>
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleBookmark(a); }}
-              className="shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity text-sm"
-              style={{ color: bmUrls.has(a.url) ? '#f59e0b' : 'var(--text-muted)' }}
-              title={bmUrls.has(a.url) ? '북마크 해제' : '북마크'}
-            >
-              {bmUrls.has(a.url) ? '★' : '☆'}
-            </button>
+            <div className="flex items-center gap-1 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const text = `${a.title}\n${a.url}`;
+                  navigator.clipboard.writeText(text).then(() => {
+                    const btn = e.currentTarget;
+                    btn.textContent = '✓';
+                    setTimeout(() => { btn.textContent = '🔗'; }, 1500);
+                  });
+                }}
+                className="text-xs p-0.5 rounded hover:opacity-70 transition-opacity"
+                style={{ color: 'var(--text-muted)' }}
+                title="링크 복사"
+              >
+                🔗
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleBookmark(a); }}
+                className="text-sm p-0.5 rounded hover:opacity-70 transition-opacity"
+                style={{ color: bmUrls.has(a.url) ? '#f59e0b' : 'var(--text-muted)' }}
+                title={bmUrls.has(a.url) ? '북마크 해제' : '북마크'}
+              >
+                {bmUrls.has(a.url) ? '★' : '☆'}
+              </button>
+            </div>
           </div>
         ))}
       </div>
