@@ -7,6 +7,7 @@ import newsRouter from './routes/news.js';
 import briefingRouter from './routes/briefing.js';
 import streamRouter from './routes/stream.js';
 import healthRouter from './routes/health.js';
+import { startMarketPrefetch } from './services/marketService.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -30,4 +31,6 @@ app.get('/{*path}', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🔴 Pulse Dashboard API running on :${PORT}`);
+  startMarketPrefetch();
+  console.log(`📊 Market prefetch started (30s interval)`);
 });

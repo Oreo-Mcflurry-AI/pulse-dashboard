@@ -1,12 +1,23 @@
 import { getCache, setCache, addHistory, getHistory } from '../db.js';
 
 const CACHE_TTL = 30_000; // 30s
+const FETCH_TIMEOUT = 5_000; // 5s per external call
+
+// In-memory cache for zero-latency responses
+let memCache = { market: null, sparklines: null, updatedAt: 0 };
 
 async function fetchJSON(url) {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0' }
-  });
-  return res.json();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: controller.signal,
+    });
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function fetchIndex(code) {
@@ -69,10 +80,8 @@ async function fetchCommodity(category, code) {
   }
 }
 
-export async function getMarketData() {
-  const cached = getCache('market');
-  if (cached) return cached;
-
+// Core fetch — called by background prefetcher and on-demand fallback
+async function fetchAllMarketData() {
   const [kospi, kosdaq, usdkrw, btc, sp500, nasdaq, dow, oil, gold, vix] = await Promise.all([
     fetchIndex('KOSPI'),
     fetchIndex('KOSDAQ'),
@@ -111,16 +120,64 @@ export async function getMarketData() {
   return data;
 }
 
-export async function getSparklines() {
-  const cached = getCache('sparklines');
-  if (cached) return cached;
-
+function buildSparklines() {
   const keys = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'gold', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
   const result = {};
   for (const key of keys) {
     result[key] = getHistory(key, 48).map(r => r.value);
   }
-
-  setCache('sparklines', result, 30_000);
+  setCache('sparklines', result, CACHE_TTL);
   return result;
+}
+
+// ─── Background prefetcher (stale-while-revalidate) ───
+let prefetchTimer = null;
+let prefetchInFlight = false;
+
+async function prefetch() {
+  if (prefetchInFlight) return;
+  prefetchInFlight = true;
+  try {
+    const market = await fetchAllMarketData();
+    const sparklines = buildSparklines();
+    memCache = { market, sparklines, updatedAt: Date.now() };
+  } catch (e) {
+    // Keep stale memCache on failure; log for debugging
+    console.error('[market prefetch] error:', e.message);
+  } finally {
+    prefetchInFlight = false;
+  }
+}
+
+// Start background loop — runs immediately then every CACHE_TTL
+export function startMarketPrefetch() {
+  prefetch(); // initial fetch
+  prefetchTimer = setInterval(prefetch, CACHE_TTL);
+  return prefetchTimer;
+}
+
+export function stopMarketPrefetch() {
+  if (prefetchTimer) clearInterval(prefetchTimer);
+}
+
+// ─── Public API (near-instant from memory) ───
+export async function getMarketData() {
+  // Return in-memory if fresh
+  if (memCache.market && Date.now() - memCache.updatedAt < CACHE_TTL) {
+    return memCache.market;
+  }
+  // Fallback: SQLite cache
+  const cached = getCache('market');
+  if (cached) return cached;
+  // Cold start: fetch on-demand
+  return fetchAllMarketData();
+}
+
+export async function getSparklines() {
+  if (memCache.sparklines && Date.now() - memCache.updatedAt < CACHE_TTL) {
+    return memCache.sparklines;
+  }
+  const cached = getCache('sparklines');
+  if (cached) return cached;
+  return buildSparklines();
 }
