@@ -29,14 +29,47 @@ function exportCSV(data) {
   URL.revokeObjectURL(url);
 }
 
+const SORT_OPTIONS = [
+  { key: 'default', label: '기본' },
+  { key: 'change_desc', label: '▲ 상승순' },
+  { key: 'change_asc', label: '▼ 하락순' },
+  { key: 'name', label: 'ㄱ-ㄴ 이름순' },
+];
+
+function getSortedKeys(data, sortKey) {
+  const keys = KEYS.filter(k => data[k]);
+  if (sortKey === 'default') return keys;
+  if (sortKey === 'name') return keys.sort((a, b) => (data[a].name || a).localeCompare(data[b].name || b, 'ko'));
+  if (sortKey === 'change_desc') return keys.sort((a, b) => (parseFloat(data[b].changeRate) || 0) - (parseFloat(data[a].changeRate) || 0));
+  if (sortKey === 'change_asc') return keys.sort((a, b) => (parseFloat(data[a].changeRate) || 0) - (parseFloat(data[b].changeRate) || 0));
+  return keys;
+}
+
 export default function MarketGrid({ data }) {
   const [modal, setModal] = useState(null);
+  const [sort, setSort] = useState('default');
 
   if (!data) return null;
   const sparklines = data.sparklines || {};
+  const sortedKeys = getSortedKeys(data, sort);
+
   return (
     <div className="px-3 sm:px-4">
-      <div className="flex justify-end mb-1">
+      <div className="flex justify-end gap-1 mb-1">
+        {SORT_OPTIONS.map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => setSort(opt.key)}
+            className="text-[10px] sm:text-xs px-2 py-1 rounded transition-colors"
+            style={{
+              color: sort === opt.key ? 'var(--bg-primary)' : 'var(--text-muted)',
+              background: sort === opt.key ? 'var(--text-primary)' : 'var(--bg-hover)',
+              fontWeight: sort === opt.key ? 600 : 400,
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
         <button
           onClick={() => exportCSV(data)}
           className="text-[10px] sm:text-xs px-2 py-1 rounded transition-colors"
@@ -47,7 +80,7 @@ export default function MarketGrid({ data }) {
         </button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        {KEYS.map(key => data[key] && (
+        {sortedKeys.map(key => (
           <MarketCard
             key={key}
             {...data[key]}
