@@ -4,6 +4,9 @@ import { getCache, setCache } from '../db.js';
 const parser = new RSSParser();
 const CACHE_TTL = 5 * 60_000; // 5min
 
+// In-memory cache for zero-latency news responses
+let newsMemCache = { data: null, updatedAt: 0 };
+
 const NAVER_CLIENT_ID = '_PxpOWWwOgM_A7Dpa2Wv';
 const NAVER_CLIENT_SECRET = 'Ctk_vonMB6';
 
@@ -49,11 +52,8 @@ async function fetchNaverNews(query, limit = 5) {
   }
 }
 
-export async function getNews() {
-  const cached = getCache('news:briefing');
-  if (cached) return cached;
-
-  // Fetch Google feeds + Naver Korean news in parallel
+// Core fetch — called by background prefetcher
+async function fetchAllNews() {
   const [googleResults, koreaEcon, koreaMarket] = await Promise.all([
     Promise.all(
       FEEDS.map(async (feed) => ({
@@ -66,9 +66,7 @@ export async function getNews() {
     fetchNaverNews('이란 전쟁 중동', 3),
   ]);
 
-  // Combine Korean news
-  const koreaArticles = [...koreaMarket, ...koreaEcon]
-    .slice(0, 6);
+  const koreaArticles = [...koreaMarket, ...koreaEcon].slice(0, 6);
 
   const sections = [
     ...googleResults,
@@ -82,4 +80,44 @@ export async function getNews() {
 
   setCache('news:briefing', data, CACHE_TTL);
   return data;
+}
+
+// ─── Background prefetcher (stale-while-revalidate) ───
+let newsPrefetchTimer = null;
+let newsPrefetchInFlight = false;
+
+async function prefetchNews() {
+  if (newsPrefetchInFlight) return;
+  newsPrefetchInFlight = true;
+  try {
+    const data = await fetchAllNews();
+    newsMemCache = { data, updatedAt: Date.now() };
+  } catch (e) {
+    console.error('[news prefetch] error:', e.message);
+  } finally {
+    newsPrefetchInFlight = false;
+  }
+}
+
+export function startNewsPrefetch() {
+  prefetchNews();
+  newsPrefetchTimer = setInterval(prefetchNews, CACHE_TTL);
+  return newsPrefetchTimer;
+}
+
+export function stopNewsPrefetch() {
+  if (newsPrefetchTimer) clearInterval(newsPrefetchTimer);
+}
+
+// ─── Public API (near-instant from memory) ───
+export async function getNews() {
+  // Return in-memory if fresh
+  if (newsMemCache.data && Date.now() - newsMemCache.updatedAt < CACHE_TTL) {
+    return newsMemCache.data;
+  }
+  // Fallback: SQLite cache
+  const cached = getCache('news:briefing');
+  if (cached) return cached;
+  // Cold start: fetch on-demand
+  return fetchAllNews();
 }
