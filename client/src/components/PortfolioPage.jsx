@@ -166,6 +166,83 @@ function PortfolioChart({ history }) {
   );
 }
 
+const DONUT_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
+
+function AllocationChart({ holdings, prices }) {
+  const canvasRef = useRef(null);
+  const size = 160;
+
+  // Build slices: only holdings with qty and price
+  const slices = holdings
+    .map((h, i) => {
+      const p = prices[h.symbol];
+      if (!p || !h.qty) return null;
+      return { name: h.name || h.symbol, value: p.price * h.qty, color: DONUT_COLORS[i % DONUT_COLORS.length] };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.value - a.value);
+
+  const total = slices.reduce((s, sl) => s + sl.value, 0);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || slices.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, size, size);
+
+    const cx = size / 2, cy = size / 2, r = size / 2 - 4, innerR = r * 0.55;
+    let angle = -Math.PI / 2;
+
+    slices.forEach(sl => {
+      const sliceAngle = (sl.value / total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, angle, angle + sliceAngle);
+      ctx.arc(cx, cy, innerR, angle + sliceAngle, angle, true);
+      ctx.closePath();
+      ctx.fillStyle = sl.color;
+      ctx.fill();
+      angle += sliceAngle;
+    });
+
+    // Center text
+    ctx.fillStyle = 'rgba(128,128,128,0.7)';
+    ctx.font = 'bold 10px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('총 자산', cx, cy - 8);
+    ctx.fillStyle = getComputedStyle(canvas).color || '#fff';
+    ctx.font = 'bold 13px system-ui';
+    const totalStr = total >= 100000000 ? `${(total / 100000000).toFixed(1)}억` : total >= 10000 ? `${(total / 10000).toFixed(0)}만` : fmt(total);
+    ctx.fillText(totalStr, cx, cy + 8);
+  }, [slices, total]);
+
+  if (slices.length === 0) return null;
+
+  return (
+    <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="text-xs font-bold mb-3" style={{ color: 'var(--text-muted)' }}>🥧 자산 비중</div>
+      <div className="flex items-center gap-4">
+        <canvas ref={canvasRef} style={{ width: size, height: size, flexShrink: 0, color: 'var(--text-primary)' }} />
+        <div className="flex-1 space-y-1.5 min-w-0">
+          {slices.map((sl, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs">
+              <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: sl.color }} />
+              <span className="truncate flex-1">{sl.name}</span>
+              <span className="tabular-nums font-medium" style={{ color: 'var(--text-muted)' }}>
+                {(sl.value / total * 100).toFixed(1)}%
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PortfolioPage() {
   const [holdings, setHoldings] = useState(loadPortfolio);
   const [prices, setPrices] = useState({});
@@ -296,6 +373,9 @@ export default function PortfolioPage() {
 
       {/* Performance Chart */}
       <PortfolioChart history={history} />
+
+      {/* Allocation Donut Chart */}
+      <AllocationChart holdings={holdings} prices={prices} />
 
       {/* Add Form */}
       {showAdd && (
