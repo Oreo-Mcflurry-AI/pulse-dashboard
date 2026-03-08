@@ -39,9 +39,10 @@ const SORT_OPTIONS = [
 function getSortedKeys(data, sortKey) {
   const keys = KEYS.filter(k => data[k]);
   if (sortKey === 'default') return keys;
-  if (sortKey === 'name') return keys.sort((a, b) => (data[a].name || a).localeCompare(data[b].name || b, 'ko'));
-  if (sortKey === 'change_desc') return keys.sort((a, b) => (parseFloat(data[b].changeRate) || 0) - (parseFloat(data[a].changeRate) || 0));
-  if (sortKey === 'change_asc') return keys.sort((a, b) => (parseFloat(data[a].changeRate) || 0) - (parseFloat(data[b].changeRate) || 0));
+  // Use spread to avoid mutating the filtered array
+  if (sortKey === 'name') return [...keys].sort((a, b) => (data[a].name || a).localeCompare(data[b].name || b, 'ko'));
+  if (sortKey === 'change_desc') return [...keys].sort((a, b) => (parseFloat(data[b].changeRate) || 0) - (parseFloat(data[a].changeRate) || 0));
+  if (sortKey === 'change_asc') return [...keys].sort((a, b) => (parseFloat(data[a].changeRate) || 0) - (parseFloat(data[b].changeRate) || 0));
   return keys;
 }
 
