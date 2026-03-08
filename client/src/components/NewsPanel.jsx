@@ -63,6 +63,7 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark }) 
                 className="text-xs p-0.5 rounded hover:opacity-70 transition-opacity"
                 style={{ color: 'var(--text-muted)' }}
                 title="링크 복사"
+                aria-label={`${a.title} 링크 복사`}
               >
                 🔗
               </button>
@@ -71,6 +72,8 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark }) 
                 className="text-sm p-0.5 rounded hover:opacity-70 transition-opacity"
                 style={{ color: bmUrls.has(a.url) ? '#f59e0b' : 'var(--text-muted)' }}
                 title={bmUrls.has(a.url) ? '북마크 해제' : '북마크'}
+                aria-label={bmUrls.has(a.url) ? `${a.title} 북마크 해제` : `${a.title} 북마크`}
+                aria-pressed={bmUrls.has(a.url)}
               >
                 {bmUrls.has(a.url) ? '★' : '☆'}
               </button>
@@ -132,10 +135,11 @@ export default function NewsPanel({ data }) {
         <div className="relative">
           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--text-muted)' }}>🔍</span>
           <input
-            type="text"
+            type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="뉴스 검색..."
+            aria-label="뉴스 키워드 검색"
             className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg outline-none transition-colors"
             style={{
               background: 'var(--bg-hover)',
@@ -150,15 +154,18 @@ export default function NewsPanel({ data }) {
               onClick={() => setSearch('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs"
               style={{ color: 'var(--text-muted)' }}
+              aria-label="검색어 지우기"
             >✕</button>
           )}
         </div>
       </div>
       {/* Category filter tabs */}
-      <div className="flex gap-1 px-2 mb-3 overflow-x-auto scrollbar-hide">
+      <div role="tablist" aria-label="뉴스 카테고리" className="flex gap-1 px-2 mb-3 overflow-x-auto scrollbar-hide">
         {categories.map(cat => (
           <button
             key={cat}
+            role="tab"
+            aria-selected={filter === cat}
             onClick={() => setFilter(cat)}
             className="px-2.5 py-1 text-[11px] rounded-full whitespace-nowrap transition-colors"
             style={{

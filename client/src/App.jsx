@@ -160,14 +160,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen transition-colors duration-200" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+      <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
       <div className="max-w-5xl mx-auto">
-        <header className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+        <header role="banner" className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${live ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} title={live ? 'LIVE (실시간)' : 'Polling (30s)'} />
+            <span className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${live ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} title={live ? 'LIVE (실시간)' : 'Polling (30s)'} role="status" aria-label={live ? '실시간 연결됨' : '폴링 모드'} />
             <h1 className="text-base sm:text-xl font-bold tracking-tight cursor-pointer" onClick={() => navigate('dashboard')}>PULSE</h1>
-            <nav className="flex items-center gap-1 ml-2 sm:ml-4">
+            <nav aria-label="주요 메뉴" className="flex items-center gap-1 ml-2 sm:ml-4">
               <button
                 onClick={() => navigate('dashboard')}
+                aria-current={page === 'dashboard' ? 'page' : undefined}
                 className="px-2 py-1 text-xs sm:text-sm rounded-md transition-colors"
                 style={{
                   background: page === 'dashboard' ? 'var(--bg-hover)' : 'transparent',
@@ -179,6 +181,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => navigate('briefings')}
+                aria-current={page === 'briefings' ? 'page' : undefined}
                 className="px-2 py-1 text-xs sm:text-sm rounded-md transition-colors"
                 style={{
                   background: page === 'briefings' ? 'var(--bg-hover)' : 'transparent',
@@ -190,6 +193,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => navigate('portfolio')}
+                aria-current={page === 'portfolio' ? 'page' : undefined}
                 className="px-2 py-1 text-xs sm:text-sm rounded-md transition-colors"
                 style={{
                   background: page === 'portfolio' ? 'var(--bg-hover)' : 'transparent',
@@ -212,6 +216,7 @@ export default function App() {
               className="p-1 transition-colors rounded hover:opacity-80"
               style={{ color: 'var(--text-muted)' }}
               title={dark ? '라이트 모드' : '다크 모드'}
+              aria-label={dark ? '라이트 모드로 전환' : '다크 모드로 전환'}
             >
               {dark ? '☀️' : '🌙'}
             </button>
@@ -221,6 +226,7 @@ export default function App() {
                 className="p-1 transition-colors"
                 style={{ color: 'var(--text-muted)' }}
                 title="새로고침"
+                aria-label="데이터 새로고침"
               >
                 <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -232,7 +238,7 @@ export default function App() {
 
         {/* Error banner */}
         {error && (
-          <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 px-3 py-2 rounded-lg flex items-center justify-between text-xs sm:text-sm"
+          <div role="alert" className="mx-3 sm:mx-4 mt-3 sm:mt-4 px-3 py-2 rounded-lg flex items-center justify-between text-xs sm:text-sm"
             style={{
               background: 'rgba(239, 68, 68, 0.1)',
               border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -259,6 +265,7 @@ export default function App() {
           </div>
         )}
 
+        <main id="main-content">
         {page === 'dashboard' ? (
           <>
             <MarketSentiment data={market} />
@@ -279,6 +286,7 @@ export default function App() {
         ) : (
           <PortfolioPage />
         )}
+        </main>
       </div>
     </div>
   );

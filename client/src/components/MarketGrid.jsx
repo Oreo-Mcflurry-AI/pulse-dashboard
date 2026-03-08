@@ -61,6 +61,8 @@ export default function MarketGrid({ data }) {
           <button
             key={opt.key}
             onClick={() => setSort(opt.key)}
+            aria-label={`${opt.label} 정렬`}
+            aria-pressed={sort === opt.key}
             className="text-[10px] sm:text-xs px-2 py-1 rounded transition-colors"
             style={{
               color: sort === opt.key ? 'var(--bg-primary)' : 'var(--text-muted)',
@@ -76,6 +78,7 @@ export default function MarketGrid({ data }) {
           className="text-[10px] sm:text-xs px-2 py-1 rounded transition-colors"
           style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
           title="시세 CSV 다운로드"
+          aria-label="시세 데이터 CSV 다운로드"
         >
           📥 CSV
         </button>

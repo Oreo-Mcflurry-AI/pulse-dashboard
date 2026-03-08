@@ -29,11 +29,15 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
   return (
     <div
       className="rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors cursor-pointer hover:opacity-90"
+      role="button"
+      tabIndex={0}
+      aria-label={`${name} ${value} ${changeRate || '0%'} 상세 차트 보기`}
       style={{
         background: alertBg || 'var(--bg-card)',
         border: `1px solid ${alertBorder || 'var(--border)'}`,
       }}
       onClick={() => onClick && onClick({ name, value, changeRate, sparkline, status })}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick && onClick({ name, value, changeRate, sparkline, status }); }}}
     >
       <div className="flex justify-between items-start">
         <div className="min-w-0 flex-1">

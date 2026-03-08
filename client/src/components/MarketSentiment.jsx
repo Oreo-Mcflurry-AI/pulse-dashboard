@@ -53,6 +53,9 @@ export default function MarketSentiment({ data }) {
   return (
     <div
       className="mx-3 sm:mx-4 mt-3 sm:mt-4 p-3 sm:p-4 rounded-xl"
+      role="region"
+      aria-label="시장 심리 지표"
+      aria-live="polite"
       style={{
         background: 'var(--bg-secondary)',
         border: `1px solid ${sentiment.color}33`,

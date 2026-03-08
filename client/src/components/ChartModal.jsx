@@ -119,8 +119,9 @@ function CurrencyConverter({ exchangeRate }) {
       </div>
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <label className="text-[10px] block mb-1" style={{ color: 'var(--text-muted)' }}>USD ($)</label>
+          <label htmlFor="conv-usd" className="text-[10px] block mb-1" style={{ color: 'var(--text-muted)' }}>USD ($)</label>
           <input
+            id="conv-usd"
             type="number"
             value={usd}
             onChange={e => handleUsd(e.target.value)}
@@ -132,8 +133,9 @@ function CurrencyConverter({ exchangeRate }) {
         </div>
         <span className="text-lg mt-4" style={{ color: 'var(--text-muted)' }}>⇄</span>
         <div className="flex-1">
-          <label className="text-[10px] block mb-1" style={{ color: 'var(--text-muted)' }}>KRW (₩)</label>
+          <label htmlFor="conv-krw" className="text-[10px] block mb-1" style={{ color: 'var(--text-muted)' }}>KRW (₩)</label>
           <input
+            id="conv-krw"
             type="number"
             value={krw}
             onChange={e => handleKrw(e.target.value)}
@@ -173,6 +175,9 @@ export default function ChartModal({ card, sparkline, onClose }) {
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${card.name} 상세 차트`}
     >
       <div
         className="w-full max-w-lg rounded-2xl p-5 shadow-2xl"
@@ -194,6 +199,7 @@ export default function ChartModal({ card, sparkline, onClose }) {
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
             style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+            aria-label="닫기"
           >
             ✕
           </button>
