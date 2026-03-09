@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 const BOOKMARKS_KEY = 'pulse-news-bookmarks';
 function getBookmarks() {
@@ -85,7 +85,36 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark }) 
   );
 }
 
-export default function NewsPanel({ data }) {
+function RefreshCountdown({ lastFetchAt, interval, live }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (live) return; // SSE mode, no countdown needed
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [live]);
+
+  if (live) return <span style={{ color: '#22c55e' }}>🟢 실시간</span>;
+  if (!lastFetchAt || !interval) return null;
+
+  const elapsed = now - lastFetchAt;
+  const remaining = Math.max(0, Math.ceil((interval - elapsed) / 1000));
+  const pct = Math.min(100, (elapsed / interval) * 100);
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="relative inline-block w-8 h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+        <span className="absolute inset-y-0 left-0 rounded-full transition-all duration-1000" style={{
+          width: `${pct}%`,
+          background: remaining <= 5 ? '#22c55e' : 'var(--text-muted)',
+          opacity: 0.6,
+        }} />
+      </span>
+      <span style={{ color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>{remaining}s</span>
+    </span>
+  );
+}
+
+export default function NewsPanel({ data, lastFetchAt, interval, live }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [bookmarks, setBookmarks] = useState(getBookmarks);
@@ -125,9 +154,11 @@ export default function NewsPanel({ data }) {
     <div className="p-4">
       <div className="flex items-center justify-between mb-3 px-2">
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
-        <span className="text-[10px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+        <span className="text-[10px] flex items-center gap-1.5" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
           {q ? `${filteredCount}/${totalCount}건` : `${totalCount}건`}
           {data.updatedAt && ` · ${new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`}
+          {' · '}
+          <RefreshCountdown lastFetchAt={lastFetchAt} interval={interval} live={live} />
         </span>
       </div>
       {/* Search bar */}

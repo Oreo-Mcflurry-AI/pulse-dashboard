@@ -62,7 +62,7 @@ export default function App() {
     window.location.hash === '#briefings' ? 'briefings' :
     window.location.hash === '#portfolio' ? 'portfolio' : 'dashboard'
   );
-  const { market, news, loading, live, error, latency, refetch } = useMarketData(30000);
+  const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
   const [now, setNow] = useState(Date.now());
   const [mktStatus, setMktStatus] = useState(getMarketStatus());
@@ -271,7 +271,7 @@ export default function App() {
             <MarketSentiment data={market} />
             <MarketGrid data={market} />
             <div style={{ borderTop: '1px solid var(--border)' }} />
-            <NewsPanel data={news} />
+            <NewsPanel data={news} lastFetchAt={lastFetchAt} interval={interval} live={live} />
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
               <div>{live ? '🟢 실시간 스트리밍' : '30초마다 자동 업데이트'} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}{latency != null ? ` · ${latency}ms` : ''}</div>
               <div style={{ opacity: 0.6 }}>

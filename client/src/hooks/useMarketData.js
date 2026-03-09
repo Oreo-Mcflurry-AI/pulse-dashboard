@@ -7,6 +7,7 @@ export function useMarketData(interval = 30000) {
   const [error, setError] = useState(null); // { message, since }
   const [live, setLive] = useState(false); // true = SSE connected
   const [latency, setLatency] = useState(null); // ms
+  const [lastFetchAt, setLastFetchAt] = useState(null); // timestamp of last successful fetch
   const esRef = useRef(null);
   const failCountRef = useRef(0);
 
@@ -25,6 +26,7 @@ export function useMarketData(interval = 30000) {
       setMarket(mData);
       setNews(nData);
       setError(null);
+      setLastFetchAt(Date.now());
       failCountRef.current = 0;
     } catch (e) {
       console.error('Fetch error:', e);
@@ -117,5 +119,5 @@ export function useMarketData(interval = 30000) {
     };
   }, [interval, fetchData]);
 
-  return { market, news, loading, live, error, latency, refetch: fetchData };
+  return { market, news, loading, live, error, latency, lastFetchAt, interval, refetch: fetchData };
 }
