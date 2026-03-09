@@ -6,6 +6,58 @@ function getBookmarks() {
 }
 function saveBookmarks(bm) { localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bm)); }
 
+// Source credibility badges
+const SOURCE_TIERS = {
+  // Tier 1: Major wire services & top-tier
+  'Reuters': { tier: 1, label: '📡 통신사', color: '#f97316' },
+  'AP News': { tier: 1, label: '📡 통신사', color: '#f97316' },
+  'The Associated Press': { tier: 1, label: '📡 통신사', color: '#f97316' },
+  'Bloomberg': { tier: 1, label: '💎 프리미엄', color: '#8b5cf6' },
+  'Financial Times': { tier: 1, label: '💎 프리미엄', color: '#8b5cf6' },
+  'The Wall Street Journal': { tier: 1, label: '💎 프리미엄', color: '#8b5cf6' },
+  'The Economist': { tier: 1, label: '💎 프리미엄', color: '#8b5cf6' },
+  // Tier 2: Major national outlets
+  'BBC': { tier: 2, label: '📺 공영', color: '#3b82f6' },
+  'BBC News': { tier: 2, label: '📺 공영', color: '#3b82f6' },
+  'CNN': { tier: 2, label: '📺 메이저', color: '#3b82f6' },
+  'The New York Times': { tier: 2, label: '📰 메이저', color: '#3b82f6' },
+  'The Washington Post': { tier: 2, label: '📰 메이저', color: '#3b82f6' },
+  'NPR': { tier: 2, label: '📻 공영', color: '#3b82f6' },
+  'CNBC': { tier: 2, label: '📺 경제', color: '#3b82f6' },
+  'The Guardian': { tier: 2, label: '📰 메이저', color: '#3b82f6' },
+  'Al Jazeera': { tier: 2, label: '📺 메이저', color: '#3b82f6' },
+  // Korean: Tier 1
+  'news.jtbc.co.kr': { tier: 1, label: '📺', color: '#3b82f6' },
+  'n.news.naver.com': { tier: 2, label: '🔗 네이버', color: '#22c55e' },
+  'news.sbs.co.kr': { tier: 2, label: '📺', color: '#3b82f6' },
+  'news.kbs.co.kr': { tier: 2, label: '📺 공영', color: '#3b82f6' },
+  'news.mbc.co.kr': { tier: 2, label: '📺 공영', color: '#3b82f6' },
+  'chosun.com': { tier: 2, label: '📰 종합', color: '#3b82f6' },
+  'joongang.co.kr': { tier: 2, label: '📰 종합', color: '#3b82f6' },
+  'hani.co.kr': { tier: 2, label: '📰 종합', color: '#3b82f6' },
+  'mk.co.kr': { tier: 2, label: '📊 경제', color: '#f59e0b' },
+  'hankyung.com': { tier: 2, label: '📊 경제', color: '#f59e0b' },
+  'sedaily.com': { tier: 2, label: '📊 경제', color: '#f59e0b' },
+  'mt.co.kr': { tier: 2, label: '📊 경제', color: '#f59e0b' },
+  'edaily.co.kr': { tier: 2, label: '📊 경제', color: '#f59e0b' },
+  'yonhapnews.co.kr': { tier: 1, label: '📡 통신사', color: '#f97316' },
+  'newsis.com': { tier: 2, label: '📡 통신사', color: '#f97316' },
+};
+
+function getSourceBadge(source) {
+  if (!source) return null;
+  // Direct match
+  if (SOURCE_TIERS[source]) return SOURCE_TIERS[source];
+  // Partial match (for hostnames like "news.jtbc.co.kr" matching against "jtbc")
+  const srcLower = source.toLowerCase();
+  for (const [key, val] of Object.entries(SOURCE_TIERS)) {
+    if (srcLower.includes(key.toLowerCase()) || key.toLowerCase().includes(srcLower)) {
+      return val;
+    }
+  }
+  return null;
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -45,7 +97,20 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark }) 
                 {a.title}
               </span>
               <div className="flex flex-col items-end shrink-0">
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.source}</span>
+                <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
+                  {a.source}
+                  {(() => {
+                    const badge = getSourceBadge(a.source);
+                    if (!badge) return null;
+                    return (
+                      <span className="text-[8px] px-1 py-0.5 rounded-sm font-medium whitespace-nowrap" style={{
+                        background: `${badge.color}18`,
+                        color: badge.color,
+                        border: `1px solid ${badge.color}30`,
+                      }}>{badge.label}</span>
+                    );
+                  })()}
+                </span>
                 <span className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{timeAgo(a.pubDate)}</span>
               </div>
             </a>
