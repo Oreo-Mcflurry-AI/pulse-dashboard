@@ -1,6 +1,6 @@
 import Sparkline from './Sparkline';
 
-export default function MarketCard({ name, value, changeRate, sparkline, status, onClick }) {
+export default function MarketCard({ name, value, changeRate, sparkline, status, week52, onClick }) {
   const rate = parseFloat(changeRate) || 0;
   const isVix = name === 'VIX';
   // VIX: up = fear (red), down = calm (green) — inverted colors
@@ -66,6 +66,37 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           <Sparkline data={sparkline} color={sparkColor} width={40} height={16} />
         </div>
       </div>
+      {week52 && week52.high != null && week52.low != null && (() => {
+        const current = parseFloat(String(value).replace(/,/g, ''));
+        const range = week52.high - week52.low;
+        const pct = range > 0 ? Math.max(0, Math.min(100, ((current - week52.low) / range) * 100)) : 50;
+        const lowStr = week52.low >= 1000 ? week52.low.toLocaleString('en-US', { maximumFractionDigits: 0 }) : week52.low.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        const highStr = week52.high >= 1000 ? week52.high.toLocaleString('en-US', { maximumFractionDigits: 0 }) : week52.high.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        return (
+          <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[8px] sm:text-[9px]" style={{ color: 'var(--text-muted)' }}>52주 최저</span>
+              <span className="text-[8px] sm:text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>52W Range</span>
+              <span className="text-[8px] sm:text-[9px]" style={{ color: 'var(--text-muted)' }}>52주 최고</span>
+            </div>
+            <div className="relative h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+              <div className="absolute inset-y-0 left-0 rounded-full" style={{
+                width: `${pct}%`,
+                background: `linear-gradient(90deg, var(--accent-down), ${pct > 50 ? 'var(--accent-up)' : 'var(--text-muted)'})`,
+              }} />
+              <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border border-white dark:border-gray-800" style={{
+                left: `calc(${pct}% - 4px)`,
+                background: sparkColor,
+                boxShadow: '0 0 3px rgba(0,0,0,0.3)',
+              }} />
+            </div>
+            <div className="flex justify-between mt-0.5">
+              <span className="text-[8px] sm:text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{lowStr}</span>
+              <span className="text-[8px] sm:text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{highStr}</span>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -80,6 +80,75 @@ async function fetchCommodity(category, code) {
   }
 }
 
+// ─── 52-week high/low ───
+const WEEK52_TTL = 6 * 60 * 60 * 1000; // 6h — changes slowly
+let week52Cache = { data: null, updatedAt: 0 };
+
+async function fetch52WeekFromNaver(code) {
+  // US indices: stockItemTotalInfos in basic endpoint
+  try {
+    const d = await fetchJSON(`https://api.stock.naver.com/index/${code}/basic`);
+    const infos = d.stockItemTotalInfos || [];
+    const high = infos.find(i => i.code === 'highPriceOf52Weeks');
+    const low = infos.find(i => i.code === 'lowPriceOf52Weeks');
+    if (high && low) {
+      return {
+        high: parseFloat(String(high.value).replace(/,/g, '')),
+        low: parseFloat(String(low.value).replace(/,/g, '')),
+        highDate: high.keyDesc || '',
+        lowDate: low.keyDesc || ''
+      };
+    }
+  } catch {}
+  return null;
+}
+
+async function fetch52WeekFromSiseJson(symbol) {
+  // Domestic indices: siseJson endpoint (1 year daily data)
+  try {
+    const now = new Date();
+    const end = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const start = new Date(now - 365 * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
+    const url = `https://api.finance.naver.com/siseJson.naver?symbol=${symbol}&requestType=1&startTime=${start}&endTime=${end}&timeframe=day`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    });
+    const text = await res.text();
+    // Parse JS array rows: ["20250310", open, high, low, close, volume, ...]
+    const rows = text.match(/\["20\d{6}",\s*[\d.]+,\s*[\d.]+,\s*[\d.]+,\s*[\d.]+/g);
+    if (!rows || rows.length === 0) return null;
+    let high = -Infinity, low = Infinity, highDate = '', lowDate = '';
+    for (const row of rows) {
+      const parts = row.replace(/[[\]"]/g, '').split(',').map(s => s.trim());
+      const date = parts[0];
+      const h = parseFloat(parts[2]);
+      const l = parseFloat(parts[3]);
+      if (h > high) { high = h; highDate = `${date.slice(0,4)}.${date.slice(4,6)}.${date.slice(6,8)}.`; }
+      if (l < low) { low = l; lowDate = `${date.slice(0,4)}.${date.slice(4,6)}.${date.slice(6,8)}.`; }
+    }
+    return { high, low, highDate, lowDate };
+  } catch {}
+  return null;
+}
+
+async function fetchAll52WeekData() {
+  if (week52Cache.data && Date.now() - week52Cache.updatedAt < WEEK52_TTL) {
+    return week52Cache.data;
+  }
+  const [kospi, kosdaq, sp500, nasdaq, dow, vix] = await Promise.all([
+    fetch52WeekFromSiseJson('KOSPI'),
+    fetch52WeekFromSiseJson('KOSDAQ'),
+    fetch52WeekFromNaver('.INX'),
+    fetch52WeekFromNaver('.IXIC'),
+    fetch52WeekFromNaver('.DJI'),
+    fetch52WeekFromNaver('.VIX'),
+  ]);
+  const data = { kospi, kosdaq, sp500, nasdaq, dow, vix };
+  week52Cache = { data, updatedAt: Date.now() };
+  return data;
+}
+
 // Core fetch — called by background prefetcher and on-demand fallback
 async function fetchAllMarketData() {
   const [kospi, kosdaq, usdkrw, btc, sp500, nasdaq, dow, oil, gold, vix] = await Promise.all([
@@ -140,7 +209,9 @@ async function prefetch() {
   try {
     const market = await fetchAllMarketData();
     const sparklines = buildSparklines();
-    memCache = { market, sparklines, updatedAt: Date.now() };
+    // 52-week data (fetched less frequently, has its own cache)
+    const week52 = await fetchAll52WeekData().catch(() => null);
+    memCache = { market, sparklines, week52, updatedAt: Date.now() };
   } catch (e) {
     // Keep stale memCache on failure; log for debugging
     console.error('[market prefetch] error:', e.message);
@@ -171,6 +242,11 @@ export async function getMarketData() {
   if (cached) return cached;
   // Cold start: fetch on-demand
   return fetchAllMarketData();
+}
+
+export async function getWeek52() {
+  if (memCache.week52) return memCache.week52;
+  return fetchAll52WeekData().catch(() => ({}));
 }
 
 export async function getSparklines() {

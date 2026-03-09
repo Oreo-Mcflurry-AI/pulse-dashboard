@@ -52,6 +52,7 @@ export default function MarketGrid({ data }) {
 
   if (!data) return null;
   const sparklines = data.sparklines || {};
+  const week52 = data.week52 || {};
   const sortedKeys = getSortedKeys(data, sort);
 
   return (
@@ -90,7 +91,8 @@ export default function MarketGrid({ data }) {
             {...data[key]}
             sparkline={sparklines[key]}
             status={data[key].status}
-            onClick={(card) => setModal({ ...card, sparkline: sparklines[key] })}
+            week52={week52[key]}
+            onClick={(card) => setModal({ ...card, sparkline: sparklines[key], week52: week52[key] })}
           />
         ))}
       </div>
