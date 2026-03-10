@@ -6,6 +6,22 @@ function getBookmarks() {
 }
 function saveBookmarks(bm) { localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bm)); }
 
+const READ_KEY = 'pulse-news-read';
+const READ_MAX = 500; // keep last 500 read URLs
+function getReadUrls() {
+  try { return JSON.parse(localStorage.getItem(READ_KEY) || '[]'); } catch { return []; }
+}
+function markAsRead(url) {
+  const read = getReadUrls();
+  if (read.includes(url)) return read;
+  const next = [...read, url].slice(-READ_MAX);
+  localStorage.setItem(READ_KEY, JSON.stringify(next));
+  return next;
+}
+function clearAllRead() {
+  localStorage.removeItem(READ_KEY);
+}
+
 // Source credibility badges
 const SOURCE_TIERS = {
   // Tier 1: Major wire services & top-tier
@@ -68,18 +84,22 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}일 전`;
 }
 
-function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark }) {
+function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, readUrls, onMarkRead }) {
   const bmUrls = new Set(bookmarks.map(b => b.url));
+  const readSet = new Set(readUrls || []);
   return (
     <div className="mb-4">
       <h3 className="text-xs font-bold uppercase tracking-wider px-3 mb-2" style={{ color: 'var(--text-muted)' }}>
         {icon} {category}
       </h3>
       <div className="space-y-0.5">
-        {articles.map((a, i) => (
+        {articles.map((a, i) => {
+          const isRead = readSet.has(a.url);
+          return (
           <div
             key={i}
             className="flex items-start gap-2 px-3 py-1.5 rounded-lg transition-colors group"
+            style={{ opacity: isRead ? 0.55 : 1 }}
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
@@ -88,8 +108,9 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark }) 
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-start gap-3 flex-1 min-w-0"
+              onClick={() => onMarkRead && onMarkRead(a.url)}
             >
-              <span className="text-sm leading-snug flex-1 group-hover:text-blue-500 dark:group-hover:text-blue-400">
+              <span className={`text-sm leading-snug flex-1 group-hover:text-blue-500 dark:group-hover:text-blue-400 ${isRead ? 'line-through decoration-1' : ''}`} style={isRead ? { textDecorationColor: 'var(--text-muted)' } : {}}>
                 {a.pubDate && (Date.now() - new Date(a.pubDate).getTime()) < 3600000 && (
                   <span className="inline-block text-[9px] px-1 py-0.5 mr-1 rounded font-bold align-middle"
                     style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>속보</span>
@@ -144,7 +165,8 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark }) 
               </button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -183,6 +205,16 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [bookmarks, setBookmarks] = useState(getBookmarks);
+  const [readUrls, setReadUrls] = useState(getReadUrls);
+
+  const handleMarkRead = useCallback((url) => {
+    setReadUrls(markAsRead(url));
+  }, []);
+
+  const handleClearRead = useCallback(() => {
+    clearAllRead();
+    setReadUrls([]);
+  }, []);
 
   const toggleBookmark = useCallback((article) => {
     setBookmarks(prev => {
@@ -220,6 +252,16 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
       <div className="flex items-center justify-between mb-3 px-2">
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
         <span className="text-[10px] flex items-center gap-1.5" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
+          {readUrls.length > 0 && (
+            <button
+              onClick={handleClearRead}
+              className="px-1.5 py-0.5 rounded hover:opacity-70 transition-opacity"
+              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              title="읽음 표시 초기화"
+            >
+              👁 {readUrls.length}읽음 ✕
+            </button>
+          )}
           {q ? `${filteredCount}/${totalCount}건` : `${totalCount}건`}
           {data.updatedAt && ` · ${new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`}
           {' · '}
@@ -286,6 +328,8 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
             articles={q ? bookmarks.filter(a => (a.title || '').toLowerCase().includes(q) || (a.source || '').toLowerCase().includes(q)) : bookmarks}
             bookmarks={bookmarks}
             onToggleBookmark={toggleBookmark}
+            readUrls={readUrls}
+            onMarkRead={handleMarkRead}
           />
         )
       ) : filtered.length === 0 && q ? (
@@ -293,7 +337,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
           '{search}'에 대한 검색 결과가 없습니다
         </div>
       ) : filtered.map((section, i) => (
-        <NewsSection key={i} {...section} bookmarks={bookmarks} onToggleBookmark={toggleBookmark} />
+        <NewsSection key={i} {...section} bookmarks={bookmarks} onToggleBookmark={toggleBookmark} readUrls={readUrls} onMarkRead={handleMarkRead} />
       ))}
     </div>
   );
