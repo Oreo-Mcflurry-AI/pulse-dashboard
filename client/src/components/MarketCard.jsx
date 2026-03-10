@@ -1,6 +1,6 @@
 import Sparkline from './Sparkline';
 
-export default function MarketCard({ name, value, changeRate, sparkline, status, week52, onClick }) {
+export default function MarketCard({ name, value, changeRate, sparkline, status, week52, relatedNews, onClick }) {
   const rate = parseFloat(changeRate) || 0;
   const isVix = name === 'VIX';
   // VIX: up = fear (red), down = calm (green) — inverted colors
@@ -97,6 +97,21 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           </div>
         );
       })()}
+      {relatedNews && (
+        <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid var(--border)' }}>
+          <a
+            href={relatedNews.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[9px] sm:text-[10px] leading-tight block truncate hover:underline"
+            style={{ color: 'var(--text-muted)' }}
+            title={relatedNews.title}
+            onClick={(e) => e.stopPropagation()}
+          >
+            📰 {relatedNews.title}
+          </a>
+        </div>
+      )}
     </div>
   );
 }

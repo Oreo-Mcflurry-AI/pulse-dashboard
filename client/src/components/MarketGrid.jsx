@@ -1,8 +1,37 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import MarketCard from './MarketCard';
 import ChartModal from './ChartModal';
 
 const KEYS = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'gold', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
+
+// Keyword mapping for matching news to market cards
+const MARKET_KEYWORDS = {
+  kospi: ['코스피', 'KOSPI', '한국 증시', '국내 증시'],
+  kosdaq: ['코스닥', 'KOSDAQ'],
+  usdkrw: ['환율', '달러', 'USD', '원화', '원/달러'],
+  oil: ['유가', '원유', 'WTI', 'crude', 'oil', 'OPEC'],
+  gold: ['금값', '금 가격', 'gold', '금시세'],
+  btc: ['비트코인', 'BTC', 'Bitcoin', '가상화폐', '암호화폐'],
+  sp500: ['S&P', 'S&P500', '미국 증시', '월가', 'Wall Street'],
+  nasdaq: ['나스닥', 'NASDAQ', 'Nasdaq', '기술주'],
+  dow: ['다우', 'DOW', 'Dow Jones'],
+  vix: ['VIX', '공포지수', '변동성'],
+};
+
+function findRelatedNews(key, news) {
+  if (!news?.sections?.length) return null;
+  const keywords = MARKET_KEYWORDS[key] || [];
+  if (keywords.length === 0) return null;
+  for (const section of news.sections) {
+    for (const article of (section.articles || [])) {
+      const title = (article.title || '').toLowerCase();
+      if (keywords.some(kw => title.toLowerCase().includes(kw.toLowerCase()))) {
+        return article;
+      }
+    }
+  }
+  return null;
+}
 
 function exportCSV(data) {
   const rows = [['종목', '현재가', '변동', '변동률', '장상태', '시각']];
@@ -46,9 +75,18 @@ function getSortedKeys(data, sortKey) {
   return keys;
 }
 
-export default function MarketGrid({ data }) {
+export default function MarketGrid({ data, news }) {
   const [modal, setModal] = useState(null);
   const [sort, setSort] = useState('default');
+
+  const relatedNews = useMemo(() => {
+    if (!news?.sections?.length) return {};
+    const result = {};
+    for (const key of KEYS) {
+      result[key] = findRelatedNews(key, news);
+    }
+    return result;
+  }, [news]);
 
   if (!data) return null;
   const sparklines = data.sparklines || {};
@@ -92,6 +130,7 @@ export default function MarketGrid({ data }) {
             sparkline={sparklines[key]}
             status={data[key].status}
             week52={week52[key]}
+            relatedNews={relatedNews[key]}
             onClick={(card) => setModal({ ...card, sparkline: sparklines[key], week52: week52[key] })}
           />
         ))}

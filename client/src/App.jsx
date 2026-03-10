@@ -269,7 +269,7 @@ export default function App() {
         {page === 'dashboard' ? (
           <>
             <MarketSentiment data={market} />
-            <MarketGrid data={market} />
+            <MarketGrid data={market} news={news} />
             <div style={{ borderTop: '1px solid var(--border)' }} />
             <NewsPanel data={news} lastFetchAt={lastFetchAt} interval={interval} live={live} />
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
