@@ -248,12 +248,15 @@ export default function PortfolioPage() {
   const [prices, setPrices] = useState({});
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ symbol: '', name: '', buyPrice: '', qty: '', memo: '' });
+  const [form, setForm] = useState({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above' });
   const [editingId, setEditingId] = useState(null);
-  const [editField, setEditField] = useState(null); // 'memo' | 'buyPrice' | 'qty'
+  const [editField, setEditField] = useState(null); // 'memo' | 'buyPrice' | 'qty' | 'target'
   const [editMemo, setEditMemo] = useState('');
   const [editBuyPrice, setEditBuyPrice] = useState('');
   const [editQty, setEditQty] = useState('');
+  const [editTargetPrice, setEditTargetPrice] = useState('');
+  const [editTargetDir, setEditTargetDir] = useState('above'); // 'above' | 'below'
+  const notifiedRef = useRef(new Set()); // track notified target alerts
 
   // Fetch live prices
   const fetchPrices = useCallback(async () => {
@@ -263,24 +266,20 @@ export default function PortfolioPage() {
       const res = await fetch('/api/market');
       const data = await res.json();
       const p = {};
-      // Map market data to symbols
-      if (data.indices) {
-        for (const idx of data.indices) {
-          if (idx.code === 'KOSPI') p['KOSPI'] = { price: parseFloat(idx.price?.replace(/,/g, '')), change: parseFloat(idx.change), pct: parseFloat(idx.pct) };
-          if (idx.code === 'KOSDAQ') p['KOSDAQ'] = { price: parseFloat(idx.price?.replace(/,/g, '')), change: parseFloat(idx.change), pct: parseFloat(idx.pct) };
-        }
-      }
-      if (data.fx) {
-        for (const f of data.fx) {
-          if (f.code === 'USD/KRW' || f.code === 'FX_USDKRW') p['USD/KRW'] = { price: parseFloat(f.price?.replace(/,/g, '')), change: parseFloat(f.change), pct: parseFloat(f.pct) };
-          if (f.code === 'JPY/KRW' || f.code === 'FX_JPYKRW') p['JPY/KRW'] = { price: parseFloat(f.price?.replace(/,/g, '')), change: parseFloat(f.change), pct: parseFloat(f.pct) };
-        }
-      }
-      if (data.crypto) {
-        for (const c of data.crypto) {
-          if (c.code === 'BTC' || c.code === 'KRW-BTC') p['BTC'] = { price: parseFloat(c.price?.replace(/,/g, '')), change: parseFloat(c.change), pct: parseFloat(c.pct) };
-          if (c.code === 'ETH' || c.code === 'KRW-ETH') p['ETH'] = { price: parseFloat(c.price?.replace(/,/g, '')), change: parseFloat(c.change), pct: parseFloat(c.pct) };
-        }
+      // Map flat market API response to portfolio symbols
+      const symbolMap = {
+        'KOSPI': 'kospi', 'KOSDAQ': 'kosdaq',
+        'USD/KRW': 'usdkrw', 'JPY/KRW': 'jpykrw',
+        'BTC': 'btc', 'ETH': 'eth',
+        'S&P 500': 'sp500', 'NASDAQ': 'nasdaq', 'DOW': 'dow',
+        'WTI': 'oil', 'GOLD': 'gold', 'VIX': 'vix',
+      };
+      for (const [symbol, key] of Object.entries(symbolMap)) {
+        const d = data[key];
+        if (!d) continue;
+        const price = parseFloat(String(d.value).replace(/,/g, ''));
+        const pct = parseFloat(d.changeRate) || 0;
+        if (!isNaN(price)) p[symbol] = { price, change: parseFloat(d.change) || 0, pct };
       }
       setPrices(p);
     } catch (e) {
@@ -301,12 +300,14 @@ export default function PortfolioPage() {
       buyPrice: form.buyPrice ? parseFloat(form.buyPrice) : null,
       qty: form.qty ? parseFloat(form.qty) : null,
       memo: form.memo || '',
+      targetPrice: form.targetPrice ? parseFloat(form.targetPrice) : null,
+      targetDir: form.targetDir || 'above',
       addedAt: new Date().toISOString(),
     };
     const next = [...holdings, item];
     setHoldings(next);
     savePortfolio(next);
-    setForm({ symbol: '', name: '', buyPrice: '', qty: '', memo: '' });
+    setForm({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above' });
     setShowAdd(false);
   };
 
@@ -325,6 +326,32 @@ export default function PortfolioPage() {
   const selectPreset = (preset) => {
     setForm({ ...form, symbol: preset.symbol, name: preset.name });
   };
+
+  // Check target price alerts
+  useEffect(() => {
+    if (Object.keys(prices).length === 0) return;
+    holdings.forEach(h => {
+      if (!h.targetPrice || !prices[h.symbol]) return;
+      const current = prices[h.symbol].price;
+      const target = h.targetPrice;
+      const dir = h.targetDir || 'above';
+      const hit = dir === 'above' ? current >= target : current <= target;
+      const key = `${h.id}_${target}_${dir}`;
+      if (hit && !notifiedRef.current.has(key)) {
+        notifiedRef.current.add(key);
+        const label = dir === 'above' ? '이상' : '이하';
+        // Browser notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(`🎯 ${h.name} 목표가 도달!`, {
+            body: `현재가 ${fmt(current)} → 목표 ${fmt(target)} ${label}`,
+            icon: '/favicon.ico',
+          });
+        } else if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+      }
+    });
+  }, [prices, holdings]);
 
   // Calculate P&L
   const totalPnl = holdings.reduce((sum, h) => {
@@ -424,6 +451,25 @@ export default function PortfolioPage() {
               type="number"
               value={form.qty}
               onChange={e => setForm({ ...form, qty: e.target.value })}
+              className="px-2 py-1.5 text-xs sm:text-sm rounded-md"
+              style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+            />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+            <select
+              value={form.targetDir}
+              onChange={e => setForm({ ...form, targetDir: e.target.value })}
+              className="px-2 py-1.5 text-xs sm:text-sm rounded-md"
+              style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+            >
+              <option value="above">🎯 목표 ↑ 이상</option>
+              <option value="below">🎯 목표 ↓ 이하</option>
+            </select>
+            <input
+              placeholder="목표가 (선택)"
+              type="number"
+              value={form.targetPrice}
+              onChange={e => setForm({ ...form, targetPrice: e.target.value })}
               className="px-2 py-1.5 text-xs sm:text-sm rounded-md"
               style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
             />
@@ -545,6 +591,50 @@ export default function PortfolioPage() {
                       title="클릭하여 매수가/수량 수정"
                     >
                       {h.buyPrice ? `매수 ${fmt(h.buyPrice)} × ${h.qty || '-'}` : '매수가/수량 입력...'}
+                    </p>
+                  )}
+                  {/* Target Price */}
+                  {editingId === h.id && editField === 'target' ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <select
+                        value={editTargetDir}
+                        onChange={e => setEditTargetDir(e.target.value)}
+                        className="px-1 py-0.5 text-xs rounded"
+                        style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
+                      >
+                        <option value="above">↑ 이상</option>
+                        <option value="below">↓ 이하</option>
+                      </select>
+                      <input
+                        autoFocus
+                        type="number"
+                        value={editTargetPrice}
+                        onChange={e => setEditTargetPrice(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { updateHolding(h.id, { targetPrice: editTargetPrice ? parseFloat(editTargetPrice) : null, targetDir: editTargetDir }); setEditingId(null); setEditField(null); }
+                          if (e.key === 'Escape') { setEditingId(null); setEditField(null); }
+                        }}
+                        className="w-24 px-1.5 py-0.5 text-xs rounded"
+                        style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
+                        placeholder="목표가"
+                      />
+                      <button onClick={() => { updateHolding(h.id, { targetPrice: editTargetPrice ? parseFloat(editTargetPrice) : null, targetDir: editTargetDir }); setEditingId(null); setEditField(null); }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>✓</button>
+                      {h.targetPrice && <button onClick={() => { updateHolding(h.id, { targetPrice: null, targetDir: null }); setEditingId(null); setEditField(null); }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(220,38,38,0.15)', color: '#ef4444' }}>삭제</button>}
+                    </div>
+                  ) : (
+                    <p
+                      className="text-xs mt-0.5 cursor-pointer hover:underline"
+                      style={{ color: h.targetPrice ? ((() => { const cur = prices[h.symbol]?.price; const hit = h.targetDir === 'below' ? cur <= h.targetPrice : cur >= h.targetPrice; return hit ? '#22c55e' : '#f59e0b'; })()) : 'var(--text-muted)' }}
+                      onClick={() => { setEditingId(h.id); setEditField('target'); setEditTargetPrice(h.targetPrice ? String(h.targetPrice) : ''); setEditTargetDir(h.targetDir || 'above'); }}
+                      title="클릭하여 목표가 설정"
+                    >
+                      {h.targetPrice ? (() => {
+                        const cur = prices[h.symbol]?.price;
+                        const dir = h.targetDir || 'above';
+                        const hit = cur && (dir === 'above' ? cur >= h.targetPrice : cur <= h.targetPrice);
+                        const label = dir === 'above' ? '↑' : '↓';
+                        return `🎯 목표 ${fmt(h.targetPrice)} ${label} ${hit ? '✅ 도달!' : `(${cur ? ((h.targetPrice - cur) / cur * 100).toFixed(1) : '?'}%)`}`;
+                      })() : '🎯 목표가 설정...'}
                     </p>
                   )}
                 </div>
