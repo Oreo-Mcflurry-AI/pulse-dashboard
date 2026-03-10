@@ -257,6 +257,8 @@ export default function PortfolioPage() {
   const [editTargetPrice, setEditTargetPrice] = useState('');
   const [editTargetDir, setEditTargetDir] = useState('above'); // 'above' | 'below'
   const notifiedRef = useRef(new Set()); // track notified target alerts
+  const [dragIdx, setDragIdx] = useState(null);
+  const [dragOverIdx, setDragOverIdx] = useState(null);
 
   // Fetch live prices
   const fetchPrices = useCallback(async () => {
@@ -326,6 +328,30 @@ export default function PortfolioPage() {
   const selectPreset = (preset) => {
     setForm({ ...form, symbol: preset.symbol, name: preset.name });
   };
+
+  // Drag-to-reorder handlers
+  const handleDragStart = (idx) => (e) => {
+    setDragIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', idx);
+  };
+  const handleDragOver = (idx) => (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (idx !== dragOverIdx) setDragOverIdx(idx);
+  };
+  const handleDrop = (idx) => (e) => {
+    e.preventDefault();
+    if (dragIdx == null || dragIdx === idx) { setDragIdx(null); setDragOverIdx(null); return; }
+    const next = [...holdings];
+    const [moved] = next.splice(dragIdx, 1);
+    next.splice(idx, 0, moved);
+    setHoldings(next);
+    savePortfolio(next);
+    setDragIdx(null);
+    setDragOverIdx(null);
+  };
+  const handleDragEnd = () => { setDragIdx(null); setDragOverIdx(null); };
 
   // Check target price alerts
   useEffect(() => {
@@ -502,17 +528,34 @@ export default function PortfolioPage() {
         </div>
       ) : (
         <div className="space-y-2 sm:space-y-3">
-          {holdings.map(h => {
+          {holdings.map((h, idx) => {
             const p = prices[h.symbol];
             const pnl = (p && h.buyPrice && h.qty) ? (p.price - h.buyPrice) * h.qty : null;
             const pnlPct = (p && h.buyPrice) ? ((p.price - h.buyPrice) / h.buyPrice * 100) : null;
+            const isDragging = dragIdx === idx;
+            const isDragOver = dragOverIdx === idx && dragIdx !== idx;
 
             return (
               <div
                 key={h.id}
-                className="flex items-center justify-between p-3 sm:p-4 rounded-xl transition-colors"
-                style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+                draggable
+                onDragStart={handleDragStart(idx)}
+                onDragOver={handleDragOver(idx)}
+                onDrop={handleDrop(idx)}
+                onDragEnd={handleDragEnd}
+                className="flex items-center justify-between p-3 sm:p-4 rounded-xl transition-all"
+                style={{
+                  background: 'var(--bg-card)',
+                  border: isDragOver ? '1px solid var(--text-primary)' : '1px solid var(--border)',
+                  opacity: isDragging ? 0.4 : 1,
+                  transform: isDragOver ? 'scale(1.01)' : 'none',
+                  cursor: 'grab',
+                }}
               >
+                {/* Drag handle */}
+                <div className="flex items-center mr-2 sm:mr-3 select-none" style={{ color: 'var(--text-muted)', cursor: 'grab' }} title="드래그하여 순서 변경">
+                  <span className="text-xs leading-none">⠿</span>
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm sm:text-base truncate">{h.name}</span>
