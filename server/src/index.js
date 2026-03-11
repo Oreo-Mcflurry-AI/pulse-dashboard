@@ -7,6 +7,7 @@ import newsRouter from './routes/news.js';
 import briefingRouter from './routes/briefing.js';
 import streamRouter from './routes/stream.js';
 import healthRouter from './routes/health.js';
+import historyRouter from './routes/history.js';
 import { startMarketPrefetch } from './services/marketService.js';
 import { startNewsPrefetch } from './services/newsService.js';
 
@@ -23,6 +24,7 @@ app.use('/api/news', newsRouter);
 app.use('/api/briefings', briefingRouter);
 app.use('/api/stream', streamRouter);
 app.use('/api/health', healthRouter);
+app.use('/api/history', historyRouter);
 
 // Serve static frontend in production
 app.use(express.static(join(__dirname, '../../client/dist')));

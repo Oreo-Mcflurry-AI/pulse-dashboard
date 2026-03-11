@@ -4,6 +4,7 @@ import MarketSentiment from './components/MarketSentiment';
 import NewsPanel from './components/NewsPanel';
 import BriefingPage from './components/BriefingPage';
 import PortfolioPage from './components/PortfolioPage';
+import HistoryPage from './components/HistoryPage';
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
 import { useWidgetLayout } from './hooks/useWidgetLayout';
@@ -61,7 +62,8 @@ function getMarketStatus() {
 export default function App() {
   const [page, setPage] = useState(
     window.location.hash === '#briefings' ? 'briefings' :
-    window.location.hash === '#portfolio' ? 'portfolio' : 'dashboard'
+    window.location.hash === '#portfolio' ? 'portfolio' :
+    window.location.hash === '#history' ? 'history' : 'dashboard'
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
@@ -107,6 +109,7 @@ export default function App() {
         case '1': navigate('dashboard'); break;
         case '2': navigate('briefings'); break;
         case '3': navigate('portfolio'); break;
+        case '4': navigate('history'); break;
         case 'r': if (page === 'dashboard') refetch(); break;
       }
     };
@@ -205,6 +208,18 @@ export default function App() {
                 }}
               >
                 💼 포트폴리오
+              </button>
+              <button
+                onClick={() => navigate('history')}
+                aria-current={page === 'history' ? 'page' : undefined}
+                className="px-2 py-1 text-xs sm:text-sm rounded-md transition-colors"
+                style={{
+                  background: page === 'history' ? 'var(--bg-hover)' : 'transparent',
+                  color: page === 'history' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  fontWeight: page === 'history' ? 600 : 400,
+                }}
+              >
+                📈 히스토리
               </button>
             </nav>
           </div>
@@ -336,8 +351,10 @@ export default function App() {
           </>
         ) : page === 'briefings' ? (
           <BriefingPage />
-        ) : (
+        ) : page === 'portfolio' ? (
           <PortfolioPage />
+        ) : (
+          <HistoryPage />
         )}
         </main>
       </div>
