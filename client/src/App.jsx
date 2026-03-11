@@ -6,6 +6,7 @@ import BriefingPage from './components/BriefingPage';
 import PortfolioPage from './components/PortfolioPage';
 import HistoryPage from './components/HistoryPage';
 import HeatmapPage from './components/HeatmapPage';
+import MarketTimeline from './components/MarketTimeline';
 import NotificationCenter, { NotificationBadge } from './components/NotificationCenter';
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
@@ -66,7 +67,8 @@ export default function App() {
     window.location.hash === '#briefings' ? 'briefings' :
     window.location.hash === '#portfolio' ? 'portfolio' :
     window.location.hash === '#history' ? 'history' :
-    window.location.hash === '#heatmap' ? 'heatmap' : 'dashboard'
+    window.location.hash === '#heatmap' ? 'heatmap' :
+    window.location.hash === '#timeline' ? 'timeline' : 'dashboard'
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
@@ -115,6 +117,7 @@ export default function App() {
         case '3': navigate('portfolio'); break;
         case '4': navigate('history'); break;
         case '5': navigate('heatmap'); break;
+        case '6': navigate('timeline'); break;
         case 'r': if (page === 'dashboard') refetch(); break;
       }
     };
@@ -237,6 +240,18 @@ export default function App() {
                 }}
               >
                 🗺️ 히트맵
+              </button>
+              <button
+                onClick={() => navigate('timeline')}
+                aria-current={page === 'timeline' ? 'page' : undefined}
+                className="px-2 py-1 text-xs sm:text-sm rounded-md transition-colors"
+                style={{
+                  background: page === 'timeline' ? 'var(--bg-hover)' : 'transparent',
+                  color: page === 'timeline' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  fontWeight: page === 'timeline' ? 600 : 400,
+                }}
+              >
+                🌍 타임라인
               </button>
             </nav>
           </div>
@@ -373,8 +388,10 @@ export default function App() {
           <PortfolioPage />
         ) : page === 'history' ? (
           <HistoryPage />
-        ) : (
+        ) : page === 'heatmap' ? (
           <HeatmapPage />
+        ) : (
+          <MarketTimeline />
         )}
         </main>
       </div>
