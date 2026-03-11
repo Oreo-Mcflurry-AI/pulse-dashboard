@@ -3,6 +3,8 @@ import { addNotification, shouldNotify } from './NotificationCenter';
 
 const STORAGE_KEY = 'pulse_portfolio';
 const HISTORY_KEY = 'pulse_portfolio_history';
+const PORTFOLIOS_KEY = 'pulse_portfolios'; // list of { id, name }
+const ACTIVE_PF_KEY = 'pulse_active_portfolio';
 
 const PRESETS = [
   { symbol: 'KOSPI', name: '코스피', type: 'index' },
@@ -13,15 +15,50 @@ const PRESETS = [
   { symbol: 'JPY/KRW', name: '엔/원', type: 'fx' },
 ];
 
-function loadPortfolio() {
+// ─── Multi-portfolio management ───
+function getPortfolioList() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(PORTFOLIOS_KEY);
+    const list = raw ? JSON.parse(raw) : null;
+    if (!list || list.length === 0) {
+      // Migration: create default portfolio from existing data
+      const defaultList = [{ id: 'default', name: '기본 포트폴리오' }];
+      localStorage.setItem(PORTFOLIOS_KEY, JSON.stringify(defaultList));
+      return defaultList;
+    }
+    return list;
+  } catch { return [{ id: 'default', name: '기본 포트폴리오' }]; }
+}
+
+function savePortfolioList(list) {
+  localStorage.setItem(PORTFOLIOS_KEY, JSON.stringify(list));
+}
+
+function getActivePortfolioId() {
+  return localStorage.getItem(ACTIVE_PF_KEY) || 'default';
+}
+
+function setActivePortfolioId(id) {
+  localStorage.setItem(ACTIVE_PF_KEY, id);
+}
+
+function storageKeyFor(pfId) {
+  return pfId === 'default' ? STORAGE_KEY : `${STORAGE_KEY}_${pfId}`;
+}
+
+function historyKeyFor(pfId) {
+  return pfId === 'default' ? HISTORY_KEY : `${HISTORY_KEY}_${pfId}`;
+}
+
+function loadPortfolio(pfId) {
+  try {
+    const raw = localStorage.getItem(storageKeyFor(pfId || getActivePortfolioId()));
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
 
-function savePortfolio(items) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+function savePortfolio(items, pfId) {
+  localStorage.setItem(storageKeyFor(pfId || getActivePortfolioId()), JSON.stringify(items));
 }
 
 function fmt(n) {
@@ -35,18 +72,18 @@ function pctColor(pct) {
   return 'var(--text-muted)';
 }
 
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+function loadHistory(pfId) {
+  try { return JSON.parse(localStorage.getItem(historyKeyFor(pfId || getActivePortfolioId())) || '[]'); } catch { return []; }
 }
-function saveHistory(h) {
+function saveHistory(h, pfId) {
   // Keep last 90 days max
   const trimmed = h.slice(-90);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+  localStorage.setItem(historyKeyFor(pfId || getActivePortfolioId()), JSON.stringify(trimmed));
 }
-function recordSnapshot(totalValue, totalPnl) {
+function recordSnapshot(totalValue, totalPnl, pfId) {
   if (totalValue === 0) return;
   const today = new Date().toISOString().slice(0, 10);
-  const history = loadHistory();
+  const history = loadHistory(pfId);
   const existing = history.findIndex(h => h.date === today);
   const entry = { date: today, value: Math.round(totalValue), pnl: Math.round(totalPnl) };
   if (existing >= 0) {
@@ -54,7 +91,7 @@ function recordSnapshot(totalValue, totalPnl) {
   } else {
     history.push(entry);
   }
-  saveHistory(history);
+  saveHistory(history, pfId);
 }
 
 function PortfolioChart({ history }) {
@@ -245,7 +282,55 @@ function AllocationChart({ holdings, prices }) {
 }
 
 export default function PortfolioPage() {
-  const [holdings, setHoldings] = useState(loadPortfolio);
+  // Multi-portfolio state
+  const [pfList, setPfList] = useState(getPortfolioList);
+  const [activePfId, setActivePfId] = useState(getActivePortfolioId);
+  const [renamingPf, setRenamingPf] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [showPfMenu, setShowPfMenu] = useState(false);
+
+  const switchPortfolio = useCallback((id) => {
+    setActivePfId(id);
+    setActivePortfolioId(id);
+    setHoldings(loadPortfolio(id));
+  }, []);
+
+  const addPortfolio = useCallback(() => {
+    const id = 'pf_' + Date.now().toString(36);
+    const name = `포트폴리오 ${pfList.length + 1}`;
+    const next = [...pfList, { id, name }];
+    setPfList(next);
+    savePortfolioList(next);
+    switchPortfolio(id);
+    setShowPfMenu(false);
+  }, [pfList, switchPortfolio]);
+
+  const deletePortfolio = useCallback((id) => {
+    if (pfList.length <= 1) return; // can't delete last one
+    if (!confirm('이 포트폴리오를 삭제하시겠습니까?')) return;
+    const next = pfList.filter(p => p.id !== id);
+    setPfList(next);
+    savePortfolioList(next);
+    localStorage.removeItem(storageKeyFor(id));
+    localStorage.removeItem(historyKeyFor(id));
+    if (activePfId === id) switchPortfolio(next[0].id);
+    setShowPfMenu(false);
+  }, [pfList, activePfId, switchPortfolio]);
+
+  const startRenamePf = useCallback((pf) => {
+    setRenamingPf(pf.id);
+    setRenameValue(pf.name);
+  }, []);
+
+  const confirmRenamePf = useCallback(() => {
+    if (!renameValue.trim()) return;
+    const next = pfList.map(p => p.id === renamingPf ? { ...p, name: renameValue.trim() } : p);
+    setPfList(next);
+    savePortfolioList(next);
+    setRenamingPf(null);
+  }, [pfList, renamingPf, renameValue]);
+
+  const [holdings, setHoldings] = useState(() => loadPortfolio(getActivePortfolioId()));
   const [prices, setPrices] = useState({});
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
@@ -309,7 +394,7 @@ export default function PortfolioPage() {
     };
     const next = [...holdings, item];
     setHoldings(next);
-    savePortfolio(next);
+    savePortfolio(next, activePfId);
     setForm({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above' });
     setShowAdd(false);
   };
@@ -317,13 +402,13 @@ export default function PortfolioPage() {
   const removeHolding = (id) => {
     const next = holdings.filter(h => h.id !== id);
     setHoldings(next);
-    savePortfolio(next);
+    savePortfolio(next, activePfId);
   };
 
   const updateHolding = (id, updates) => {
     const next = holdings.map(h => h.id === id ? { ...h, ...updates } : h);
     setHoldings(next);
-    savePortfolio(next);
+    savePortfolio(next, activePfId);
   };
 
   const selectPreset = (preset) => {
@@ -348,7 +433,7 @@ export default function PortfolioPage() {
     const [moved] = next.splice(dragIdx, 1);
     next.splice(idx, 0, moved);
     setHoldings(next);
-    savePortfolio(next);
+    savePortfolio(next, activePfId);
     setDragIdx(null);
     setDragOverIdx(null);
   };
@@ -396,18 +481,72 @@ export default function PortfolioPage() {
   // Record daily snapshot
   useEffect(() => {
     if (totalValue > 0 && Object.keys(prices).length > 0) {
-      recordSnapshot(totalValue, totalPnl);
+      recordSnapshot(totalValue, totalPnl, activePfId);
     }
   }, [totalValue, totalPnl, prices]);
 
-  const history = loadHistory();
+  const history = loadHistory(activePfId);
+  const activePf = pfList.find(p => p.id === activePfId) || pfList[0];
 
   return (
     <div className="px-4 sm:px-6 py-4 sm:py-6">
+      {/* Portfolio Tabs */}
+      <div className="flex items-center gap-1 mb-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin' }}>
+        {pfList.map(pf => (
+          <div key={pf.id} className="flex items-center gap-0 shrink-0">
+            {renamingPf === pf.id ? (
+              <form onSubmit={(e) => { e.preventDefault(); confirmRenamePf(); }} className="flex items-center gap-1">
+                <input
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  className="text-xs px-2 py-1 rounded w-24"
+                  style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                  autoFocus
+                  onBlur={confirmRenamePf}
+                />
+              </form>
+            ) : (
+              <button
+                onClick={() => switchPortfolio(pf.id)}
+                onDoubleClick={() => startRenamePf(pf)}
+                className="px-3 py-1.5 text-xs rounded-lg transition-colors"
+                style={{
+                  background: activePfId === pf.id ? 'var(--text-primary)' : 'var(--bg-hover)',
+                  color: activePfId === pf.id ? 'var(--bg-primary)' : 'var(--text-muted)',
+                  fontWeight: activePfId === pf.id ? 600 : 400,
+                  border: `1px solid ${activePfId === pf.id ? 'transparent' : 'var(--border)'}`,
+                }}
+                title="더블클릭으로 이름 변경"
+              >
+                {pf.name}
+              </button>
+            )}
+            {activePfId === pf.id && pfList.length > 1 && (
+              <button
+                onClick={() => deletePortfolio(pf.id)}
+                className="text-[10px] px-1 py-0.5 rounded ml-0.5 opacity-40 hover:opacity-100 transition-opacity"
+                style={{ color: '#ef4444' }}
+                title="포트폴리오 삭제"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        ))}
+        <button
+          onClick={addPortfolio}
+          className="px-2 py-1.5 text-xs rounded-lg transition-colors shrink-0"
+          style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px dashed var(--border)' }}
+          title="새 포트폴리오 추가"
+        >
+          +
+        </button>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold">💼 포트폴리오</h2>
+          <h2 className="text-lg sm:text-xl font-bold">💼 {activePf?.name || '포트폴리오'}</h2>
           {hasPnl && (
             <p className="text-sm mt-1" style={{ color: pctColor(totalPnl) }}>
               총 손익: {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}원
