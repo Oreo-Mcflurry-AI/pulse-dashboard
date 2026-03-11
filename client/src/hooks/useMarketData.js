@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { addNotification, shouldNotify } from '../components/NotificationCenter';
 
 export function useMarketData(interval = 30000) {
   const [market, setMarket] = useState(null);
@@ -10,6 +11,7 @@ export function useMarketData(interval = 30000) {
   const [lastFetchAt, setLastFetchAt] = useState(null); // timestamp of last successful fetch
   const esRef = useRef(null);
   const failCountRef = useRef(0);
+  const alertedRef = useRef(new Set()); // track alerted market moves per session
 
   // Fallback: REST polling
   const fetchData = useCallback(async () => {
@@ -118,6 +120,34 @@ export function useMarketData(interval = 30000) {
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [interval, fetchData]);
+
+  // Market move alerts (±3% threshold)
+  useEffect(() => {
+    if (!market || !shouldNotify('market')) return;
+    const watchKeys = [
+      { key: 'kospi', name: 'KOSPI' },
+      { key: 'kosdaq', name: 'KOSDAQ' },
+      { key: 'sp500', name: 'S&P 500' },
+      { key: 'nasdaq', name: 'NASDAQ' },
+      { key: 'btc', name: 'BTC' },
+    ];
+    for (const { key, name } of watchKeys) {
+      const item = market[key];
+      if (!item?.changeRate) continue;
+      const rate = parseFloat(item.changeRate);
+      if (isNaN(rate) || Math.abs(rate) < 3) continue;
+      // Alert once per symbol per direction per session
+      const alertKey = `${key}_${rate > 0 ? 'up' : 'down'}_3pct`;
+      if (alertedRef.current.has(alertKey)) continue;
+      alertedRef.current.add(alertKey);
+      const dir = rate > 0 ? '급등' : '급락';
+      addNotification({
+        type: 'market',
+        title: `${name} ${dir} ${item.changeRate}`,
+        body: `현재 ${item.value} (${rate > 0 ? '+' : ''}${item.changeRate})`,
+      });
+    }
+  }, [market]);
 
   return { market, news, loading, live, error, latency, lastFetchAt, interval, refetch: fetchData };
 }

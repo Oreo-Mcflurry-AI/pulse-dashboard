@@ -5,6 +5,7 @@ import NewsPanel from './components/NewsPanel';
 import BriefingPage from './components/BriefingPage';
 import PortfolioPage from './components/PortfolioPage';
 import HistoryPage from './components/HistoryPage';
+import NotificationCenter, { NotificationBadge } from './components/NotificationCenter';
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
 import { useWidgetLayout } from './hooks/useWidgetLayout';
@@ -69,6 +70,7 @@ export default function App() {
   const { dark, toggle } = useTheme();
   const { widgets, moveUp, moveDown, toggleVisible, reset: resetLayout } = useWidgetLayout();
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [mktStatus, setMktStatus] = useState(getMarketStatus());
   useEffect(() => {
@@ -229,6 +231,7 @@ export default function App() {
                 {relativeTime(market?.updatedAt)}
               </span>
             )}
+            <NotificationBadge onClick={() => setShowNotifications(true)} />
             <button
               onClick={toggle}
               className="p-1 transition-colors rounded hover:opacity-80"
@@ -358,6 +361,7 @@ export default function App() {
         )}
         </main>
       </div>
+      <NotificationCenter isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
     </div>
   );
 }

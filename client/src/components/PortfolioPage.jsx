@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { addNotification, shouldNotify } from './NotificationCenter';
 
 const STORAGE_KEY = 'pulse_portfolio';
 const HISTORY_KEY = 'pulse_portfolio_history';
@@ -366,14 +367,12 @@ export default function PortfolioPage() {
       if (hit && !notifiedRef.current.has(key)) {
         notifiedRef.current.add(key);
         const label = dir === 'above' ? '이상' : '이하';
-        // Browser notification
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(`🎯 ${h.name} 목표가 도달!`, {
+        if (shouldNotify('portfolio')) {
+          addNotification({
+            type: 'portfolio',
+            title: `${h.name} 목표가 도달!`,
             body: `현재가 ${fmt(current)} → 목표 ${fmt(target)} ${label}`,
-            icon: '/favicon.ico',
           });
-        } else if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission();
         }
       }
     });

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { addNotification, shouldNotify } from './NotificationCenter';
 
 // ─── News Alert Keywords ───
 const ALERTS_KEY = 'pulse-news-alerts';
@@ -284,11 +285,11 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
       const matched = alertKeywords.find(kw => title.includes(kw.toLowerCase()));
       if (matched) {
         notifiedUrlsRef.current.add(article.url);
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(`🔔 뉴스 알림: "${matched}"`, {
+        if (shouldNotify('news')) {
+          addNotification({
+            type: 'news',
+            title: `뉴스 알림: "${matched}"`,
             body: article.title,
-            icon: '/favicon.ico',
-            tag: article.url, // prevent duplicates
           });
         }
       }
