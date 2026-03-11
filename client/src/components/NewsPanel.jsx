@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+
+// ─── News Alert Keywords ───
+const ALERTS_KEY = 'pulse-news-alerts';
+function getAlertKeywords() {
+  try { return JSON.parse(localStorage.getItem(ALERTS_KEY) || '[]'); } catch { return []; }
+}
+function saveAlertKeywords(kw) { localStorage.setItem(ALERTS_KEY, JSON.stringify(kw)); }
 
 const BOOKMARKS_KEY = 'pulse-news-bookmarks';
 function getBookmarks() {
@@ -201,11 +208,92 @@ function RefreshCountdown({ lastFetchAt, interval, live }) {
   );
 }
 
+function NewsAlertSettings({ keywords, onAdd, onRemove }) {
+  const [input, setInput] = useState('');
+  const handleAdd = () => {
+    const kw = input.trim();
+    if (kw && !keywords.includes(kw)) { onAdd(kw); setInput(''); }
+  };
+  return (
+    <div className="px-3 mb-3 p-2.5 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>🔔 뉴스 알림 키워드</span>
+        <span className="text-[9px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>매칭 시 브라우저 알림</span>
+      </div>
+      <div className="flex gap-1.5 mb-2">
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
+          placeholder="키워드 입력 (예: 코스피, 트럼프, 금리)"
+          className="flex-1 px-2 py-1 text-xs rounded"
+          style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
+        />
+        <button onClick={handleAdd} className="px-2 py-1 text-xs rounded font-medium" style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>추가</button>
+      </div>
+      {keywords.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {keywords.map(kw => (
+            <span key={kw} className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full" style={{ background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.3)' }}>
+              {kw}
+              <button onClick={() => onRemove(kw)} className="hover:opacity-60" style={{ lineHeight: 1 }}>✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function NewsPanel({ data, lastFetchAt, interval, live }) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [bookmarks, setBookmarks] = useState(getBookmarks);
   const [readUrls, setReadUrls] = useState(getReadUrls);
+  const [alertKeywords, setAlertKeywords] = useState(getAlertKeywords);
+  const [showAlertSettings, setShowAlertSettings] = useState(false);
+  const notifiedUrlsRef = useRef(new Set());
+
+  const addAlertKeyword = useCallback((kw) => {
+    setAlertKeywords(prev => {
+      const next = [...prev, kw];
+      saveAlertKeywords(next);
+      return next;
+    });
+  }, []);
+
+  const removeAlertKeyword = useCallback((kw) => {
+    setAlertKeywords(prev => {
+      const next = prev.filter(k => k !== kw);
+      saveAlertKeywords(next);
+      return next;
+    });
+  }, []);
+
+  // Check news against alert keywords
+  useEffect(() => {
+    if (!data?.sections?.length || alertKeywords.length === 0) return;
+    // Request notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    const allArticles = data.sections.flatMap(s => s.articles || []);
+    for (const article of allArticles) {
+      if (notifiedUrlsRef.current.has(article.url)) continue;
+      const title = (article.title || '').toLowerCase();
+      const matched = alertKeywords.find(kw => title.includes(kw.toLowerCase()));
+      if (matched) {
+        notifiedUrlsRef.current.add(article.url);
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(`🔔 뉴스 알림: "${matched}"`, {
+            body: article.title,
+            icon: '/favicon.ico',
+            tag: article.url, // prevent duplicates
+          });
+        }
+      }
+    }
+  }, [data, alertKeywords]);
 
   const handleMarkRead = useCallback((url) => {
     setReadUrls(markAsRead(url));
@@ -250,7 +338,21 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-3 px-2">
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
+          <button
+            onClick={() => setShowAlertSettings(v => !v)}
+            className="text-xs px-1.5 py-0.5 rounded transition-colors"
+            style={{
+              background: showAlertSettings ? 'rgba(59,130,246,0.15)' : 'transparent',
+              color: alertKeywords.length > 0 ? '#3b82f6' : 'var(--text-muted)',
+            }}
+            title="뉴스 알림 설정"
+            aria-label="뉴스 알림 키워드 설정"
+          >
+            🔔{alertKeywords.length > 0 ? ` ${alertKeywords.length}` : ''}
+          </button>
+        </div>
         <span className="text-[10px] flex items-center gap-1.5" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
           {readUrls.length > 0 && (
             <button
@@ -297,6 +399,10 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
           )}
         </div>
       </div>
+      {/* Alert keyword settings */}
+      {showAlertSettings && (
+        <NewsAlertSettings keywords={alertKeywords} onAdd={addAlertKeyword} onRemove={removeAlertKeyword} />
+      )}
       {/* Category filter tabs */}
       <div role="tablist" aria-label="뉴스 카테고리" className="flex gap-1 px-2 mb-3 overflow-x-auto scrollbar-hide">
         {categories.map(cat => (
