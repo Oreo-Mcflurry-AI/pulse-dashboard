@@ -5,6 +5,7 @@ import NewsPanel from './components/NewsPanel';
 import BriefingPage from './components/BriefingPage';
 import PortfolioPage from './components/PortfolioPage';
 import HistoryPage from './components/HistoryPage';
+import HeatmapPage from './components/HeatmapPage';
 import NotificationCenter, { NotificationBadge } from './components/NotificationCenter';
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
@@ -64,7 +65,8 @@ export default function App() {
   const [page, setPage] = useState(
     window.location.hash === '#briefings' ? 'briefings' :
     window.location.hash === '#portfolio' ? 'portfolio' :
-    window.location.hash === '#history' ? 'history' : 'dashboard'
+    window.location.hash === '#history' ? 'history' :
+    window.location.hash === '#heatmap' ? 'heatmap' : 'dashboard'
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
@@ -112,6 +114,7 @@ export default function App() {
         case '2': navigate('briefings'); break;
         case '3': navigate('portfolio'); break;
         case '4': navigate('history'); break;
+        case '5': navigate('heatmap'); break;
         case 'r': if (page === 'dashboard') refetch(); break;
       }
     };
@@ -222,6 +225,18 @@ export default function App() {
                 }}
               >
                 📈 히스토리
+              </button>
+              <button
+                onClick={() => navigate('heatmap')}
+                aria-current={page === 'heatmap' ? 'page' : undefined}
+                className="px-2 py-1 text-xs sm:text-sm rounded-md transition-colors"
+                style={{
+                  background: page === 'heatmap' ? 'var(--bg-hover)' : 'transparent',
+                  color: page === 'heatmap' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  fontWeight: page === 'heatmap' ? 600 : 400,
+                }}
+              >
+                🗺️ 히트맵
               </button>
             </nav>
           </div>
@@ -356,8 +371,10 @@ export default function App() {
           <BriefingPage />
         ) : page === 'portfolio' ? (
           <PortfolioPage />
-        ) : (
+        ) : page === 'history' ? (
           <HistoryPage />
+        ) : (
+          <HeatmapPage />
         )}
         </main>
       </div>
