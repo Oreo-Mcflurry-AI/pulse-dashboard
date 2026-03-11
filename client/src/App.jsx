@@ -6,6 +6,7 @@ import BriefingPage from './components/BriefingPage';
 import PortfolioPage from './components/PortfolioPage';
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
+import { useWidgetLayout } from './hooks/useWidgetLayout';
 
 function getMarketStatus() {
   const now = new Date();
@@ -64,6 +65,8 @@ export default function App() {
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
+  const { widgets, moveUp, moveDown, toggleVisible, reset: resetLayout } = useWidgetLayout();
+  const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [mktStatus, setMktStatus] = useState(getMarketStatus());
   useEffect(() => {
@@ -221,17 +224,29 @@ export default function App() {
               {dark ? '☀️' : '🌙'}
             </button>
             {page === 'dashboard' && (
-              <button
-                onClick={refetch}
-                className="p-1 transition-colors"
-                style={{ color: 'var(--text-muted)' }}
-                title="새로고침"
-                aria-label="데이터 새로고침"
-              >
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
+              <>
+                <button
+                  onClick={() => setShowLayoutSettings(v => !v)}
+                  className="p-1 transition-colors rounded hover:opacity-80"
+                  style={{ color: showLayoutSettings ? 'var(--text-primary)' : 'var(--text-muted)' }}
+                  title="위젯 설정"
+                  aria-label="위젯 레이아웃 설정"
+                  aria-pressed={showLayoutSettings}
+                >
+                  ⚙️
+                </button>
+                <button
+                  onClick={refetch}
+                  className="p-1 transition-colors"
+                  style={{ color: 'var(--text-muted)' }}
+                  title="새로고침"
+                  aria-label="데이터 새로고침"
+                >
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </>
             )}
           </div>
         </header>
@@ -268,10 +283,48 @@ export default function App() {
         <main id="main-content">
         {page === 'dashboard' ? (
           <>
-            <MarketSentiment data={market} />
-            <MarketGrid data={market} news={news} />
-            <div style={{ borderTop: '1px solid var(--border)' }} />
-            <NewsPanel data={news} lastFetchAt={lastFetchAt} interval={interval} live={live} />
+            {/* Widget layout settings panel */}
+            {showLayoutSettings && (
+              <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 p-3 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>⚙️ 위젯 순서 설정</span>
+                  <button onClick={resetLayout} className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>초기화</button>
+                </div>
+                <div className="space-y-1">
+                  {widgets.map((w, i) => (
+                    <div key={w.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: w.visible ? 'var(--bg-hover)' : 'transparent', opacity: w.visible ? 1 : 0.5 }}>
+                      <div className="flex flex-col gap-0.5">
+                        <button onClick={() => moveUp(w.id)} disabled={i === 0} className="text-[10px] leading-none disabled:opacity-20" style={{ color: 'var(--text-muted)' }} aria-label={`${w.label} 위로`}>▲</button>
+                        <button onClick={() => moveDown(w.id)} disabled={i === widgets.length - 1} className="text-[10px] leading-none disabled:opacity-20" style={{ color: 'var(--text-muted)' }} aria-label={`${w.label} 아래로`}>▼</button>
+                      </div>
+                      <span className="text-xs flex-1">{w.label}</span>
+                      <button
+                        onClick={() => toggleVisible(w.id)}
+                        className="text-xs px-2 py-0.5 rounded"
+                        style={{ background: w.visible ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: w.visible ? '#22c55e' : '#ef4444' }}
+                        aria-label={`${w.label} ${w.visible ? '숨기기' : '표시'}`}
+                      >
+                        {w.visible ? '표시' : '숨김'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {/* Dynamic widget rendering based on layout order */}
+            {widgets.filter(w => w.visible).map(w => {
+              switch (w.id) {
+                case 'sentiment': return <MarketSentiment key={w.id} data={market} />;
+                case 'market': return <MarketGrid key={w.id} data={market} news={news} />;
+                case 'news': return (
+                  <div key={w.id}>
+                    <div style={{ borderTop: '1px solid var(--border)' }} />
+                    <NewsPanel data={news} lastFetchAt={lastFetchAt} interval={interval} live={live} />
+                  </div>
+                );
+                default: return null;
+              }
+            })}
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
               <div>{live ? '🟢 실시간 스트리밍' : '30초마다 자동 업데이트'} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}{latency != null ? ` · ${latency}ms` : ''}</div>
               <div style={{ opacity: 0.6 }}>
