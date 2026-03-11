@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import MarketTimeline from './MarketTimeline';
 
 function getColor(change) {
   const abs = Math.abs(change);
@@ -352,6 +353,11 @@ export default function HeatmapPage() {
       {/* Always show list below (or as main view) */}
       <div className={view === 'treemap' ? 'mt-4' : ''}>
         <SectorList sectors={sectors} sortKey={sortKey} onSort={setSortKey} />
+      </div>
+
+      {/* Global Market Timeline */}
+      <div className="mt-6" style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
+        <MarketTimeline />
       </div>
     </div>
   );

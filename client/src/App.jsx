@@ -6,7 +6,7 @@ import BriefingPage from './components/BriefingPage';
 import PortfolioPage from './components/PortfolioPage';
 import HistoryPage from './components/HistoryPage';
 import HeatmapPage from './components/HeatmapPage';
-import MarketTimeline from './components/MarketTimeline';
+
 import NotificationCenter, { NotificationBadge } from './components/NotificationCenter';
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
