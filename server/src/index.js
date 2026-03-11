@@ -10,6 +10,7 @@ import healthRouter from './routes/health.js';
 import historyRouter from './routes/history.js';
 import sectorsRouter from './routes/sectors.js';
 import calendarRouter from './routes/calendar.js';
+import stockRouter from './routes/stock.js';
 import { startMarketPrefetch } from './services/marketService.js';
 import { startNewsPrefetch } from './services/newsService.js';
 
@@ -29,6 +30,7 @@ app.use('/api/health', healthRouter);
 app.use('/api/history', historyRouter);
 app.use('/api/sectors', sectorsRouter);
 app.use('/api/calendar', calendarRouter);
+app.use('/api/stock', stockRouter);
 
 // Serve static frontend in production
 app.use(express.static(join(__dirname, '../../client/dist')));

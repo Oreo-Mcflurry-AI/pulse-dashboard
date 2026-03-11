@@ -7,6 +7,7 @@ import PortfolioPage from './components/PortfolioPage';
 import HistoryPage from './components/HistoryPage';
 import HeatmapPage from './components/HeatmapPage';
 import CalendarPage from './components/CalendarPage';
+import StockSearch from './components/StockSearch';
 
 import NotificationCenter, { NotificationBadge } from './components/NotificationCenter';
 import { useMarketData } from './hooks/useMarketData';
@@ -70,7 +71,8 @@ export default function App() {
     window.location.hash === '#history' ? 'history' :
     window.location.hash === '#heatmap' ? 'heatmap' :
     window.location.hash === '#timeline' ? 'timeline' :
-    window.location.hash === '#calendar' ? 'calendar' : 'dashboard'
+    window.location.hash === '#calendar' ? 'calendar' :
+    window.location.hash === '#search' ? 'search' : 'dashboard'
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
@@ -122,6 +124,7 @@ export default function App() {
         case '4': navigate('history'); break;
         case '5': navigate('heatmap'); break;
         case '6': navigate('calendar'); break;
+        case '7': navigate('search'); break;
         case '6': navigate('timeline'); break;
         case 'r': if (page === 'dashboard') refetch(); break;
       }
@@ -257,6 +260,18 @@ export default function App() {
                 }}
               >
                 📅 캘린더
+              </button>
+              <button
+                onClick={() => navigate('search')}
+                aria-current={page === 'search' ? 'page' : undefined}
+                className="px-2 py-1 text-xs sm:text-sm rounded-md transition-colors"
+                style={{
+                  background: page === 'search' ? 'var(--bg-hover)' : 'transparent',
+                  color: page === 'search' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  fontWeight: page === 'search' ? 600 : 400,
+                }}
+              >
+                🔍 종목
               </button>
               <button
                 onClick={() => navigate('timeline')}
@@ -466,6 +481,8 @@ export default function App() {
           <HeatmapPage />
         ) : page === 'calendar' ? (
           <CalendarPage />
+        ) : page === 'search' ? (
+          <StockSearch />
         ) : (
           <MarketTimeline />
         )}
