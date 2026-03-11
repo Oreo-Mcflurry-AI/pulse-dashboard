@@ -74,7 +74,9 @@ export default function App() {
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle } = useTheme();
-  const { widgets, moveUp, moveDown, toggleVisible, reset: resetLayout } = useWidgetLayout();
+  const { widgets, moveUp, moveDown, toggleVisible, reset: resetLayout, allPresets, applyPreset, saveAsPreset, deletePreset } = useWidgetLayout();
+  const [presetName, setPresetName] = useState('');
+  const [showPresetSave, setShowPresetSave] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -353,6 +355,63 @@ export default function App() {
                   <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>⚙️ 위젯 순서 설정</span>
                   <button onClick={resetLayout} className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>초기화</button>
                 </div>
+
+                {/* Presets */}
+                <div className="mb-3">
+                  <div className="text-[10px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>프리셋</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {allPresets.map(p => (
+                      <div key={p.id} className="flex items-center gap-0">
+                        <button
+                          onClick={() => applyPreset(p.id)}
+                          className="text-[10px] px-2 py-1 rounded-l transition-colors"
+                          style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRight: 'none' }}
+                          title={`${p.name} 프리셋 적용`}
+                        >
+                          {p.icon} {p.name}
+                        </button>
+                        {!p.builtin && (
+                          <button
+                            onClick={() => deletePreset(p.id)}
+                            className="text-[9px] px-1 py-1 rounded-r transition-colors hover:opacity-80"
+                            style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid var(--border)' }}
+                            title="프리셋 삭제"
+                          >
+                            ✕
+                          </button>
+                        )}
+                        {p.builtin && <span className="text-[10px] px-1 py-1 rounded-r" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)', color: 'var(--bg-hover)' }}>·</span>}
+                      </div>
+                    ))}
+                    {/* Save current as preset */}
+                    {showPresetSave ? (
+                      <form
+                        onSubmit={(e) => { e.preventDefault(); if (presetName.trim()) { saveAsPreset(presetName.trim()); setPresetName(''); setShowPresetSave(false); } }}
+                        className="flex items-center gap-1"
+                      >
+                        <input
+                          value={presetName}
+                          onChange={(e) => setPresetName(e.target.value)}
+                          placeholder="프리셋 이름"
+                          className="text-[10px] px-2 py-1 rounded w-20"
+                          style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+                          autoFocus
+                        />
+                        <button type="submit" className="text-[10px] px-1.5 py-1 rounded" style={{ background: '#22c55e20', color: '#22c55e' }}>✓</button>
+                        <button type="button" onClick={() => setShowPresetSave(false)} className="text-[10px] px-1.5 py-1 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>✕</button>
+                      </form>
+                    ) : (
+                      <button
+                        onClick={() => setShowPresetSave(true)}
+                        className="text-[10px] px-2 py-1 rounded transition-colors"
+                        style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px dashed var(--border)' }}
+                      >
+                        💾 저장
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="space-y-1">
                   {widgets.map((w, i) => (
                     <div key={w.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: w.visible ? 'var(--bg-hover)' : 'transparent', opacity: w.visible ? 1 : 0.5 }}>
