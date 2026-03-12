@@ -96,7 +96,31 @@ function recordSnapshot(totalValue, totalPnl, pfId) {
 
 function PortfolioChart({ history }) {
   const canvasRef = useRef(null);
-  const w = 460, h = 140;
+  const [benchmark, setBenchmark] = useState(null);
+  const [showBenchmark, setShowBenchmark] = useState(true);
+  const w = 460, h = 170;
+
+  // Fetch KOSPI benchmark data matching portfolio history dates
+  useEffect(() => {
+    if (history.length < 2) return;
+    // Determine period based on history length
+    const days = history.length;
+    const period = days > 180 ? '1y' : days > 90 ? '6m' : days > 30 ? '3m' : '1m';
+    fetch(`/api/history/kospi?period=${period}`)
+      .then(r => r.json())
+      .then(resp => {
+        const items = resp.data || resp;
+        if (items && items.length > 0) {
+          // Build date->close map
+          const map = {};
+          items.forEach(d => { map[d.date] = d.close; });
+          // Match portfolio dates
+          const matched = history.map(h => ({ date: h.date, close: map[h.date] || null })).filter(d => d.close !== null);
+          if (matched.length >= 2) setBenchmark(matched);
+        }
+      })
+      .catch(() => {});
+  }, [history]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -112,29 +136,52 @@ function PortfolioChart({ history }) {
     const cw = w - pad.left - pad.right;
     const ch = h - pad.top - pad.bottom;
 
-    const values = history.map(d => d.value);
-    const min = Math.min(...values);
-    const max = Math.max(...values);
+    // Normalize to % returns from day 1
+    const pfReturns = history.map(d => ((d.value - history[0].value) / history[0].value) * 100);
+    let bmReturns = null;
+    if (showBenchmark && benchmark && benchmark.length >= 2) {
+      bmReturns = benchmark.map(d => ((d.close - benchmark[0].close) / benchmark[0].close) * 100);
+    }
+
+    // Calculate combined min/max for Y axis
+    const allVals = [...pfReturns, ...(bmReturns || [])];
+    let min = Math.min(...allVals);
+    let max = Math.max(...allVals);
+    // Ensure 0 line is included
+    min = Math.min(min, 0);
+    max = Math.max(max, 0);
     const range = max - min || 1;
 
-    const isUp = values[values.length - 1] >= values[0];
+    const isUp = pfReturns[pfReturns.length - 1] >= 0;
     const lineColor = isUp ? '#22c55e' : '#ef4444';
+    const bmColor = '#6366f1'; // indigo for KOSPI
 
-    // Grid
+    // Grid + Y labels (% returns)
     ctx.strokeStyle = 'rgba(128,128,128,0.12)';
     ctx.lineWidth = 0.5;
-    for (let i = 0; i <= 3; i++) {
-      const y = pad.top + (ch / 3) * i;
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + (ch / 4) * i;
       ctx.beginPath();
       ctx.moveTo(pad.left, y);
       ctx.lineTo(pad.left + cw, y);
       ctx.stroke();
-      const val = max - (range / 3) * i;
+      const val = max - (range / 4) * i;
       ctx.fillStyle = 'rgba(128,128,128,0.5)';
       ctx.font = '9px system-ui';
       ctx.textAlign = 'right';
-      ctx.fillText(val >= 10000 ? `${(val / 10000).toFixed(0)}만` : fmt(val), pad.left - 5, y + 3);
+      ctx.fillText(`${val >= 0 ? '+' : ''}${val.toFixed(1)}%`, pad.left - 5, y + 3);
     }
+
+    // Zero line
+    const zeroY = pad.top + ch - ((0 - min) / range) * ch;
+    ctx.strokeStyle = 'rgba(128,128,128,0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(pad.left, zeroY);
+    ctx.lineTo(pad.left + cw, zeroY);
+    ctx.stroke();
+    ctx.setLineDash([]);
 
     // X-axis date labels
     ctx.fillStyle = 'rgba(128,128,128,0.5)';
@@ -148,40 +195,62 @@ function PortfolioChart({ history }) {
       }
     });
 
-    // Area
+    // Helper: draw line
+    function drawLine(returns, color, lineW, dashed) {
+      if (!returns || returns.length < 2) return;
+      ctx.beginPath();
+      if (dashed) ctx.setLineDash([5, 3]);
+      returns.forEach((v, i) => {
+        const x = pad.left + (i / (returns.length - 1)) * cw;
+        const y = pad.top + ch - ((v - min) / range) * ch;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineW;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      if (dashed) ctx.setLineDash([]);
+    }
+
+    // Draw benchmark first (behind)
+    if (bmReturns) {
+      drawLine(bmReturns, bmColor + '80', 1.5, true);
+      // End label
+      const bx = pad.left + cw;
+      const by = pad.top + ch - ((bmReturns[bmReturns.length - 1] - min) / range) * ch;
+      ctx.fillStyle = bmColor;
+      ctx.font = 'bold 8px system-ui';
+      ctx.textAlign = 'left';
+      // Avoid overlap with portfolio line end
+      const labelOffset = Math.abs(by - (pad.top + ch - ((pfReturns[pfReturns.length - 1] - min) / range) * ch)) < 12 ? -12 : 0;
+      ctx.fillText('KOSPI', bx - 30, by + labelOffset - 4);
+    }
+
+    // Portfolio area
     ctx.beginPath();
-    values.forEach((v, i) => {
-      const x = pad.left + (i / (values.length - 1)) * cw;
+    pfReturns.forEach((v, i) => {
+      const x = pad.left + (i / (pfReturns.length - 1)) * cw;
       const y = pad.top + ch - ((v - min) / range) * ch;
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
-    ctx.lineTo(pad.left + cw, pad.top + ch);
-    ctx.lineTo(pad.left, pad.top + ch);
+    ctx.lineTo(pad.left + cw, zeroY);
+    ctx.lineTo(pad.left, zeroY);
     ctx.closePath();
     ctx.fillStyle = lineColor + '12';
     ctx.fill();
 
-    // Line
-    ctx.beginPath();
-    values.forEach((v, i) => {
-      const x = pad.left + (i / (values.length - 1)) * cw;
-      const y = pad.top + ch - ((v - min) / range) * ch;
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    });
-    ctx.strokeStyle = lineColor;
-    ctx.lineWidth = 2;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-    ctx.stroke();
+    // Portfolio line
+    drawLine(pfReturns, lineColor, 2, false);
 
     // End dot
     const lastX = pad.left + cw;
-    const lastY = pad.top + ch - ((values[values.length - 1] - min) / range) * ch;
+    const lastY = pad.top + ch - ((pfReturns[pfReturns.length - 1] - min) / range) * ch;
     ctx.beginPath();
     ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
     ctx.fillStyle = lineColor;
     ctx.fill();
-  }, [history]);
+  }, [history, benchmark, showBenchmark]);
 
   if (history.length < 2) return null;
 
@@ -189,13 +258,51 @@ function PortfolioChart({ history }) {
   const last = history[history.length - 1].value;
   const totalReturn = ((last - first) / first * 100);
 
+  // Benchmark return
+  let bmReturn = null;
+  let alpha = null;
+  if (benchmark && benchmark.length >= 2) {
+    bmReturn = ((benchmark[benchmark.length - 1].close - benchmark[0].close) / benchmark[0].close * 100);
+    alpha = totalReturn - bmReturn;
+  }
+
   return (
     <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📈 포트폴리오 추이</span>
-        <span className="text-xs font-medium" style={{ color: totalReturn >= 0 ? '#22c55e' : '#ef4444' }}>
-          {totalReturn >= 0 ? '+' : ''}{totalReturn.toFixed(1)}% ({history.length}일)
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📈 포트폴리오 추이</span>
+          {benchmark && (
+            <button
+              onClick={() => setShowBenchmark(v => !v)}
+              className="text-[9px] px-1.5 py-0.5 rounded-full transition-colors"
+              style={{
+                background: showBenchmark ? '#6366f120' : 'var(--bg-hover)',
+                color: showBenchmark ? '#6366f1' : 'var(--text-muted)',
+                border: `1px solid ${showBenchmark ? '#6366f140' : 'var(--border)'}`,
+              }}
+            >
+              {showBenchmark ? '📊 벤치마크 ON' : '벤치마크 OFF'}
+            </button>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-0.5">
+          <span className="text-xs font-medium" style={{ color: totalReturn >= 0 ? '#22c55e' : '#ef4444' }}>
+            내 수익: {totalReturn >= 0 ? '+' : ''}{totalReturn.toFixed(1)}% ({history.length}일)
+          </span>
+          {bmReturn !== null && showBenchmark && (
+            <div className="flex items-center gap-2">
+              <span className="text-[9px]" style={{ color: '#6366f1' }}>
+                코스피: {bmReturn >= 0 ? '+' : ''}{bmReturn.toFixed(1)}%
+              </span>
+              <span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{
+                background: alpha >= 0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                color: alpha >= 0 ? '#22c55e' : '#ef4444',
+              }}>
+                α {alpha >= 0 ? '+' : ''}{alpha.toFixed(1)}%
+              </span>
+            </div>
+          )}
+        </div>
       </div>
       <div className="flex justify-center overflow-x-auto">
         <canvas ref={canvasRef} style={{ width: w, height: h, maxWidth: '100%' }} />
