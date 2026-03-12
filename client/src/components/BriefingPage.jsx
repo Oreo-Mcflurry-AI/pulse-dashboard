@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { marked } from 'marked';
 
 // Configure marked
@@ -49,6 +49,72 @@ export default function BriefingPage() {
   const [briefing, setBriefing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [ttsPlaying, setTtsPlaying] = useState(false);
+  const [ttsPaused, setTtsPaused] = useState(false);
+  const ttsRef = useRef(null);
+
+  // Clean up TTS on unmount or page change
+  useEffect(() => {
+    return () => { window.speechSynthesis?.cancel(); };
+  }, []);
+  useEffect(() => {
+    window.speechSynthesis?.cancel();
+    setTtsPlaying(false);
+    setTtsPaused(false);
+  }, [selected]);
+
+  const handleTts = useCallback(() => {
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+
+    if (ttsPlaying && !ttsPaused) {
+      synth.pause();
+      setTtsPaused(true);
+      return;
+    }
+    if (ttsPlaying && ttsPaused) {
+      synth.resume();
+      setTtsPaused(false);
+      return;
+    }
+
+    // Strip markdown/HTML from summary
+    const text = (briefing?.summary || '')
+      .replace(/#{1,6}\s/g, '')
+      .replace(/\*{1,2}([^*]+)\*{1,2}/g, '$1')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/<[^>]+>/g, '')
+      .replace(/[-|]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!text) return;
+
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ko-KR';
+    utterance.rate = 1.1;
+    utterance.pitch = 1.0;
+
+    // Try to pick a Korean voice
+    const voices = synth.getVoices();
+    const koVoice = voices.find(v => v.lang.startsWith('ko'));
+    if (koVoice) utterance.voice = koVoice;
+
+    utterance.onend = () => { setTtsPlaying(false); setTtsPaused(false); };
+    utterance.onerror = () => { setTtsPlaying(false); setTtsPaused(false); };
+
+    ttsRef.current = utterance;
+    synth.speak(utterance);
+    setTtsPlaying(true);
+    setTtsPaused(false);
+  }, [briefing, ttsPlaying, ttsPaused]);
+
+  const stopTts = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    setTtsPlaying(false);
+    setTtsPaused(false);
+  }, []);
 
   useEffect(() => {
     fetch('/api/briefings').then(r => r.json()).then(d => {
@@ -149,6 +215,32 @@ export default function BriefingPage() {
                   📋
                 </button>
                 <span id="copy-feedback" className="text-[10px]" style={{ color: '#22c55e' }} />
+                {/* TTS buttons */}
+                {'speechSynthesis' in window && briefing?.summary && (
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={handleTts}
+                      className="text-[10px] px-1.5 py-0.5 rounded transition-colors"
+                      style={{
+                        background: ttsPlaying ? (ttsPaused ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)') : 'var(--bg-hover)',
+                        color: ttsPlaying ? (ttsPaused ? '#eab308' : '#22c55e') : 'var(--text-muted)',
+                      }}
+                      title={ttsPlaying ? (ttsPaused ? '이어서 재생' : '일시정지') : '음성으로 듣기'}
+                    >
+                      {ttsPlaying ? (ttsPaused ? '▶️' : '⏸️') : '🔊'}
+                    </button>
+                    {ttsPlaying && (
+                      <button
+                        onClick={stopTts}
+                        className="text-[10px] px-1 py-0.5 rounded transition-colors"
+                        style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
+                        title="정지"
+                      >
+                        ⏹️
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => {
