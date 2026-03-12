@@ -104,26 +104,29 @@ export function getBriefingByDate(date) {
   return { summary: sum?.summary || '', articles };
 }
 
-// OG image cache table
+// OG data cache table (image + description)
 db.exec(`
   CREATE TABLE IF NOT EXISTS og_images (
     url_hash TEXT PRIMARY KEY,
     og_url TEXT,
+    og_desc TEXT,
     fetched_at INTEGER NOT NULL
   )
 `);
+// Add og_desc column if missing (migration from old schema)
+try { db.exec('ALTER TABLE og_images ADD COLUMN og_desc TEXT'); } catch {}
 
 const OG_TTL = 24 * 60 * 60 * 1000; // 24h
 
-export function getOgImage(urlHash) {
-  const row = db.prepare('SELECT og_url, fetched_at FROM og_images WHERE url_hash = ?').get(urlHash);
-  if (!row || Date.now() - row.fetched_at > OG_TTL) return null;
-  return row.og_url; // may be null (no OG image found)
+export function getOgData(urlHash) {
+  const row = db.prepare('SELECT og_url, og_desc, fetched_at FROM og_images WHERE url_hash = ?').get(urlHash);
+  if (!row || Date.now() - row.fetched_at > OG_TTL) return undefined;
+  return { image: row.og_url || null, description: row.og_desc || null };
 }
 
-export function setOgImage(urlHash, ogUrl) {
-  db.prepare('INSERT OR REPLACE INTO og_images (url_hash, og_url, fetched_at) VALUES (?, ?, ?)').run(
-    urlHash, ogUrl || null, Date.now()
+export function setOgData(urlHash, data) {
+  db.prepare('INSERT OR REPLACE INTO og_images (url_hash, og_url, og_desc, fetched_at) VALUES (?, ?, ?, ?)').run(
+    urlHash, data?.image || null, data?.description || null, Date.now()
   );
 }
 

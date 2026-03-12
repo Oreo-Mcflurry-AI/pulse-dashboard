@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createHash } from 'crypto';
-import { getOgImage, setOgImage } from '../db.js';
+import { getOgData, setOgData } from '../db.js';
 
 const router = Router();
 
@@ -11,7 +11,13 @@ function hashUrl(url) {
   return createHash('md5').update(url).digest('hex');
 }
 
-async function fetchOgImageUrl(url) {
+function extractMeta(html, property, attr = 'property') {
+  const r1 = new RegExp(`<meta[^>]*${attr}=["']${property}["'][^>]*content=["']([^"']+)["']`, 'i');
+  const r2 = new RegExp(`<meta[^>]*content=["']([^"']+)["'][^>]*${attr}=["']${property}["']`, 'i');
+  return (html.match(r1) || html.match(r2))?.[1] || null;
+}
+
+async function fetchOgData(url) {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 4000);
@@ -21,7 +27,7 @@ async function fetchOgImageUrl(url) {
       redirect: 'follow',
     });
     clearTimeout(timer);
-    if (!res.ok) return null;
+    if (!res.ok) return { image: null, description: null };
 
     // Only read first 32KB for meta tags
     const reader = res.body.getReader();
@@ -34,19 +40,17 @@ async function fetchOgImageUrl(url) {
     }
     reader.cancel();
 
-    // Extract og:image
-    const ogMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
-    if (ogMatch) return ogMatch[1];
+    const image = extractMeta(html, 'og:image') || extractMeta(html, 'twitter:image', 'name');
+    const description = extractMeta(html, 'og:description')
+      || extractMeta(html, 'description', 'name')
+      || extractMeta(html, 'twitter:description', 'name');
 
-    // Fallback: twitter:image
-    const twMatch = html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i)
-      || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:image["']/i);
-    if (twMatch) return twMatch[1];
+    // Decode HTML entities in description
+    const desc = description?.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#x3D;/g, '=').replace(/&#39;/g, "'") || null;
 
-    return null;
+    return { image, description: desc?.slice(0, 200) || null };
   } catch {
-    return null;
+    return { image: null, description: null };
   }
 }
 
@@ -58,38 +62,38 @@ router.get('/', async (req, res) => {
   const hash = hashUrl(url);
 
   // Check cache
-  const cached = getOgImage(hash);
-  if (cached !== null) {
+  const cached = getOgData(hash);
+  if (cached !== undefined) {
     res.set('Cache-Control', 'public, max-age=3600');
-    return res.json({ image: cached || null });
+    return res.json(cached || { image: null, description: null });
   }
 
   // Check if already fetching
   if (inFlight.has(hash)) {
     try {
-      const image = await inFlight.get(hash);
-      return res.json({ image });
+      const data = await inFlight.get(hash);
+      return res.json(data);
     } catch {
-      return res.json({ image: null });
+      return res.json({ image: null, description: null });
     }
   }
 
-  // Fetch OG image
-  const promise = fetchOgImageUrl(url).then(ogUrl => {
-    setOgImage(hash, ogUrl);
+  // Fetch OG data
+  const promise = fetchOgData(url).then(data => {
+    setOgData(hash, data);
     inFlight.delete(hash);
-    return ogUrl;
+    return data;
   }).catch(() => {
-    setOgImage(hash, null);
+    setOgData(hash, { image: null, description: null });
     inFlight.delete(hash);
-    return null;
+    return { image: null, description: null };
   });
 
   inFlight.set(hash, promise);
 
-  const image = await promise;
+  const data = await promise;
   res.set('Cache-Control', 'public, max-age=3600');
-  res.json({ image: image || null });
+  res.json(data);
 });
 
 export default router;

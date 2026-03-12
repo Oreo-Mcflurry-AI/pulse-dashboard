@@ -108,44 +108,85 @@ function estimateReadTime(title, source) {
   return `${mins}분`;
 }
 
-// ─── OG Image Thumbnail ───
-const ogCache = new Map(); // in-memory session cache
+// ─── OG Data (Image + Description) ───
+const ogCache = new Map(); // in-memory session cache: url -> { image, description }
 
-function NewsThumbnail({ url }) {
-  const [src, setSrc] = useState(null);
+function useOgData(url) {
+  const [data, setData] = useState(() => ogCache.get(url) || null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!url || failed) return;
-    // Check session cache
-    if (ogCache.has(url)) {
-      setSrc(ogCache.get(url));
-      return;
-    }
+    if (ogCache.has(url)) { setData(ogCache.get(url)); return; }
     let cancelled = false;
     fetch(`/api/og?url=${encodeURIComponent(url)}`)
       .then(r => r.json())
-      .then(data => {
+      .then(d => {
         if (cancelled) return;
-        ogCache.set(url, data.image);
-        if (data.image) setSrc(data.image);
-        else setFailed(true);
+        ogCache.set(url, d);
+        setData(d);
+        if (!d.image && !d.description) setFailed(true);
       })
       .catch(() => { if (!cancelled) setFailed(true); });
     return () => { cancelled = true; };
   }, [url, failed]);
 
-  if (!src || failed) return null;
+  return data;
+}
+
+function NewsThumbnail({ url }) {
+  const og = useOgData(url);
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (!og?.image || imgFailed) return null;
 
   return (
     <img
-      src={src}
+      src={og.image}
       alt=""
       loading="lazy"
       className="rounded shrink-0 object-cover hidden sm:block"
       style={{ width: 56, height: 38, background: 'var(--bg-hover)' }}
-      onError={() => setFailed(true)}
+      onError={() => setImgFailed(true)}
     />
+  );
+}
+
+function NewsPopover({ url, children }) {
+  const og = useOgData(url);
+  const [show, setShow] = useState(false);
+  const timerRef = useRef(null);
+
+  const handleEnter = useCallback(() => {
+    timerRef.current = setTimeout(() => setShow(true), 400);
+  }, []);
+  const handleLeave = useCallback(() => {
+    clearTimeout(timerRef.current);
+    setShow(false);
+  }, []);
+
+  if (!og?.description) {
+    return children;
+  }
+
+  return (
+    <div className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      {children}
+      {show && (
+        <div
+          className="absolute left-0 top-full mt-1 z-40 p-2.5 rounded-lg shadow-lg max-w-xs sm:max-w-sm pointer-events-none"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          }}
+        >
+          <p className="text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            {og.description}
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -185,6 +226,7 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
             <NewsThumbnail url={a.url} />
+            <NewsPopover url={a.url}>
             <a
               href={a.url}
               target="_blank"
@@ -227,6 +269,7 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
                 </span>
               </div>
             </a>
+            </NewsPopover>
             <div className="flex items-center gap-1 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={(e) => {
