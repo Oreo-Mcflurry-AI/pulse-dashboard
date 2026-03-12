@@ -560,6 +560,108 @@ function AllocationRecommendation({ holdings, prices }) {
   );
 }
 
+// ─── Holdings Related News ───
+const SYMBOL_KEYWORDS = {
+  'KOSPI': ['코스피', 'KOSPI', '한국 증시', '국내 증시'],
+  'KOSDAQ': ['코스닥', 'KOSDAQ'],
+  'BTC': ['비트코인', 'BTC', 'Bitcoin', '암호화폐'],
+  'ETH': ['이더리움', 'ETH', 'Ethereum'],
+  'USD/KRW': ['환율', '달러', 'USD', '원/달러', '원화'],
+  'JPY/KRW': ['엔화', '엔/원', 'JPY'],
+  'S&P 500': ['S&P', 'S&P500', '미국 증시'],
+  'NASDAQ': ['나스닥', 'NASDAQ', 'Nasdaq'],
+  'DOW': ['다우', 'DOW', 'Dow Jones'],
+  'WTI': ['유가', '원유', 'WTI', 'oil', 'OPEC'],
+  'GOLD': ['금값', '금 가격', 'gold', '금시세'],
+  'VIX': ['VIX', '공포지수', '변동성'],
+};
+
+function HoldingsNews({ holdings }) {
+  const [news, setNews] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (holdings.length === 0) return;
+    fetch('/api/news')
+      .then(r => r.json())
+      .then(data => setNews(data))
+      .catch(() => {});
+  }, [holdings.length]);
+
+  if (!news?.sections?.length || holdings.length === 0) return null;
+
+  // Match articles to holdings
+  const allArticles = news.sections.flatMap(s => s.articles || []);
+  const matched = [];
+  const seen = new Set();
+
+  for (const h of holdings) {
+    const keywords = SYMBOL_KEYWORDS[h.symbol] || [h.symbol, h.name].filter(Boolean);
+    for (const article of allArticles) {
+      if (seen.has(article.url)) continue;
+      const title = (article.title || '').toLowerCase();
+      if (keywords.some(kw => title.toLowerCase().includes(kw.toLowerCase()))) {
+        matched.push({ ...article, matchedSymbol: h.symbol, matchedName: h.name });
+        seen.add(article.url);
+      }
+    }
+  }
+
+  if (matched.length === 0) return null;
+
+  const displayed = expanded ? matched : matched.slice(0, 3);
+
+  return (
+    <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📰 보유 종목 관련 뉴스</span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+            {matched.length}건
+          </span>
+        </div>
+      </div>
+      <div className="space-y-1">
+        {displayed.map((a, i) => (
+          <a
+            key={i}
+            href={a.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start gap-2 px-2 py-1.5 rounded-lg transition-colors hover:opacity-80"
+            style={{ background: 'transparent' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <span className="text-[9px] px-1.5 py-0.5 rounded shrink-0 mt-0.5 font-medium" style={{
+              background: 'var(--bg-hover)',
+              color: 'var(--text-muted)',
+              border: '1px solid var(--border)',
+            }}>
+              {a.matchedName || a.matchedSymbol}
+            </span>
+            <span className="text-xs leading-snug flex-1 min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>
+              {a.title}
+            </span>
+            <span className="text-[9px] shrink-0" style={{ color: 'var(--text-muted)' }}>
+              {a.source}
+            </span>
+          </a>
+        ))}
+      </div>
+      {matched.length > 3 && (
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="mt-2 text-[10px] px-2 py-1 rounded transition-colors w-full"
+          style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+        >
+          {expanded ? '접기' : `더보기 (${matched.length - 3}건)`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function PortfolioPage() {
   // Multi-portfolio state
   const [pfList, setPfList] = useState(getPortfolioList);
@@ -880,6 +982,9 @@ export default function PortfolioPage() {
 
       {/* Allocation Recommendation */}
       <AllocationRecommendation holdings={holdings} prices={prices} />
+
+      {/* Holdings Related News */}
+      <HoldingsNews holdings={holdings} />
 
       {/* Add Form */}
       {showAdd && (
