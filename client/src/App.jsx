@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import MarketGrid from './components/MarketGrid';
 import MarketSentiment from './components/MarketSentiment';
 import NewsPanel from './components/NewsPanel';
-import BriefingPage from './components/BriefingPage';
-import PortfolioPage from './components/PortfolioPage';
-import HistoryPage from './components/HistoryPage';
-import HeatmapPage from './components/HeatmapPage';
-import CalendarPage from './components/CalendarPage';
-import StockSearch from './components/StockSearch';
 
+// Lazy-loaded pages (code splitting)
+const BriefingPage = lazy(() => import('./components/BriefingPage'));
+const PortfolioPage = lazy(() => import('./components/PortfolioPage'));
+const HistoryPage = lazy(() => import('./components/HistoryPage'));
+const HeatmapPage = lazy(() => import('./components/HeatmapPage'));
+const CalendarPage = lazy(() => import('./components/CalendarPage'));
+const StockSearch = lazy(() => import('./components/StockSearch'));
+const MarketTimeline = lazy(() => import('./components/MarketTimeline'));
 import NotificationCenter, { NotificationBadge } from './components/NotificationCenter';
 import MarketAlertSettings, { useMarketAlertChecker } from './components/MarketAlerts';
 import { useMarketData } from './hooks/useMarketData';
@@ -560,20 +562,24 @@ export default function App() {
               </div>
             </footer>
           </>
-        ) : page === 'briefings' ? (
-          <BriefingPage />
-        ) : page === 'portfolio' ? (
-          <PortfolioPage />
-        ) : page === 'history' ? (
-          <HistoryPage />
-        ) : page === 'heatmap' ? (
-          <HeatmapPage />
-        ) : page === 'calendar' ? (
-          <CalendarPage />
-        ) : page === 'search' ? (
-          <StockSearch />
         ) : (
-          <MarketTimeline />
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>불러오는 중...</div></div>}>
+            {page === 'briefings' ? (
+              <BriefingPage />
+            ) : page === 'portfolio' ? (
+              <PortfolioPage />
+            ) : page === 'history' ? (
+              <HistoryPage />
+            ) : page === 'heatmap' ? (
+              <HeatmapPage />
+            ) : page === 'calendar' ? (
+              <CalendarPage />
+            ) : page === 'search' ? (
+              <StockSearch />
+            ) : (
+              <MarketTimeline />
+            )}
+          </Suspense>
         )}
         </main>
       </div>
