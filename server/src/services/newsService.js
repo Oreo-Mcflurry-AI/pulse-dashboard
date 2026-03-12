@@ -103,6 +103,64 @@ function computeSentimentSummary(sections) {
   };
 }
 
+// ─── News digest: keyword extraction + summary ───
+const STOP_WORDS_KR = new Set(['의','가','이','은','는','을','를','에','와','과','도','로','에서','으로','까지','부터','라고','라며','한다','했다','이다','있다','된다','되는','하는','하고','것으로','것이','대한','위해','통해','따르면','밝혔다','전했다','보도했다','알려졌다']);
+const STOP_WORDS_EN = new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','by','from','is','are','was','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','shall','can','not','no','this','that','it','its','as','if','than','so','up','out','about','into','over','after','before','under','between','through','during','against','without','within','among']);
+
+function extractKeywords(titles) {
+  const freq = {};
+  for (const title of titles) {
+    // Split Korean + English words
+    const words = title.replace(/[^\w가-힣\s]/g, '').split(/\s+/).filter(w => w.length >= 2);
+    for (const w of words) {
+      const lower = w.toLowerCase();
+      if (STOP_WORDS_KR.has(lower) || STOP_WORDS_EN.has(lower)) continue;
+      if (/^\d+$/.test(w)) continue; // skip pure numbers
+      freq[lower] = (freq[lower] || 0) + 1;
+    }
+  }
+  return Object.entries(freq)
+    .filter(([, c]) => c >= 2) // mentioned at least twice
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12)
+    .map(([word, count]) => ({ word, count }));
+}
+
+function generateDigest(sections, sentimentSummary) {
+  const allTitles = sections.flatMap(s => s.articles.map(a => a.title));
+  const keywords = extractKeywords(allTitles);
+  
+  // Group articles by top keywords to find themes
+  const themes = [];
+  const usedArticles = new Set();
+  
+  for (const kw of keywords.slice(0, 5)) {
+    const related = [];
+    for (const sec of sections) {
+      for (const a of sec.articles) {
+        if (usedArticles.has(a.url)) continue;
+        if (a.title.toLowerCase().includes(kw.word)) {
+          related.push({ title: a.title, source: a.source, sentiment: a.sentiment?.label || 'neutral' });
+          usedArticles.add(a.url);
+        }
+      }
+    }
+    if (related.length > 0) {
+      themes.push({ keyword: kw.word, count: kw.count, articles: related.slice(0, 3) });
+    }
+  }
+
+  // Build headline summary
+  const topSentiment = sentimentSummary?.mood || '🟡 중립';
+  const totalArticles = allTitles.length;
+  
+  return {
+    keywords,
+    themes: themes.slice(0, 4),
+    headline: `${totalArticles}건 뉴스 분석 · ${topSentiment} · 핵심 키워드: ${keywords.slice(0, 5).map(k => k.word).join(', ')}`,
+  };
+}
+
 // Core fetch — called by background prefetcher
 async function fetchAllNews() {
   const [googleResults, koreaEcon, koreaMarket] = await Promise.all([
@@ -127,9 +185,13 @@ async function fetchAllNews() {
   // Compute sentiment for all articles
   const sentiment = computeSentimentSummary(sections);
 
+  // Generate digest (keywords + themes)
+  const digest = generateDigest(sections, sentiment);
+
   const data = {
     sections,
     sentiment,
+    digest,
     updatedAt: new Date().toISOString()
   };
 

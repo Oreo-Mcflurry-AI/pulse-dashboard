@@ -442,6 +442,36 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
           </div>
         </div>
       )}
+      {/* News digest card */}
+      {data?.digest && data.digest.themes?.length > 0 && (
+        <div className="mx-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
+          <div className="text-[10px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>📋 뉴스 요약</div>
+          <div className="text-[10px] mb-2" style={{ color: 'var(--text-muted)', opacity: 0.8 }}>{data.digest.headline}</div>
+          <div className="flex flex-wrap gap-1 mb-2">
+            {data.digest.keywords.slice(0, 8).map(k => (
+              <span key={k.word} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{
+                background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)',
+              }}>
+                {k.word} <span style={{ opacity: 0.5 }}>×{k.count}</span>
+              </span>
+            ))}
+          </div>
+          <div className="space-y-1.5">
+            {data.digest.themes.map((theme, i) => (
+              <div key={i} className="pl-2" style={{ borderLeft: `2px solid ${theme.articles[0]?.sentiment === 'positive' ? '#22c55e' : theme.articles[0]?.sentiment === 'negative' ? '#ef4444' : '#6b7280'}` }}>
+                <div className="text-[10px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                  #{theme.keyword} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({theme.count}건)</span>
+                </div>
+                {theme.articles.slice(0, 2).map((a, j) => (
+                  <div key={j} className="text-[9px] truncate" style={{ color: 'var(--text-muted)' }}>
+                    {a.title}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Category filter tabs */}
       <div role="tablist" aria-label="뉴스 카테고리" className="flex gap-1 px-2 mb-3 overflow-x-auto scrollbar-hide">
         {categories.map(cat => (
