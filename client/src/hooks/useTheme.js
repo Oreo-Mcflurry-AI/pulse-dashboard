@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const THEME_KEY = 'pulse-theme';
 const MODE_KEY = 'pulse-theme-mode'; // 'manual' | 'system' | 'auto'
+const COLOR_KEY = 'pulse-color-scheme'; // 'us' | 'kr'
 
 // Auto mode: dark 19:00-07:00 KST
 function isNightKST() {
@@ -83,5 +84,20 @@ export function useTheme() {
     }
   }, []);
 
-  return { dark, toggle, mode, setMode };
+  // Color scheme: 'us' (green/red) or 'kr' (red/blue)
+  const [colorScheme, setColorSchemeState] = useState(() => {
+    if (typeof window === 'undefined') return 'us';
+    return localStorage.getItem(COLOR_KEY) || 'us';
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('color-kr', colorScheme === 'kr');
+  }, [colorScheme]);
+
+  const setColorScheme = useCallback((scheme) => {
+    setColorSchemeState(scheme);
+    localStorage.setItem(COLOR_KEY, scheme);
+  }, []);
+
+  return { dark, toggle, mode, setMode, colorScheme, setColorScheme };
 }

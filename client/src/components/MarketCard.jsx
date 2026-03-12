@@ -6,7 +6,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
   // VIX: up = fear (red), down = calm (green) — inverted colors
   const isUp = isVix ? rate < 0 : rate > 0;
   const isDown = isVix ? rate > 0 : rate < 0;
-  const colorClass = isUp ? 'text-green-500 dark:text-green-400' : isDown ? 'text-red-500 dark:text-red-400' : '';
+  const changeColor = isUp ? 'var(--accent-up)' : isDown ? 'var(--accent-down)' : 'var(--text-muted)';
   const sparkColor = isUp ? 'var(--accent-up)' : isDown ? 'var(--accent-down)' : 'var(--text-muted)';
   const arrow = rate > 0 ? '▲' : rate < 0 ? '▼' : '';
 
@@ -55,7 +55,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
             {vixLevel && <span className="text-[8px] sm:text-[9px]">{vixLevel}</span>}
           </div>
           <p className="text-base sm:text-xl font-bold tabular-nums truncate">{value || '-'}</p>
-          <p className={`text-xs sm:text-sm font-medium mt-0.5 sm:mt-1 ${colorClass}`}>
+          <p className="text-xs sm:text-sm font-medium mt-0.5 sm:mt-1" style={{ color: changeColor }}>
             {arrow} {changeRate || '0%'}
           </p>
         </div>

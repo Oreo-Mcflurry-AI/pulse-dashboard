@@ -10,6 +10,7 @@
   --text-secondary: #475569;
   --text-muted: #94a3b8;
   --border: #e2e8f0;
+  --bg-secondary: #f1f5f9;
   --accent-up: #16a34a;
   --accent-down: #dc2626;
 }
@@ -22,8 +23,19 @@
   --text-secondary: #cbd5e1;
   --text-muted: #64748b;
   --border: #334155;
+  --bg-secondary: #1e293b;
   --accent-up: #4ade80;
   --accent-down: #f87171;
+}
+
+/* Korean color scheme: up=red, down=blue */
+.color-kr {
+  --accent-up: #dc2626;
+  --accent-down: #2563eb;
+}
+.color-kr.dark, .dark .color-kr {
+  --accent-up: #f87171;
+  --accent-down: #60a5fa;
 }
 
 /* Accessibility: focus-visible outline for keyboard navigation */

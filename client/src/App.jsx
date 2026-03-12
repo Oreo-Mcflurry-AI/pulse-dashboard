@@ -76,7 +76,7 @@ export default function App() {
     window.location.hash === '#search' ? 'search' : 'dashboard'
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
-  const { dark, toggle, mode: themeMode, setMode: setThemeMode } = useTheme();
+  const { dark, toggle, mode: themeMode, setMode: setThemeMode, colorScheme, setColorScheme } = useTheme();
   const { widgets, moveUp, moveDown, toggleVisible, reset: resetLayout, allPresets, applyPreset, saveAsPreset, deletePreset } = useWidgetLayout();
   const [presetName, setPresetName] = useState('');
   const [showPresetSave, setShowPresetSave] = useState(false);
@@ -348,6 +348,24 @@ export default function App() {
                       style={{
                         color: themeMode === opt.mode ? 'var(--text-primary)' : 'var(--text-muted)',
                         background: themeMode === opt.mode ? 'var(--bg-hover)' : 'transparent',
+                      }}
+                    >
+                      <span className="text-[11px]">{opt.label}</span>
+                      <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{opt.desc}</span>
+                    </button>
+                  ))}
+                  <div style={{ borderTop: '1px solid var(--border)', margin: '2px 0' }} />
+                  {[
+                    { scheme: 'us', label: '🇺🇸 미국식', desc: '상승=초록 하락=빨강' },
+                    { scheme: 'kr', label: '🇰🇷 한국식', desc: '상승=빨강 하락=파랑' },
+                  ].map(opt => (
+                    <button
+                      key={opt.scheme}
+                      onClick={() => { setColorScheme(opt.scheme); setShowThemeMenu(false); }}
+                      className="flex items-center justify-between w-full px-3 py-1.5 text-left transition-colors"
+                      style={{
+                        color: colorScheme === opt.scheme ? 'var(--text-primary)' : 'var(--text-muted)',
+                        background: colorScheme === opt.scheme ? 'var(--bg-hover)' : 'transparent',
                       }}
                     >
                       <span className="text-[11px]">{opt.label}</span>
