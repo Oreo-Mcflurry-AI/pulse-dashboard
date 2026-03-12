@@ -92,6 +92,22 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}일 전`;
 }
 
+// ─── Estimated reading time ───
+function estimateReadTime(title, source) {
+  // Korean news articles average ~600-1200 chars, English ~300-800 words
+  // Estimate based on source type and title complexity
+  const isKorean = /[가-힣]/.test(title);
+  const titleLen = (title || '').length;
+  // Longer titles usually indicate longer articles
+  const baseMin = isKorean ? 2 : 3;
+  const extra = titleLen > 60 ? 1 : titleLen > 40 ? 0.5 : 0;
+  // Premium sources tend to have longer articles
+  const badge = getSourceBadge(source);
+  const premiumBonus = badge?.tier === 1 ? 1 : 0;
+  const mins = Math.max(1, Math.round(baseMin + extra + premiumBonus));
+  return `${mins}분`;
+}
+
 // ─── OG Image Thumbnail ───
 const ogCache = new Map(); // in-memory session cache
 
@@ -203,7 +219,12 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
                     );
                   })()}
                 </span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{timeAgo(a.pubDate)}</span>
+                <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                  {timeAgo(a.pubDate)}
+                  <span className="hidden sm:inline text-[8px]" title="예상 읽기 시간">
+                    · {estimateReadTime(a.title, a.source)}
+                  </span>
+                </span>
               </div>
             </a>
             <div className="flex items-center gap-1 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
