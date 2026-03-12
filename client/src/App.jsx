@@ -10,6 +10,7 @@ import CalendarPage from './components/CalendarPage';
 import StockSearch from './components/StockSearch';
 
 import NotificationCenter, { NotificationBadge } from './components/NotificationCenter';
+import MarketAlertSettings, { useMarketAlertChecker } from './components/MarketAlerts';
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
 import { useWidgetLayout } from './hooks/useWidgetLayout';
@@ -81,6 +82,7 @@ export default function App() {
   const [showPresetSave, setShowPresetSave] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showMarketAlerts, setShowMarketAlerts] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [mktStatus, setMktStatus] = useState(getMarketStatus());
@@ -88,6 +90,9 @@ export default function App() {
     const t = setInterval(() => { setNow(Date.now()); setMktStatus(getMarketStatus()); }, 5000);
     return () => clearInterval(t);
   }, []);
+
+  // Market alert checker
+  useMarketAlertChecker(market);
 
   // Close theme menu on click outside
   useEffect(() => {
@@ -302,6 +307,15 @@ export default function App() {
                 {relativeTime(market?.updatedAt)}
               </span>
             )}
+            <button
+              onClick={() => setShowMarketAlerts(true)}
+              className="p-1 transition-colors rounded hover:opacity-80"
+              style={{ color: 'var(--text-muted)' }}
+              title="마켓 알림 설정"
+              aria-label="마켓 알림 임계값 설정"
+            >
+              🚨
+            </button>
             <NotificationBadge onClick={() => setShowNotifications(true)} />
             <div className="relative">
               <button
@@ -529,6 +543,7 @@ export default function App() {
         </main>
       </div>
       <NotificationCenter isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+      <MarketAlertSettings isOpen={showMarketAlerts} onClose={() => setShowMarketAlerts(false)} />
     </div>
   );
 }
