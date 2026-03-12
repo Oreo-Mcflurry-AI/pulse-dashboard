@@ -560,6 +560,91 @@ function AllocationRecommendation({ holdings, prices }) {
   );
 }
 
+// ─── Sector Heatmap ───
+function SectorHeatmap({ holdings, prices }) {
+  if (!holdings || holdings.length === 0 || Object.keys(prices).length === 0) return null;
+
+  // Group holdings by asset type with P&L
+  const sectors = {};
+  for (const h of holdings) {
+    const p = prices[h.symbol];
+    if (!p) continue;
+    const type = ASSET_TYPES[h.symbol] || 'other';
+    if (!sectors[type]) sectors[type] = { type, totalValue: 0, totalPnl: 0, items: [] };
+    const value = p.price * (h.qty || 1);
+    const pnl = h.buyPrice && h.qty ? (p.price - h.buyPrice) * h.qty : 0;
+    const pnlPct = h.buyPrice ? ((p.price - h.buyPrice) / h.buyPrice) * 100 : p.pct || 0;
+    sectors[type].totalValue += value;
+    sectors[type].totalPnl += pnl;
+    sectors[type].items.push({ ...h, currentPrice: p.price, pnlPct, dayChange: p.pct || 0 });
+  }
+
+  const sectorList = Object.values(sectors).sort((a, b) => b.totalValue - a.totalValue);
+  if (sectorList.length === 0) return null;
+
+  const totalValue = sectorList.reduce((s, sec) => s + sec.totalValue, 0);
+  const maxAbsPct = Math.max(1, ...sectorList.map(s => Math.abs(s.totalPnl / s.totalValue * 100)));
+
+  return (
+    <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="text-xs font-bold mb-3" style={{ color: 'var(--text-muted)' }}>🗺️ 섹터 히트맵</div>
+      <div className="flex flex-wrap gap-1.5">
+        {sectorList.map(sec => {
+          const info = ASSET_TYPE_LABELS[sec.type] || ASSET_TYPE_LABELS.other;
+          const pct = totalValue > 0 ? (sec.totalValue / totalValue * 100) : 0;
+          const returnPct = sec.totalValue > 0 ? (sec.totalPnl / sec.totalValue * 100) : 0;
+          const intensity = Math.min(1, Math.abs(returnPct) / maxAbsPct);
+          const isUp = returnPct >= 0;
+          const bg = isUp
+            ? `rgba(34, 197, 94, ${0.1 + intensity * 0.4})`
+            : `rgba(239, 68, 68, ${0.1 + intensity * 0.4})`;
+          const textColor = isUp ? '#22c55e' : '#ef4444';
+          // Size proportional to portfolio weight (min 80px)
+          const minW = Math.max(80, Math.min(200, pct * 3));
+
+          return (
+            <div
+              key={sec.type}
+              className="rounded-lg p-2 transition-all hover:opacity-90"
+              style={{
+                background: bg,
+                border: `1px solid ${isUp ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                minWidth: `${minW}px`,
+                flex: `${Math.max(1, Math.round(pct / 10))}`,
+              }}
+            >
+              <div className="flex items-center gap-1 mb-1">
+                <span className="text-[10px]">{info.icon}</span>
+                <span className="text-[10px] font-bold truncate">{info.name}</span>
+              </div>
+              <div className="text-sm font-bold tabular-nums" style={{ color: textColor }}>
+                {returnPct >= 0 ? '+' : ''}{returnPct.toFixed(1)}%
+              </div>
+              <div className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                {pct.toFixed(0)}% 비중 · {sec.items.length}종목
+              </div>
+              {/* Mini items */}
+              <div className="mt-1 space-y-0.5">
+                {sec.items.slice(0, 3).map(item => {
+                  const itemUp = item.dayChange >= 0;
+                  return (
+                    <div key={item.id} className="flex items-center justify-between text-[8px]">
+                      <span className="truncate" style={{ color: 'var(--text-muted)' }}>{item.name}</span>
+                      <span className="tabular-nums font-medium" style={{ color: itemUp ? '#22c55e' : '#ef4444' }}>
+                        {itemUp ? '+' : ''}{item.dayChange.toFixed(2)}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Holdings Related News ───
 const SYMBOL_KEYWORDS = {
   'KOSPI': ['코스피', 'KOSPI', '한국 증시', '국내 증시'],
@@ -982,6 +1067,9 @@ export default function PortfolioPage() {
 
       {/* Allocation Recommendation */}
       <AllocationRecommendation holdings={holdings} prices={prices} />
+
+      {/* Sector Heatmap */}
+      <SectorHeatmap holdings={holdings} prices={prices} />
 
       {/* Holdings Related News */}
       <HoldingsNews holdings={holdings} />
