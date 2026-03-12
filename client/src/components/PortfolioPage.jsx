@@ -757,10 +757,31 @@ export default function PortfolioPage() {
 
   const hasPnl = holdings.some(h => h.buyPrice && h.qty && prices[h.symbol]);
 
-  // Record daily snapshot
+  // Record daily snapshot + daily return alert
   useEffect(() => {
     if (totalValue > 0 && Object.keys(prices).length > 0) {
       recordSnapshot(totalValue, totalPnl, activePfId);
+
+      // Daily return alert
+      const hist = loadHistory(activePfId);
+      if (hist.length >= 2) {
+        const today = hist[hist.length - 1];
+        const yesterday = hist[hist.length - 2];
+        if (yesterday.value > 0 && today.date !== yesterday.date) {
+          const dailyReturn = ((today.value - yesterday.value) / yesterday.value) * 100;
+          const threshold = parseFloat(localStorage.getItem('pulse_pf_alert_threshold') || '3');
+          const alertKey = `pf_daily_${today.date}`;
+          const alerted = localStorage.getItem(alertKey);
+          if (Math.abs(dailyReturn) >= threshold && !alerted && shouldNotify('portfolio')) {
+            localStorage.setItem(alertKey, '1');
+            addNotification({
+              type: 'portfolio',
+              title: dailyReturn > 0 ? '📈 포트폴리오 급등!' : '📉 포트폴리오 급락!',
+              body: `일간 수익률 ${dailyReturn > 0 ? '+' : ''}${dailyReturn.toFixed(2)}% (${fmt(today.value - yesterday.value)}원)`,
+            });
+          }
+        }
+      }
     }
   }, [totalValue, totalPnl, prices]);
 
@@ -829,6 +850,16 @@ export default function PortfolioPage() {
           {hasPnl && (
             <p className="text-sm mt-1" style={{ color: pctColor(totalPnl) }}>
               총 손익: {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}원
+              <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded cursor-pointer" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+                title="일간 수익률 알림 임계값 설정 (클릭)"
+                onClick={() => {
+                  const cur = localStorage.getItem('pulse_pf_alert_threshold') || '3';
+                  const val = prompt(`일간 수익률 알림 임계값 (±%)`, cur);
+                  if (val && !isNaN(parseFloat(val))) localStorage.setItem('pulse_pf_alert_threshold', val);
+                }}
+              >
+                🔔 ±{localStorage.getItem('pulse_pf_alert_threshold') || '3'}% 알림
+              </span>
             </p>
           )}
         </div>
