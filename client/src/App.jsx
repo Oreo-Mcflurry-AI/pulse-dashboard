@@ -520,6 +520,23 @@ export default function App() {
                 </div>
               </div>
             )}
+            {/* Today's headline summary */}
+            {news?.digest?.headline && (
+              <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                <span className="text-xs shrink-0">📋</span>
+                <p className="text-[11px] sm:text-xs truncate" style={{ color: 'var(--text-secondary)' }}>{news.digest.headline}</p>
+                {news.digest.keywords?.length > 0 && (
+                  <div className="hidden sm:flex items-center gap-1 shrink-0 ml-auto">
+                    {news.digest.keywords.slice(0, 3).map(k => (
+                      <span key={k.word} className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+                        {k.word} ({k.count})
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Dynamic widget rendering based on layout order */}
             {widgets.filter(w => w.visible).map(w => {
               switch (w.id) {
