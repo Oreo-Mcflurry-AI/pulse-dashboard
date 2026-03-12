@@ -358,6 +358,80 @@ export default function HistoryPage() {
           </>
         )}
 
+        {/* Correlation analysis */}
+        {compare && compareData && data && data.length > 5 && compareData.length > 5 && (() => {
+          // Match dates and compute daily returns
+          const mainMap = {};
+          data.forEach(d => { mainMap[d.date] = d.close; });
+          const compMap = {};
+          compareData.forEach(d => { compMap[d.date] = d.close; });
+          const commonDates = Object.keys(mainMap).filter(d => compMap[d]).sort();
+          if (commonDates.length < 5) return null;
+
+          // Daily returns
+          const mainReturns = [];
+          const compReturns = [];
+          for (let i = 1; i < commonDates.length; i++) {
+            const d = commonDates[i], prev = commonDates[i - 1];
+            mainReturns.push((mainMap[d] - mainMap[prev]) / mainMap[prev]);
+            compReturns.push((compMap[d] - compMap[prev]) / compMap[prev]);
+          }
+
+          // Pearson correlation
+          const n = mainReturns.length;
+          const meanA = mainReturns.reduce((s, v) => s + v, 0) / n;
+          const meanB = compReturns.reduce((s, v) => s + v, 0) / n;
+          let cov = 0, varA = 0, varB = 0;
+          for (let i = 0; i < n; i++) {
+            const da = mainReturns[i] - meanA;
+            const db = compReturns[i] - meanB;
+            cov += da * db;
+            varA += da * da;
+            varB += db * db;
+          }
+          const corr = (varA > 0 && varB > 0) ? cov / Math.sqrt(varA * varB) : 0;
+          const absCorr = Math.abs(corr);
+          const corrLabel = absCorr >= 0.8 ? '매우 강함' : absCorr >= 0.6 ? '강함' : absCorr >= 0.4 ? '보통' : absCorr >= 0.2 ? '약함' : '거의 없음';
+          const corrColor = corr >= 0.6 ? '#22c55e' : corr >= 0.2 ? '#3b82f6' : corr >= -0.2 ? '#6b7280' : corr >= -0.6 ? '#f59e0b' : '#ef4444';
+          const corrDir = corr > 0.1 ? '양의 상관' : corr < -0.1 ? '음의 상관' : '무상관';
+
+          return (
+            <div className="mt-2 p-2 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>📐 상관관계</span>
+                  <span className="text-xs font-bold tabular-nums" style={{ color: corrColor }}>
+                    {corr >= 0 ? '+' : ''}{corr.toFixed(3)}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: corrColor + '20', color: corrColor }}>
+                    {corrDir} · {corrLabel}
+                  </span>
+                </div>
+                <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
+                  {sym?.name} vs {compSym?.name} · {n}일 일간수익률 기준
+                </span>
+              </div>
+              {/* Correlation bar */}
+              <div className="mt-1.5 relative h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+                <div className="absolute top-0 bottom-0 w-px" style={{ left: '50%', background: 'var(--text-muted)', opacity: 0.4 }} />
+                <div
+                  className="absolute top-0 bottom-0 rounded-full transition-all duration-500"
+                  style={{
+                    left: corr >= 0 ? '50%' : `${50 + corr * 50}%`,
+                    width: `${absCorr * 50}%`,
+                    background: corrColor,
+                  }}
+                />
+              </div>
+              <div className="flex justify-between mt-0.5 text-[8px]" style={{ color: 'var(--text-muted)' }}>
+                <span>-1 (역상관)</span>
+                <span>0</span>
+                <span>+1 (정상관)</span>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Stats */}
         {data && data.length > 0 && <StatsRow data={data} symbol={selected} color={sym?.color || '#888'} />}
         {compare && compareData && compareData.length > 0 && (
