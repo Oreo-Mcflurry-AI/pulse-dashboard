@@ -388,6 +388,178 @@ function AllocationChart({ holdings, prices }) {
   );
 }
 
+// ─── Asset Type Classification ───
+const ASSET_TYPES = {
+  'KOSPI': 'domestic_equity', 'KOSDAQ': 'domestic_equity',
+  'S&P 500': 'us_equity', 'NASDAQ': 'us_equity', 'DOW': 'us_equity',
+  'BTC': 'crypto', 'ETH': 'crypto',
+  'USD/KRW': 'fx', 'JPY/KRW': 'fx',
+  'WTI': 'commodity', 'GOLD': 'commodity',
+  'VIX': 'hedge',
+};
+
+const ASSET_TYPE_LABELS = {
+  domestic_equity: { name: '국내 주식', icon: '🇰🇷', color: '#3b82f6' },
+  us_equity: { name: '미국 주식', icon: '🇺🇸', color: '#8b5cf6' },
+  crypto: { name: '암호화폐', icon: '₿', color: '#f59e0b' },
+  fx: { name: '외환', icon: '💱', color: '#10b981' },
+  commodity: { name: '원자재', icon: '🛢️', color: '#ef4444' },
+  hedge: { name: '헷지', icon: '🛡️', color: '#6b7280' },
+  other: { name: '기타', icon: '📦', color: '#94a3b8' },
+};
+
+// Recommended allocations by risk profile
+const ALLOCATION_PROFILES = {
+  conservative: {
+    name: '안정형',
+    icon: '🛡️',
+    desc: '안정적 수익, 낮은 변동성',
+    allocations: { domestic_equity: 20, us_equity: 20, crypto: 0, fx: 10, commodity: 15, hedge: 5, other: 30 },
+  },
+  balanced: {
+    name: '균형형',
+    icon: '⚖️',
+    desc: '성장과 안정의 균형',
+    allocations: { domestic_equity: 25, us_equity: 30, crypto: 5, fx: 5, commodity: 10, hedge: 5, other: 20 },
+  },
+  aggressive: {
+    name: '공격형',
+    icon: '🔥',
+    desc: '높은 수익 추구, 높은 변동성 감수',
+    allocations: { domestic_equity: 25, us_equity: 35, crypto: 15, fx: 0, commodity: 5, hedge: 5, other: 15 },
+  },
+};
+
+function AllocationRecommendation({ holdings, prices }) {
+  const [profile, setProfile] = useState('balanced');
+
+  // Calculate current allocation by asset type
+  const typeValues = {};
+  let total = 0;
+  holdings.forEach(h => {
+    const p = prices[h.symbol];
+    if (!p || !h.qty) return;
+    const val = p.price * h.qty;
+    const type = ASSET_TYPES[h.symbol] || ASSET_TYPES[h.name] || 'other';
+    typeValues[type] = (typeValues[type] || 0) + val;
+    total += val;
+  });
+
+  if (total === 0) return null;
+
+  const currentPcts = {};
+  for (const [type, val] of Object.entries(typeValues)) {
+    currentPcts[type] = (val / total) * 100;
+  }
+
+  const recommended = ALLOCATION_PROFILES[profile].allocations;
+
+  // All types that are either in current or recommended
+  const allTypes = [...new Set([...Object.keys(currentPcts), ...Object.keys(recommended).filter(k => recommended[k] > 0)])];
+  allTypes.sort((a, b) => (currentPcts[b] || 0) - (currentPcts[a] || 0));
+
+  // Calculate deviation score (lower = better balanced)
+  const deviation = allTypes.reduce((sum, type) => {
+    const curr = currentPcts[type] || 0;
+    const rec = recommended[type] || 0;
+    return sum + Math.abs(curr - rec);
+  }, 0) / 2;
+
+  const deviationLabel = deviation < 10 ? '✅ 양호' : deviation < 25 ? '⚠️ 조정 필요' : '🔴 편중됨';
+  const deviationColor = deviation < 10 ? '#22c55e' : deviation < 25 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📊 자산 배분 분석</span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: deviationColor + '20', color: deviationColor }}>
+            {deviationLabel}
+          </span>
+        </div>
+        <div className="flex gap-1">
+          {Object.entries(ALLOCATION_PROFILES).map(([key, p]) => (
+            <button
+              key={key}
+              onClick={() => setProfile(key)}
+              className="text-[10px] px-2 py-1 rounded-full transition-colors"
+              style={{
+                background: profile === key ? 'var(--text-primary)' : 'var(--bg-hover)',
+                color: profile === key ? 'var(--bg-primary)' : 'var(--text-muted)',
+                fontWeight: profile === key ? 600 : 400,
+              }}
+              title={p.desc}
+            >
+              {p.icon} {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Bar comparison */}
+      <div className="space-y-2">
+        {allTypes.map(type => {
+          const info = ASSET_TYPE_LABELS[type] || ASSET_TYPE_LABELS.other;
+          const curr = currentPcts[type] || 0;
+          const rec = recommended[type] || 0;
+          const diff = curr - rec;
+          const diffColor = Math.abs(diff) < 5 ? 'var(--text-muted)' : diff > 0 ? '#ef4444' : '#3b82f6';
+          const diffLabel = Math.abs(diff) < 5 ? '적정' : diff > 0 ? '과다' : '부족';
+
+          return (
+            <div key={type}>
+              <div className="flex items-center justify-between mb-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px]">{info.icon}</span>
+                  <span className="text-[11px] font-medium">{info.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                    {curr.toFixed(1)}% / {rec}%
+                  </span>
+                  <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: diffColor + '15', color: diffColor }}>
+                    {diff > 0 ? '+' : ''}{diff.toFixed(1)}% {diffLabel}
+                  </span>
+                </div>
+              </div>
+              <div className="relative h-2 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+                {/* Current (solid) */}
+                <div
+                  className="absolute inset-y-0 left-0 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(curr, 100)}%`, background: info.color, opacity: 0.8 }}
+                />
+                {/* Recommended marker */}
+                {rec > 0 && (
+                  <div
+                    className="absolute top-0 bottom-0 w-0.5"
+                    style={{ left: `${Math.min(rec, 100)}%`, background: 'var(--text-primary)', opacity: 0.6 }}
+                    title={`추천: ${rec}%`}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div className="flex items-center gap-3 mt-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-1">
+          <span className="w-3 h-1.5 rounded-sm" style={{ background: '#3b82f6', opacity: 0.8 }} />
+          <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>현재 비중</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-0.5 h-3" style={{ background: 'var(--text-primary)', opacity: 0.6 }} />
+          <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>추천 비중 ({ALLOCATION_PROFILES[profile].name})</span>
+        </div>
+        <span className="text-[9px] ml-auto" style={{ color: 'var(--text-muted)' }}>
+          편차 점수: {deviation.toFixed(0)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function PortfolioPage() {
   // Multi-portfolio state
   const [pfList, setPfList] = useState(getPortfolioList);
@@ -674,6 +846,9 @@ export default function PortfolioPage() {
 
       {/* Allocation Donut Chart */}
       <AllocationChart holdings={holdings} prices={prices} />
+
+      {/* Allocation Recommendation */}
+      <AllocationRecommendation holdings={holdings} prices={prices} />
 
       {/* Add Form */}
       {showAdd && (
