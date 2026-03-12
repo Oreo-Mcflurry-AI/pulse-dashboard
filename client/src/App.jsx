@@ -75,18 +75,27 @@ export default function App() {
     window.location.hash === '#search' ? 'search' : 'dashboard'
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
-  const { dark, toggle } = useTheme();
+  const { dark, toggle, mode: themeMode, setMode: setThemeMode } = useTheme();
   const { widgets, moveUp, moveDown, toggleVisible, reset: resetLayout, allPresets, applyPreset, saveAsPreset, deletePreset } = useWidgetLayout();
   const [presetName, setPresetName] = useState('');
   const [showPresetSave, setShowPresetSave] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [mktStatus, setMktStatus] = useState(getMarketStatus());
   useEffect(() => {
     const t = setInterval(() => { setNow(Date.now()); setMktStatus(getMarketStatus()); }, 5000);
     return () => clearInterval(t);
   }, []);
+
+  // Close theme menu on click outside
+  useEffect(() => {
+    if (!showThemeMenu) return;
+    const handler = () => setShowThemeMenu(false);
+    setTimeout(() => document.addEventListener('click', handler), 0);
+    return () => document.removeEventListener('click', handler);
+  }, [showThemeMenu]);
 
   // Update browser tab title with live market data
   useEffect(() => {
@@ -294,15 +303,46 @@ export default function App() {
               </span>
             )}
             <NotificationBadge onClick={() => setShowNotifications(true)} />
-            <button
-              onClick={toggle}
-              className="p-1 transition-colors rounded hover:opacity-80"
-              style={{ color: 'var(--text-muted)' }}
-              title={dark ? '라이트 모드' : '다크 모드'}
-              aria-label={dark ? '라이트 모드로 전환' : '다크 모드로 전환'}
-            >
-              {dark ? '☀️' : '🌙'}
-            </button>
+            <div className="relative">
+              <button
+                onClick={toggle}
+                onContextMenu={(e) => { e.preventDefault(); setShowThemeMenu(v => !v); }}
+                className="p-1 transition-colors rounded hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}
+                title={`${dark ? '라이트' : '다크'} 모드 (우클릭: 자동 설정)`}
+                aria-label={dark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+              >
+                {dark ? '☀️' : '🌙'}
+                {themeMode !== 'manual' && (
+                  <span className="absolute -bottom-0.5 -right-0.5 text-[7px]">
+                    {themeMode === 'system' ? '🖥' : '🕐'}
+                  </span>
+                )}
+              </button>
+              {showThemeMenu && (
+                <div className="absolute right-0 top-full mt-1 rounded-lg py-1 z-30 min-w-[130px]"
+                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+                  {[
+                    { mode: 'manual', label: '🎛 수동', desc: '직접 전환' },
+                    { mode: 'system', label: '🖥 시스템', desc: 'OS 테마 연동' },
+                    { mode: 'auto', label: '🕐 자동', desc: '19~07시 다크' },
+                  ].map(opt => (
+                    <button
+                      key={opt.mode}
+                      onClick={() => { setThemeMode(opt.mode); setShowThemeMenu(false); }}
+                      className="flex items-center justify-between w-full px-3 py-1.5 text-left transition-colors"
+                      style={{
+                        color: themeMode === opt.mode ? 'var(--text-primary)' : 'var(--text-muted)',
+                        background: themeMode === opt.mode ? 'var(--bg-hover)' : 'transparent',
+                      }}
+                    >
+                      <span className="text-[11px]">{opt.label}</span>
+                      <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{opt.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {page === 'dashboard' && (
               <>
                 <button
