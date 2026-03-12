@@ -104,4 +104,27 @@ export function getBriefingByDate(date) {
   return { summary: sum?.summary || '', articles };
 }
 
+// OG image cache table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS og_images (
+    url_hash TEXT PRIMARY KEY,
+    og_url TEXT,
+    fetched_at INTEGER NOT NULL
+  )
+`);
+
+const OG_TTL = 24 * 60 * 60 * 1000; // 24h
+
+export function getOgImage(urlHash) {
+  const row = db.prepare('SELECT og_url, fetched_at FROM og_images WHERE url_hash = ?').get(urlHash);
+  if (!row || Date.now() - row.fetched_at > OG_TTL) return null;
+  return row.og_url; // may be null (no OG image found)
+}
+
+export function setOgImage(urlHash, ogUrl) {
+  db.prepare('INSERT OR REPLACE INTO og_images (url_hash, og_url, fetched_at) VALUES (?, ?, ?)').run(
+    urlHash, ogUrl || null, Date.now()
+  );
+}
+
 export default db;

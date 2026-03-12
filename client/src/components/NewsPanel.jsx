@@ -92,6 +92,47 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}일 전`;
 }
 
+// ─── OG Image Thumbnail ───
+const ogCache = new Map(); // in-memory session cache
+
+function NewsThumbnail({ url }) {
+  const [src, setSrc] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!url || failed) return;
+    // Check session cache
+    if (ogCache.has(url)) {
+      setSrc(ogCache.get(url));
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/og?url=${encodeURIComponent(url)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        ogCache.set(url, data.image);
+        if (data.image) setSrc(data.image);
+        else setFailed(true);
+      })
+      .catch(() => { if (!cancelled) setFailed(true); });
+    return () => { cancelled = true; };
+  }, [url, failed]);
+
+  if (!src || failed) return null;
+
+  return (
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      className="rounded shrink-0 object-cover hidden sm:block"
+      style={{ width: 56, height: 38, background: 'var(--bg-hover)' }}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
 // Highlight matching keywords in text
 function highlightKeywords(text, keywords) {
   if (!keywords || keywords.length === 0 || !text) return text;
@@ -127,6 +168,7 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
             onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
+            <NewsThumbnail url={a.url} />
             <a
               href={a.url}
               target="_blank"
