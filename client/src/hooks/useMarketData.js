@@ -149,5 +149,35 @@ export function useMarketData(interval = 30000) {
     }
   }, [market]);
 
+  // New article alerts — compare article URLs between updates
+  const prevNewsRef = useRef(null);
+  useEffect(() => {
+    if (!news?.sections?.length || !shouldNotify('news')) return;
+    const currentUrls = new Set();
+    const currentArticles = [];
+    for (const sec of news.sections) {
+      for (const a of (sec.articles || [])) {
+        if (a.url) {
+          currentUrls.add(a.url);
+          currentArticles.push(a);
+        }
+      }
+    }
+    if (prevNewsRef.current) {
+      const newArticles = currentArticles.filter(a => !prevNewsRef.current.has(a.url));
+      if (newArticles.length > 0 && newArticles.length <= 5) {
+        // Avoid alerting on initial load (too many "new" articles)
+        for (const a of newArticles.slice(0, 3)) {
+          addNotification({
+            type: 'news',
+            title: '📰 새 기사',
+            body: a.title,
+          });
+        }
+      }
+    }
+    prevNewsRef.current = currentUrls;
+  }, [news?.updatedAt]);
+
   return { market, news, loading, live, error, latency, lastFetchAt, interval, refetch: fetchData };
 }
