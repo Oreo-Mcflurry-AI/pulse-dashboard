@@ -92,7 +92,23 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}일 전`;
 }
 
-function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, readUrls, onMarkRead }) {
+// Highlight matching keywords in text
+function highlightKeywords(text, keywords) {
+  if (!keywords || keywords.length === 0 || !text) return text;
+  const escaped = keywords.map(kw => kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const regex = new RegExp(`(${escaped.join('|')})`, 'gi');
+  const parts = text.split(regex);
+  if (parts.length <= 1) return text;
+  // Use a separate non-global regex for testing
+  const testRegex = new RegExp(`^(${escaped.join('|')})$`, 'i');
+  return parts.map((part, i) =>
+    testRegex.test(part)
+      ? <mark key={i} style={{ background: 'rgba(59,130,246,0.25)', color: 'inherit', borderRadius: '2px', padding: '0 1px' }}>{part}</mark>
+      : part
+  );
+}
+
+function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, readUrls, onMarkRead, alertKeywords }) {
   const bmUrls = new Set(bookmarks.map(b => b.url));
   const readSet = new Set(readUrls || []);
   return (
@@ -123,7 +139,7 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
                   <span className="inline-block text-[9px] px-1 py-0.5 mr-1 rounded font-bold align-middle"
                     style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>속보</span>
                 )}
-                {a.title}
+                {highlightKeywords(a.title, alertKeywords)}
                 {a.sentiment && a.sentiment.label !== 'neutral' && (
                   <span className="inline-block w-1.5 h-1.5 rounded-full ml-1 align-middle" style={{
                     background: a.sentiment.label === 'positive' ? '#22c55e' : '#ef4444',
@@ -505,6 +521,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
             onToggleBookmark={toggleBookmark}
             readUrls={readUrls}
             onMarkRead={handleMarkRead}
+            alertKeywords={alertKeywords}
           />
         )
       ) : filtered.length === 0 && q ? (
@@ -512,7 +529,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
           '{search}'에 대한 검색 결과가 없습니다
         </div>
       ) : filtered.map((section, i) => (
-        <NewsSection key={i} {...section} bookmarks={bookmarks} onToggleBookmark={toggleBookmark} readUrls={readUrls} onMarkRead={handleMarkRead} />
+        <NewsSection key={i} {...section} bookmarks={bookmarks} onToggleBookmark={toggleBookmark} readUrls={readUrls} onMarkRead={handleMarkRead} alertKeywords={alertKeywords} />
       ))}
     </div>
   );
