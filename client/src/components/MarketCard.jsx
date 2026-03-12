@@ -56,7 +56,13 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           </div>
           <p className="text-base sm:text-xl font-bold tabular-nums truncate">{value || '-'}</p>
           <p className="text-xs sm:text-sm font-medium mt-0.5 sm:mt-1" style={{ color: changeColor }}>
-            {arrow} {changeRate || '0%'}
+            {arrow && (
+              <span className="inline-block" style={{
+                animation: absRate >= 1
+                  ? (rate > 0 ? 'bounceUp 1.5s ease-in-out infinite' : 'bounceDown 1.5s ease-in-out infinite')
+                  : undefined,
+              }}>{arrow}</span>
+            )}{' '}{changeRate || '0%'}
           </p>
         </div>
         <div className="hidden sm:block">

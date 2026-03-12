@@ -38,6 +38,16 @@
   --accent-down: #60a5fa;
 }
 
+/* Market card arrow animations */
+@keyframes bounceUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2px); }
+}
+
 /* Accessibility: focus-visible outline for keyboard navigation */
 *:focus-visible {
   outline: 2px solid #3b82f6;
