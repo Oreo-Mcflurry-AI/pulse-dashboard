@@ -124,6 +124,11 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
                     style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>속보</span>
                 )}
                 {a.title}
+                {a.sentiment && a.sentiment.label !== 'neutral' && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full ml-1 align-middle" style={{
+                    background: a.sentiment.label === 'positive' ? '#22c55e' : '#ef4444',
+                  }} title={a.sentiment.label === 'positive' ? '긍정' : '부정'} />
+                )}
               </span>
               <div className="flex flex-col items-end shrink-0">
                 <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
@@ -341,6 +346,14 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
       <div className="flex items-center justify-between mb-3 px-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
+          {data?.sentiment && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{
+              background: data.sentiment.avgScore > 0 ? 'rgba(34,197,94,0.15)' : data.sentiment.avgScore < 0 ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.15)',
+              color: data.sentiment.avgScore > 0 ? '#22c55e' : data.sentiment.avgScore < 0 ? '#ef4444' : '#eab308',
+            }}>
+              {data.sentiment.mood}
+            </span>
+          )}
           <button
             onClick={() => setShowAlertSettings(v => !v)}
             className="text-xs px-1.5 py-0.5 rounded transition-colors"
@@ -403,6 +416,31 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
       {/* Alert keyword settings */}
       {showAlertSettings && (
         <NewsAlertSettings keywords={alertKeywords} onAdd={addAlertKeyword} onRemove={removeAlertKeyword} />
+      )}
+      {/* Sentiment bar */}
+      {data?.sentiment && (
+        <div className="mx-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>뉴스 감성 분석</span>
+            <span className="text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{data.sentiment.total}건 분석</span>
+          </div>
+          <div className="flex h-2 rounded-full overflow-hidden mb-1">
+            {data.sentiment.positiveRatio > 0 && (
+              <div style={{ width: `${data.sentiment.positiveRatio}%`, background: '#22c55e' }} title={`긍정 ${data.sentiment.positiveRatio}%`} />
+            )}
+            {data.sentiment.neutralRatio > 0 && (
+              <div style={{ width: `${data.sentiment.neutralRatio}%`, background: '#6b7280' }} title={`중립 ${data.sentiment.neutralRatio}%`} />
+            )}
+            {data.sentiment.negativeRatio > 0 && (
+              <div style={{ width: `${data.sentiment.negativeRatio}%`, background: '#ef4444' }} title={`부정 ${data.sentiment.negativeRatio}%`} />
+            )}
+          </div>
+          <div className="flex justify-between text-[9px]">
+            <span style={{ color: '#22c55e' }}>🟢 긍정 {data.sentiment.positive}건 ({data.sentiment.positiveRatio}%)</span>
+            <span style={{ color: '#6b7280' }}>⚪ 중립 {data.sentiment.neutral}건</span>
+            <span style={{ color: '#ef4444' }}>🔴 부정 {data.sentiment.negative}건 ({data.sentiment.negativeRatio}%)</span>
+          </div>
+        </div>
       )}
       {/* Category filter tabs */}
       <div role="tablist" aria-label="뉴스 카테고리" className="flex gap-1 px-2 mb-3 overflow-x-auto scrollbar-hide">

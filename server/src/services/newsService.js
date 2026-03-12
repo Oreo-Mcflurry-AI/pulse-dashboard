@@ -52,6 +52,57 @@ async function fetchNaverNews(query, limit = 5) {
   }
 }
 
+// ─── Keyword-based sentiment analysis ───
+const POSITIVE_WORDS = [
+  '상승', '급등', '반등', '호재', '수익', '성장', '최고', '돌파', '호실적',
+  '강세', '매수', '낙관', '호황', '개선', '확대', '흑자', '사상최고',
+  'rally', 'surge', 'gain', 'rise', 'bullish', 'record', 'growth', 'profit',
+  'rebound', 'optimism', 'soar', 'boost', 'recovery', 'strong', 'up',
+];
+const NEGATIVE_WORDS = [
+  '하락', '급락', '폭락', '악재', '손실', '위기', '최저', '전쟁', '공포',
+  '약세', '매도', '비관', '불황', '적자', '축소', '파산', '침체', '공습',
+  'crash', 'fall', 'drop', 'bearish', 'fear', 'loss', 'recession', 'crisis',
+  'war', 'plunge', 'sell', 'weak', 'decline', 'slump', 'collapse', 'bomb',
+  'missile', 'attack', 'strike', 'sanctions', 'tariff',
+];
+
+function analyzeSentiment(title) {
+  if (!title) return { score: 0, label: 'neutral' };
+  const lower = title.toLowerCase();
+  let pos = 0, neg = 0;
+  for (const w of POSITIVE_WORDS) if (lower.includes(w.toLowerCase())) pos++;
+  for (const w of NEGATIVE_WORDS) if (lower.includes(w.toLowerCase())) neg++;
+  const score = pos - neg;
+  const label = score > 0 ? 'positive' : score < 0 ? 'negative' : 'neutral';
+  return { score, label, positive: pos, negative: neg };
+}
+
+function computeSentimentSummary(sections) {
+  let positive = 0, negative = 0, neutral = 0, totalScore = 0;
+  const all = [];
+  for (const sec of sections) {
+    for (const a of (sec.articles || [])) {
+      const s = analyzeSentiment(a.title);
+      a.sentiment = s;
+      all.push(s);
+      if (s.label === 'positive') positive++;
+      else if (s.label === 'negative') negative++;
+      else neutral++;
+      totalScore += s.score;
+    }
+  }
+  const total = all.length || 1;
+  return {
+    positive, negative, neutral, total: all.length,
+    positiveRatio: Math.round((positive / total) * 100),
+    negativeRatio: Math.round((negative / total) * 100),
+    neutralRatio: Math.round((neutral / total) * 100),
+    avgScore: parseFloat((totalScore / total).toFixed(2)),
+    mood: totalScore > 2 ? '🟢 낙관' : totalScore < -2 ? '🔴 비관' : '🟡 중립',
+  };
+}
+
 // Core fetch — called by background prefetcher
 async function fetchAllNews() {
   const [googleResults, koreaEcon, koreaMarket] = await Promise.all([
@@ -73,8 +124,12 @@ async function fetchAllNews() {
     { category: '한국', icon: '🇰🇷', articles: koreaArticles }
   ].filter(s => s.articles.length > 0);
 
+  // Compute sentiment for all articles
+  const sentiment = computeSentimentSummary(sections);
+
   const data = {
     sections,
+    sentiment,
     updatedAt: new Date().toISOString()
   };
 
