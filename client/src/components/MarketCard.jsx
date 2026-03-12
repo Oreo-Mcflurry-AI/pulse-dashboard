@@ -1,6 +1,7 @@
+import { useState, useRef, useCallback } from 'react';
 import Sparkline from './Sparkline';
 
-export default function MarketCard({ name, value, changeRate, sparkline, status, week52, relatedNews, onClick }) {
+export default function MarketCard({ name, value, changeRate, sparkline, status, week52, relatedNews, onClick, isFavorite, onToggleFavorite }) {
   const rate = parseFloat(changeRate) || 0;
   const isVix = name === 'VIX';
   // VIX: up = fear (red), down = calm (green) — inverted colors
@@ -26,23 +27,50 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
     alertBorder = isDown ? 'rgba(220, 38, 38, 0.25)' : 'rgba(34, 197, 94, 0.25)';
   }
 
+  // Long-press / double-click to toggle favorite
+  const longPressRef = useRef(null);
+  const [showFavFeedback, setShowFavFeedback] = useState(false);
+
+  const handleFavToggle = useCallback(() => {
+    if (onToggleFavorite) {
+      onToggleFavorite(name);
+      setShowFavFeedback(true);
+      setTimeout(() => setShowFavFeedback(false), 800);
+    }
+  }, [name, onToggleFavorite]);
+
+  const handlePointerDown = useCallback(() => {
+    longPressRef.current = setTimeout(handleFavToggle, 600);
+  }, [handleFavToggle]);
+
+  const handlePointerUp = useCallback(() => {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+  }, []);
+
   return (
     <div
-      className="rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors cursor-pointer hover:opacity-90"
+      className="rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors cursor-pointer hover:opacity-90 relative"
       role="button"
       tabIndex={0}
-      aria-label={`${name} ${value} ${changeRate || '0%'} 상세 차트 보기`}
+      aria-label={`${name} ${value} ${changeRate || '0%'} 상세 차트 보기${isFavorite ? ' (즐겨찾기)' : ''}`}
       style={{
         background: alertBg || 'var(--bg-card)',
-        border: `1px solid ${alertBorder || 'var(--border)'}`,
+        border: `1px solid ${alertBorder || (isFavorite ? 'rgba(234,179,8,0.4)' : 'var(--border)')}`,
       }}
       onClick={() => onClick && onClick({ name, value, changeRate, sparkline, status })}
+      onDoubleClick={(e) => { e.preventDefault(); handleFavToggle(); }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick && onClick({ name, value, changeRate, sparkline, status }); }}}
     >
       <div className="flex justify-between items-start">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1 mb-0.5 sm:mb-1">
-            <p className="text-[10px] sm:text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{name}</p>
+            <p className="text-[10px] sm:text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+              {isFavorite && <span className="text-[8px] mr-0.5" style={{ color: '#eab308' }}>★</span>}
+              {name}
+            </p>
             {status === 'OPEN' && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="장중" />}
             {status === 'PREOPEN' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" title="프리마켓" />}
             {status && (
@@ -116,6 +144,15 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           >
             📰 {relatedNews.title}
           </a>
+        </div>
+      )}
+      {/* Favorite toggle feedback */}
+      {showFavFeedback && (
+        <div className="absolute inset-0 flex items-center justify-center rounded-lg sm:rounded-xl pointer-events-none"
+          style={{ background: 'rgba(0,0,0,0.3)', zIndex: 10 }}>
+          <span className="text-2xl" style={{ animation: 'bounceUp 0.4s ease-out' }}>
+            {isFavorite ? '★' : '☆'}
+          </span>
         </div>
       )}
     </div>

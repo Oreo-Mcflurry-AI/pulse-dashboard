@@ -1,6 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import MarketCard from './MarketCard';
 import ChartModal from './ChartModal';
+
+// ─── Favorites ───
+const FAV_KEY = 'pulse-market-favorites';
+function getFavorites() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch { return []; }
+}
+function saveFavorites(favs) { localStorage.setItem(FAV_KEY, JSON.stringify(favs)); }
 
 const KEYS = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'gold', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
 
@@ -65,19 +72,38 @@ const SORT_OPTIONS = [
   { key: 'name', label: 'ㄱ-ㄴ 이름순' },
 ];
 
-function getSortedKeys(data, sortKey) {
+function getSortedKeys(data, sortKey, favorites) {
   const keys = KEYS.filter(k => data[k]);
+  const favSet = new Set(favorites || []);
+  // Always put favorites first, then sort within each group
+  const sortFn = (a, b) => {
+    if (sortKey === 'name') return (data[a].name || a).localeCompare(data[b].name || b, 'ko');
+    if (sortKey === 'change_desc') return (parseFloat(data[b].changeRate) || 0) - (parseFloat(data[a].changeRate) || 0);
+    if (sortKey === 'change_asc') return (parseFloat(data[a].changeRate) || 0) - (parseFloat(data[b].changeRate) || 0);
+    return 0; // default: preserve order
+  };
+  if (favorites && favorites.length > 0) {
+    const favKeys = keys.filter(k => favSet.has(data[k]?.name));
+    const nonFavKeys = keys.filter(k => !favSet.has(data[k]?.name));
+    if (sortKey !== 'default') { favKeys.sort(sortFn); nonFavKeys.sort(sortFn); }
+    return [...favKeys, ...nonFavKeys];
+  }
   if (sortKey === 'default') return keys;
-  // Use spread to avoid mutating the filtered array
-  if (sortKey === 'name') return [...keys].sort((a, b) => (data[a].name || a).localeCompare(data[b].name || b, 'ko'));
-  if (sortKey === 'change_desc') return [...keys].sort((a, b) => (parseFloat(data[b].changeRate) || 0) - (parseFloat(data[a].changeRate) || 0));
-  if (sortKey === 'change_asc') return [...keys].sort((a, b) => (parseFloat(data[a].changeRate) || 0) - (parseFloat(data[b].changeRate) || 0));
-  return keys;
+  return [...keys].sort(sortFn);
 }
 
 export default function MarketGrid({ data, news }) {
   const [modal, setModal] = useState(null);
   const [sort, setSort] = useState('default');
+  const [favorites, setFavorites] = useState(getFavorites);
+
+  const toggleFavorite = useCallback((name) => {
+    setFavorites(prev => {
+      const next = prev.includes(name) ? prev.filter(f => f !== name) : [...prev, name];
+      saveFavorites(next);
+      return next;
+    });
+  }, []);
 
   const relatedNews = useMemo(() => {
     if (!news?.sections?.length) return {};
@@ -91,7 +117,7 @@ export default function MarketGrid({ data, news }) {
   if (!data) return null;
   const sparklines = data.sparklines || {};
   const week52 = data.week52 || {};
-  const sortedKeys = getSortedKeys(data, sort);
+  const sortedKeys = getSortedKeys(data, sort, favorites);
 
   return (
     <div className="px-3 sm:px-4">
@@ -131,6 +157,8 @@ export default function MarketGrid({ data, news }) {
             status={data[key].status}
             week52={week52[key]}
             relatedNews={relatedNews[key]}
+            isFavorite={favorites.includes(data[key]?.name)}
+            onToggleFavorite={toggleFavorite}
             onClick={(card) => setModal({ ...card, sparkline: sparklines[key], week52: week52[key] })}
           />
         ))}
