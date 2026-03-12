@@ -79,7 +79,7 @@ export default function App() {
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle, mode: themeMode, setMode: setThemeMode, colorScheme, setColorScheme } = useTheme();
-  const { widgets, moveUp, moveDown, toggleVisible, reset: resetLayout, allPresets, applyPreset, saveAsPreset, deletePreset } = useWidgetLayout();
+  const { widgets, moveUp, moveDown, toggleVisible, toggleCollapsed, reset: resetLayout, allPresets, applyPreset, saveAsPreset, deletePreset } = useWidgetLayout();
   const [presetName, setPresetName] = useState('');
   const [showPresetSave, setShowPresetSave] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
@@ -541,17 +541,35 @@ export default function App() {
 
             {/* Dynamic widget rendering based on layout order */}
             {widgets.filter(w => w.visible).map(w => {
-              switch (w.id) {
-                case 'sentiment': return <MarketSentiment key={w.id} data={market} />;
-                case 'market': return <MarketGrid key={w.id} data={market} news={news} />;
-                case 'news': return (
-                  <div key={w.id}>
-                    <div style={{ borderTop: '1px solid var(--border)' }} />
-                    <NewsPanel data={news} lastFetchAt={lastFetchAt} interval={interval} live={live} />
-                  </div>
-                );
-                default: return null;
-              }
+              const content = (() => {
+                switch (w.id) {
+                  case 'sentiment': return <MarketSentiment data={market} />;
+                  case 'market': return <MarketGrid data={market} news={news} />;
+                  case 'news': return (
+                    <>
+                      <div style={{ borderTop: '1px solid var(--border)' }} />
+                      <NewsPanel data={news} lastFetchAt={lastFetchAt} interval={interval} live={live} />
+                    </>
+                  );
+                  default: return null;
+                }
+              })();
+              return (
+                <div key={w.id}>
+                  <button
+                    onClick={() => toggleCollapsed(w.id)}
+                    className="flex items-center gap-1.5 w-full px-4 py-1 text-left transition-colors hover:opacity-80"
+                    style={{ color: 'var(--text-muted)' }}
+                    aria-expanded={!w.collapsed}
+                    aria-label={`${w.label} ${w.collapsed ? '펼치기' : '접기'}`}
+                  >
+                    <span className="text-[9px] transition-transform" style={{ transform: w.collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>▼</span>
+                    <span className="text-[10px] font-medium">{w.label}</span>
+                    {w.collapsed && <span className="text-[9px]" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>접힘</span>}
+                  </button>
+                  {!w.collapsed && content}
+                </div>
+              );
             })}
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
               <div>{live ? '🟢 실시간 스트리밍' : '30초마다 자동 업데이트'} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}{latency != null ? ` · ${latency}ms` : ''}</div>

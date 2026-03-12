@@ -89,6 +89,14 @@ export function useWidgetLayout() {
     });
   }, []);
 
+  const toggleCollapsed = useCallback((id) => {
+    setWidgets(prev => {
+      const next = prev.map(w => w.id === id ? { ...w, collapsed: !w.collapsed } : w);
+      save(next);
+      return next;
+    });
+  }, []);
+
   const reset = useCallback(() => {
     save(DEFAULT_WIDGETS);
     setWidgets(DEFAULT_WIDGETS);
@@ -133,5 +141,5 @@ export function useWidgetLayout() {
     savePresets(next);
   }, [presets]);
 
-  return { widgets, moveUp, moveDown, toggleVisible, reset, allPresets, applyPreset, saveAsPreset, deletePreset, renamePreset };
+  return { widgets, moveUp, moveDown, toggleVisible, toggleCollapsed, reset, allPresets, applyPreset, saveAsPreset, deletePreset, renamePreset };
 }
