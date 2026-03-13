@@ -132,19 +132,69 @@ async function fetch52WeekFromSiseJson(symbol) {
   return null;
 }
 
+async function fetch52WeekFromNaverPrices(category, code) {
+  // Fetch daily prices from Naver commodity/exchange API (max 60/page)
+  try {
+    const pages = await Promise.all(
+      [1, 2, 3, 4, 5].map(page =>
+        fetchJSON(`https://api.stock.naver.com/marketindex/${category}/${code}/prices?page=${page}&pageSize=60`)
+          .catch(() => [])
+      )
+    );
+    const rows = pages.flat().filter(r => r && (r.highPrice != null || r.closePrice != null));
+    if (!rows.length) return null;
+    let high = -Infinity, low = Infinity, highDate = '', lowDate = '';
+    for (const r of rows) {
+      // Commodity APIs have highPrice/lowPrice; exchange APIs only have closePrice
+      const h = parseFloat(String(r.highPrice || r.closePrice).replace(/,/g, ''));
+      const l = parseFloat(String(r.lowPrice || r.closePrice).replace(/,/g, ''));
+      const date = (r.localTradedAt || '').slice(0, 10).replace(/-/g, '.');
+      if (h > high) { high = h; highDate = date + '.'; }
+      if (l < low && l > 0) { low = l; lowDate = date + '.'; }
+    }
+    return high > -Infinity ? { high, low, highDate, lowDate } : null;
+  } catch {}
+  return null;
+}
+
+async function fetch52WeekFromUpbit() {
+  // Fetch 365 daily candles from Upbit for BTC
+  try {
+    const [batch1, batch2] = await Promise.all([
+      fetchJSON('https://api.upbit.com/v1/candles/days?market=KRW-BTC&count=200'),
+      fetchJSON('https://api.upbit.com/v1/candles/days?market=KRW-BTC&count=200&to=' +
+        new Date(Date.now() - 200 * 86400000).toISOString().slice(0, 19)),
+    ]);
+    const rows = [...(batch1 || []), ...(batch2 || [])].filter(r => r.high_price);
+    if (!rows.length) return null;
+    let high = -Infinity, low = Infinity, highDate = '', lowDate = '';
+    for (const r of rows) {
+      const date = (r.candle_date_time_kst || '').slice(0, 10).replace(/-/g, '.');
+      if (r.high_price > high) { high = r.high_price; highDate = date + '.'; }
+      if (r.low_price < low && r.low_price > 0) { low = r.low_price; lowDate = date + '.'; }
+    }
+    return high > -Infinity ? { high, low, highDate, lowDate } : null;
+  } catch {}
+  return null;
+}
+
 async function fetchAll52WeekData() {
   if (week52Cache.data && Date.now() - week52Cache.updatedAt < WEEK52_TTL) {
     return week52Cache.data;
   }
-  const [kospi, kosdaq, sp500, nasdaq, dow, vix] = await Promise.all([
+  const [kospi, kosdaq, sp500, nasdaq, dow, vix, btc, gold, oil, usdkrw] = await Promise.all([
     fetch52WeekFromSiseJson('KOSPI'),
     fetch52WeekFromSiseJson('KOSDAQ'),
     fetch52WeekFromNaver('.INX'),
     fetch52WeekFromNaver('.IXIC'),
     fetch52WeekFromNaver('.DJI'),
     fetch52WeekFromNaver('.VIX'),
+    fetch52WeekFromUpbit(),
+    fetch52WeekFromNaverPrices('metals', 'GCcv1'),
+    fetch52WeekFromNaverPrices('energy', 'CLcv1'),
+    fetch52WeekFromNaverPrices('exchange', 'FX_USDKRW'),
   ]);
-  const data = { kospi, kosdaq, sp500, nasdaq, dow, vix };
+  const data = { kospi, kosdaq, sp500, nasdaq, dow, vix, btc, gold, oil, usdkrw };
   week52Cache = { data, updatedAt: Date.now() };
   return data;
 }
