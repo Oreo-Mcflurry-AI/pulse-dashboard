@@ -1,6 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import MarketCard from './MarketCard';
 import ChartModal from './ChartModal';
+import { addNotification, shouldNotify } from './NotificationCenter';
 
 // ─── Favorites ───
 const FAV_KEY = 'pulse-market-favorites';
@@ -104,6 +105,42 @@ export default function MarketGrid({ data, news }) {
       return next;
     });
   }, []);
+
+  // ─── Market change alerts ───
+  const prevDataRef = useRef(null);
+  const ALERT_THRESHOLD = 2; // ±2% change triggers notification
+
+  useEffect(() => {
+    if (!data) return;
+    const prev = prevDataRef.current;
+    prevDataRef.current = data;
+    if (!prev) return; // skip first render
+
+    for (const key of KEYS) {
+      const curr = data[key];
+      const old = prev[key];
+      if (!curr || !old) continue;
+
+      const currRate = parseFloat(curr.changeRate) || 0;
+      const oldRate = parseFloat(old.changeRate) || 0;
+      const currVal = parseFloat(String(curr.value).replace(/,/g, '')) || 0;
+      const oldVal = parseFloat(String(old.value).replace(/,/g, '')) || 0;
+
+      // Alert if: crossed ±2% threshold OR value changed > 1% between updates
+      const crossedThreshold = Math.abs(currRate) >= ALERT_THRESHOLD && Math.abs(oldRate) < ALERT_THRESHOLD;
+      const bigSwing = oldVal > 0 && Math.abs((currVal - oldVal) / oldVal * 100) >= 1;
+
+      if ((crossedThreshold || bigSwing) && shouldNotify('market')) {
+        const arrow = currRate > 0 ? '▲' : currRate < 0 ? '▼' : '';
+        const label = bigSwing && !crossedThreshold ? '급변' : currRate >= ALERT_THRESHOLD ? '급등' : '급락';
+        addNotification({
+          type: 'market',
+          title: `${curr.name} ${label} ${arrow}${curr.changeRate}`,
+          body: `현재가: ${curr.value}`,
+        });
+      }
+    }
+  }, [data]);
 
   const relatedNews = useMemo(() => {
     if (!news?.sections?.length) return {};
