@@ -21,7 +21,7 @@ function getColor(change) {
   return { bg: 'var(--bg-hover)', text: 'var(--text-muted)' };
 }
 
-function Treemap({ sectors, width, height }) {
+function Treemap({ sectors, width, height, onSelectSector }) {
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const rectsRef = useRef([]);
@@ -146,9 +146,17 @@ function Treemap({ sectors, width, height }) {
     <div className="relative">
       <canvas
         ref={canvasRef}
-        style={{ width, height, cursor: 'crosshair', borderRadius: 8 }}
+        style={{ width, height, cursor: 'pointer', borderRadius: 8 }}
         onMouseMove={handleMouse}
         onMouseLeave={() => setTooltip(null)}
+        onClick={(e) => {
+          const rect = canvasRef.current?.getBoundingClientRect();
+          if (!rect) return;
+          const mx = e.clientX - rect.left;
+          const my = e.clientY - rect.top;
+          const hit = rectsRef.current.find(r => mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h);
+          if (hit && onSelectSector) onSelectSector(hit);
+        }}
       />
       {tooltip && (
         <div
@@ -177,7 +185,74 @@ function Treemap({ sectors, width, height }) {
   );
 }
 
-function SectorList({ sectors, sortKey, onSort }) {
+function SectorDetailModal({ sector, onClose }) {
+  const [stocks, setStocks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!sector) return;
+    fetch(`/api/sectors/${sector.id}`)
+      .then(r => r.json())
+      .then(d => { setStocks(d.stocks || []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [sector]);
+
+  if (!sector) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="relative w-full max-w-md max-h-[80vh] rounded-xl overflow-hidden flex flex-col"
+        style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div>
+            <h3 className="text-sm font-bold">{sector.name}</h3>
+            <span className="text-[10px]" style={{ color: getColor(sector.change).text }}>
+              {sector.change >= 0 ? '+' : ''}{sector.change.toFixed(2)}% · {sector.total}종목
+            </span>
+          </div>
+          <button onClick={onClose} className="text-lg" style={{ color: 'var(--text-muted)' }}>✕</button>
+        </div>
+        <div className="overflow-y-auto flex-1 px-2 py-1">
+          {loading ? (
+            <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>로딩 중...</div>
+          ) : stocks.length === 0 ? (
+            <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>종목 데이터 없음</div>
+          ) : (
+            stocks.map((s, i) => {
+              const rate = parseFloat(s.changeRate) || 0;
+              const colors = getColor(rate);
+              return (
+                <a
+                  key={s.code}
+                  href={`https://finance.naver.com/item/main.naver?code=${s.code}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors hover:opacity-80"
+                  style={{ borderBottom: '1px solid var(--border)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <span className="text-[10px] w-5 text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>{i + 1}</span>
+                  <span className="text-xs flex-1 truncate">{s.name}</span>
+                  <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>{s.price}원</span>
+                  <span className="text-xs font-bold w-16 text-right tabular-nums" style={{ color: colors.text }}>
+                    {s.changeRate}
+                  </span>
+                </a>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectorList({ sectors, sortKey, onSort, onSelectSector }) {
   const sorted = [...sectors].sort((a, b) => {
     if (sortKey === 'change_desc') return b.change - a.change;
     if (sortKey === 'change_asc') return a.change - b.change;
@@ -214,8 +289,9 @@ function SectorList({ sectors, sortKey, onSort }) {
         {sorted.map((s, i) => {
           const colors = getColor(s.change);
           return (
-            <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 transition-colors hover:opacity-80"
-              style={{ borderBottom: '1px solid var(--border)' }}>
+            <div key={s.id} className="flex items-center gap-2 px-3 py-1.5 transition-colors hover:opacity-80 cursor-pointer"
+              style={{ borderBottom: '1px solid var(--border)' }}
+              onClick={() => onSelectSector && onSelectSector(s)}>
               <span className="text-[10px] w-5 text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>{i + 1}</span>
               <span className="text-xs flex-1 truncate">{s.name}</span>
               <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
@@ -247,6 +323,7 @@ export default function HeatmapPage() {
   const [error, setError] = useState(null);
   const [sortKey, setSortKey] = useState('default');
   const [view, setView] = useState('treemap'); // 'treemap' | 'list'
+  const [selectedSector, setSelectedSector] = useState(null);
   const containerRef = useRef(null);
   const [chartWidth, setChartWidth] = useState(600);
 
@@ -357,19 +434,23 @@ export default function HeatmapPage() {
         </div>
       ) : view === 'treemap' ? (
         <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', padding: 8 }}>
-          <Treemap sectors={sectorsWithWeight} width={chartWidth - 16} height={chartHeight} />
+          <Treemap sectors={sectorsWithWeight} width={chartWidth - 16} height={chartHeight} onSelectSector={setSelectedSector} />
         </div>
       ) : null}
 
       {/* Always show list below (or as main view) */}
       <div className={view === 'treemap' ? 'mt-4' : ''}>
-        <SectorList sectors={sectorsWithWeight} sortKey={sortKey} onSort={setSortKey} />
+        <SectorList sectors={sectorsWithWeight} sortKey={sortKey} onSort={setSortKey} onSelectSector={setSelectedSector} />
       </div>
 
       {/* Global Market Timeline */}
       <div className="mt-6" style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
         <MarketTimeline />
       </div>
+
+      {selectedSector && (
+        <SectorDetailModal sector={selectedSector} onClose={() => setSelectedSector(null)} />
+      )}
     </div>
   );
 }

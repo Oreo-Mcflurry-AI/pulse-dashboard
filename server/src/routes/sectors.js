@@ -74,4 +74,69 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ─── Sector detail: stocks in a sector ───
+const sectorDetailCache = new Map(); // id -> { data, updatedAt }
+const DETAIL_TTL = 5 * 60 * 1000;
+
+async function fetchSectorDetail(id) {
+  const cached = sectorDetailCache.get(id);
+  if (cached && Date.now() - cached.updatedAt < DETAIL_TTL) {
+    return cached.data;
+  }
+
+  const res = await fetch(`https://finance.naver.com/sise/sise_group_detail.naver?type=upjong&no=${id}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0' },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT),
+  });
+  const buf = await res.arrayBuffer();
+  const html = new TextDecoder('euc-kr').decode(buf);
+
+  // Parse stock rows by splitting on stock code anchors
+  const stocks = [];
+  const codePattern = /code=(\d+)">([^<]+)<\/a>/g;
+  let m;
+  while ((m = codePattern.exec(html)) !== null) {
+    // Skip non-main links (board, etc.)
+    if (!html.slice(Math.max(0, m.index - 30), m.index).includes('item/main')) continue;
+
+    const code = m[1];
+    const name = m[2].trim();
+    // Look at the ~500 chars after this match for price/change data
+    const after = html.slice(m.index, m.index + 600);
+
+    // Price: first <td class="number"...>digits</td>
+    const priceMatch = after.match(/<td class="number"[^>]*>\s*([\d,]+)\s*<\/td>/);
+    // Direction: bu_pup or bu_pdw
+    const dirMatch = after.match(/bu_p(up|dw)/);
+    // Change rate: +/-XX.XX%
+    const rateMatch = after.match(/([\+\-]?\d+\.\d+%)/);
+
+    if (priceMatch) {
+      const direction = dirMatch ? dirMatch[1] : '';
+      stocks.push({
+        code,
+        name,
+        price: priceMatch[1],
+        changeRate: rateMatch ? (direction === 'dw' && !rateMatch[1].startsWith('-') ? `-${rateMatch[1]}` : rateMatch[1]) : '0%',
+        direction: direction === 'up' ? 'up' : direction === 'dw' ? 'down' : 'flat',
+      });
+    }
+  }
+
+  const data = { stocks, updatedAt: new Date().toISOString() };
+  sectorDetailCache.set(id, { data, updatedAt: Date.now() });
+  return data;
+}
+
+router.get('/:id', async (req, res) => {
+  try {
+    const data = await fetchSectorDetail(req.params.id);
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+    res.json(data);
+  } catch (e) {
+    console.error('[sectors detail] error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 export default router;
