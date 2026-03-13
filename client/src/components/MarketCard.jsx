@@ -27,6 +27,13 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
     alertBorder = isDown ? 'rgba(220, 38, 38, 0.25)' : 'rgba(34, 197, 94, 0.25)';
   }
 
+  // Status-based background gradient
+  const statusBg = !alertBg ? (
+    status === 'OPEN' ? 'linear-gradient(135deg, var(--bg-card) 0%, rgba(34,197,94,0.04) 100%)' :
+    status === 'PREOPEN' ? 'linear-gradient(135deg, var(--bg-card) 0%, rgba(234,179,8,0.04) 100%)' :
+    'var(--bg-card)'
+  ) : alertBg;
+
   // Long-press / double-click to toggle favorite
   const longPressRef = useRef(null);
   const [showFavFeedback, setShowFavFeedback] = useState(false);
@@ -54,8 +61,8 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
       tabIndex={0}
       aria-label={`${name} ${value} ${changeRate || '0%'} 상세 차트 보기${isFavorite ? ' (즐겨찾기)' : ''}`}
       style={{
-        background: alertBg || 'var(--bg-card)',
-        border: `1px solid ${alertBorder || (isFavorite ? 'rgba(234,179,8,0.4)' : 'var(--border)')}`,
+        background: statusBg,
+        border: `1px solid ${alertBorder || (isFavorite ? 'rgba(234,179,8,0.4)' : status === 'OPEN' ? 'rgba(34,197,94,0.12)' : 'var(--border)')}`,
       }}
       onClick={() => onClick && onClick({ name, value, changeRate, sparkline, status })}
       onDoubleClick={(e) => { e.preventDefault(); handleFavToggle(); }}
