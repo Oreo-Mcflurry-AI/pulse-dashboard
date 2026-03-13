@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import Sparkline from './Sparkline';
 
-export default function MarketCard({ name, value, changeRate, sparkline, status, week52, relatedNews, onClick, isFavorite, onToggleFavorite }) {
+export default function MarketCard({ name, value, changeRate, sparkline, status, week52, volume, relatedNews, onClick, isFavorite, onToggleFavorite }) {
   const rate = parseFloat(changeRate) || 0;
   const isVix = name === 'VIX';
   // VIX: up = fear (red), down = calm (green) — inverted colors
@@ -92,6 +92,19 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
               }}>{arrow}</span>
             )}{' '}{changeRate || '0%'}
           </p>
+          {volume && volume.volume > 0 && (
+            <p className="text-[9px] sm:text-[10px] mt-0.5 tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+              📊 {volume.volumeLabel || (volume.volume >= 1000000 ? `${(volume.volume / 1000000).toFixed(1)}M` : volume.volume >= 1000 ? `${(volume.volume / 1000).toFixed(0)}K` : volume.volume)}
+              {volume.changeRatio && (() => {
+                const vr = parseFloat(volume.changeRatio);
+                return vr !== 0 ? (
+                  <span style={{ color: vr > 0 ? 'var(--accent-up)' : 'var(--accent-down)', marginLeft: 3 }}>
+                    {vr > 0 ? '↑' : '↓'}{Math.abs(vr).toFixed(0)}%
+                  </span>
+                ) : null;
+              })()}
+            </p>
+          )}
         </div>
         <div className="hidden sm:block">
           <Sparkline data={sparkline} color={sparkColor} />

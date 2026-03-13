@@ -199,6 +199,59 @@ async function fetchAll52WeekData() {
   return data;
 }
 
+// ─── Volume data (domestic indices) ───
+const VOLUME_TTL = 5 * 60 * 1000; // 5min
+let volumeCache = { data: null, updatedAt: 0 };
+
+async function fetchVolumeData() {
+  if (volumeCache.data && Date.now() - volumeCache.updatedAt < VOLUME_TTL) {
+    return volumeCache.data;
+  }
+  const result = {};
+  for (const symbol of ['KOSPI', 'KOSDAQ']) {
+    try {
+      const now = new Date();
+      const end = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const start = new Date(now - 7 * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
+      const url = `https://api.finance.naver.com/siseJson.naver?symbol=${symbol}&requestType=1&startTime=${start}&endTime=${end}&timeframe=day`;
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT),
+      });
+      const text = await res.text();
+      const rows = text.match(/\["20\d{6}",\s*[\d.]+,\s*[\d.]+,\s*[\d.]+,\s*[\d.]+,\s*[\d]+/g);
+      if (rows && rows.length >= 2) {
+        const parse = (row) => {
+          const parts = row.replace(/[[\]"]/g, '').split(',').map(s => s.trim());
+          return { volume: parseInt(parts[5], 10) };
+        };
+        const today = parse(rows[rows.length - 1]);
+        const prev = parse(rows[rows.length - 2]);
+        const changeRatio = prev.volume > 0 ? ((today.volume - prev.volume) / prev.volume * 100).toFixed(1) : null;
+        result[symbol.toLowerCase()] = {
+          volume: today.volume,
+          prevVolume: prev.volume,
+          changeRatio: changeRatio ? `${changeRatio}%` : null,
+        };
+      }
+    } catch {}
+  }
+  // US indices volume from Naver API
+  for (const [key, code] of [['sp500', '.INX'], ['nasdaq', '.IXIC'], ['dow', '.DJI']]) {
+    try {
+      const d = await fetchJSON(`https://api.stock.naver.com/index/${code}/basic`);
+      const volInfo = (d.stockItemTotalInfos || []).find(i => i.code === 'accumulatedTradingVolume');
+      if (volInfo?.value) {
+        const volStr = String(volInfo.value).replace(/[천주,\s]/g, '');
+        const vol = parseInt(volStr, 10) * 1000; // value is in thousands
+        result[key] = { volume: vol, volumeLabel: volInfo.value };
+      }
+    } catch {}
+  }
+  volumeCache = { data: result, updatedAt: Date.now() };
+  return result;
+}
+
 // Core fetch — called by background prefetcher and on-demand fallback
 async function fetchAllMarketData() {
   const [kospi, kosdaq, usdkrw, btc, sp500, nasdaq, dow, oil, gold, vix] = await Promise.all([
@@ -261,7 +314,8 @@ async function prefetch() {
     const sparklines = buildSparklines();
     // 52-week data (fetched less frequently, has its own cache)
     const week52 = await fetchAll52WeekData().catch(() => null);
-    memCache = { market, sparklines, week52, updatedAt: Date.now() };
+    const volume = await fetchVolumeData().catch(() => null);
+    memCache = { market, sparklines, week52, volume, updatedAt: Date.now() };
   } catch (e) {
     // Keep stale memCache on failure; log for debugging
     console.error('[market prefetch] error:', e.message);
@@ -297,6 +351,11 @@ export async function getMarketData() {
 export async function getWeek52() {
   if (memCache.week52) return memCache.week52;
   return fetchAll52WeekData().catch(() => ({}));
+}
+
+export async function getVolume() {
+  if (memCache.volume) return memCache.volume;
+  return fetchVolumeData().catch(() => ({}));
 }
 
 export async function getSparklines() {
