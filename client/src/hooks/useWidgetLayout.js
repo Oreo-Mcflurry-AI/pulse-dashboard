@@ -4,6 +4,7 @@ const STORAGE_KEY = 'pulse_widget_layout';
 const PRESETS_KEY = 'pulse_layout_presets';
 
 const DEFAULT_WIDGETS = [
+  { id: 'weather', label: '🌤️ 날씨', visible: true },
   { id: 'sentiment', label: '📊 시장 심리', visible: true },
   { id: 'market', label: '💹 시세 카드', visible: true },
   { id: 'news', label: '📰 뉴스', visible: true },

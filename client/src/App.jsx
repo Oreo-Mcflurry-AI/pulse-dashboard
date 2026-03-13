@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import MarketGrid from './components/MarketGrid';
 import MarketSentiment from './components/MarketSentiment';
+import WeatherWidget from './components/WeatherWidget';
 import NewsPanel from './components/NewsPanel';
 
 // Lazy-loaded pages (code splitting)
@@ -543,6 +544,7 @@ export default function App() {
             {widgets.filter(w => w.visible).map(w => {
               const content = (() => {
                 switch (w.id) {
+                  case 'weather': return <WeatherWidget key={w.id} />;
                   case 'sentiment': return <MarketSentiment data={market} />;
                   case 'market': return <MarketGrid data={market} news={news} />;
                   case 'news': return (

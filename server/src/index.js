@@ -12,6 +12,7 @@ import sectorsRouter from './routes/sectors.js';
 import calendarRouter from './routes/calendar.js';
 import stockRouter from './routes/stock.js';
 import ogRouter from './routes/og.js';
+import weatherRouter from './routes/weather.js';
 import { startMarketPrefetch } from './services/marketService.js';
 import { startNewsPrefetch } from './services/newsService.js';
 
@@ -33,6 +34,7 @@ app.use('/api/sectors', sectorsRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/stock', stockRouter);
 app.use('/api/og', ogRouter);
+app.use('/api/weather', weatherRouter);
 
 // Serve static frontend in production
 app.use(express.static(join(__dirname, '../../client/dist')));
