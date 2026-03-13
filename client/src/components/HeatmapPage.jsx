@@ -169,6 +169,7 @@ function Treemap({ sectors, width, height }) {
             </span></div>
             <div>종목: {tooltip.data.total}개 (🔺{tooltip.data.up} ➖{tooltip.data.flat} 🔻{tooltip.data.down})</div>
             <div>상승비: {tooltip.data.upRatio}%</div>
+            {tooltip.data.weightPct != null && <div>시장 비중: {tooltip.data.weightPct}%</div>}
           </div>
         </div>
       )}
@@ -226,6 +227,9 @@ function SectorList({ sectors, sortKey, onSort }) {
               <span className="text-[10px] w-12 text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>
                 {s.total}종목
               </span>
+              <span className="text-[9px] w-10 text-right tabular-nums hidden sm:inline-block" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                {s.weightPct}%
+              </span>
               <span className="text-xs font-bold w-16 text-right tabular-nums" style={{ color: colors.text }}>
                 {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
               </span>
@@ -277,12 +281,19 @@ export default function HeatmapPage() {
     return () => { cancelled = true; };
   }, []);
 
+  // Add weight percentage to sectors
+  const totalStocks = sectors.reduce((s, sec) => s + sec.total, 0);
+  const sectorsWithWeight = sectors.map(s => ({
+    ...s,
+    weightPct: totalStocks > 0 ? (s.total / totalStocks * 100).toFixed(1) : 0,
+  }));
+
   // Summary stats
-  const upCount = sectors.filter(s => s.change > 0).length;
-  const downCount = sectors.filter(s => s.change < 0).length;
-  const flatCount = sectors.filter(s => s.change === 0).length;
-  const topGainers = [...sectors].sort((a, b) => b.change - a.change).slice(0, 3);
-  const topLosers = [...sectors].sort((a, b) => a.change - b.change).slice(0, 3);
+  const upCount = sectorsWithWeight.filter(s => s.change > 0).length;
+  const downCount = sectorsWithWeight.filter(s => s.change < 0).length;
+  const flatCount = sectorsWithWeight.filter(s => s.change === 0).length;
+  const topGainers = [...sectorsWithWeight].sort((a, b) => b.change - a.change).slice(0, 3);
+  const topLosers = [...sectorsWithWeight].sort((a, b) => a.change - b.change).slice(0, 3);
 
   const chartHeight = window.innerWidth < 640 ? 300 : 450;
 
@@ -315,7 +326,7 @@ export default function HeatmapPage() {
       </div>
 
       {/* Summary Bar */}
-      {sectors.length > 0 && (
+      {sectorsWithWeight.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           <div className="px-3 py-2 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
             <div className="text-[10px]" style={{ color: '#22c55e' }}>상승 업종</div>
@@ -346,13 +357,13 @@ export default function HeatmapPage() {
         </div>
       ) : view === 'treemap' ? (
         <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', padding: 8 }}>
-          <Treemap sectors={sectors} width={chartWidth - 16} height={chartHeight} />
+          <Treemap sectors={sectorsWithWeight} width={chartWidth - 16} height={chartHeight} />
         </div>
       ) : null}
 
       {/* Always show list below (or as main view) */}
       <div className={view === 'treemap' ? 'mt-4' : ''}>
-        <SectorList sectors={sectors} sortKey={sortKey} onSort={setSortKey} />
+        <SectorList sectors={sectorsWithWeight} sortKey={sortKey} onSort={setSortKey} />
       </div>
 
       {/* Global Market Timeline */}
