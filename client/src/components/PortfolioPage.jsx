@@ -800,7 +800,7 @@ export default function PortfolioPage() {
   const [prices, setPrices] = useState({});
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above' });
+  const [form, setForm] = useState({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above', stopLoss: '', takeProfit: '' });
   const [editingId, setEditingId] = useState(null);
   const [editField, setEditField] = useState(null); // 'memo' | 'buyPrice' | 'qty' | 'target'
   const [editMemo, setEditMemo] = useState('');
@@ -856,12 +856,14 @@ export default function PortfolioPage() {
       memo: form.memo || '',
       targetPrice: form.targetPrice ? parseFloat(form.targetPrice) : null,
       targetDir: form.targetDir || 'above',
+      stopLoss: form.stopLoss ? parseFloat(form.stopLoss) : null,
+      takeProfit: form.takeProfit ? parseFloat(form.takeProfit) : null,
       addedAt: new Date().toISOString(),
     };
     const next = [...holdings, item];
     setHoldings(next);
     savePortfolio(next, activePfId);
-    setForm({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above' });
+    setForm({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above', stopLoss: '', takeProfit: '' });
     setShowAdd(false);
   };
 
@@ -924,6 +926,45 @@ export default function PortfolioPage() {
             title: `${h.name} 목표가 도달!`,
             body: `현재가 ${fmt(current)} → 목표 ${fmt(target)} ${label}`,
           });
+        }
+      }
+    });
+  }, [prices, holdings]);
+
+  // Per-holding P&L alerts (stop-loss / take-profit)
+  useEffect(() => {
+    if (Object.keys(prices).length === 0) return;
+    holdings.forEach(h => {
+      if (!h.buyPrice || !prices[h.symbol]) return;
+      const current = prices[h.symbol].price;
+      const pnlPct = ((current - h.buyPrice) / h.buyPrice) * 100;
+      const stopLoss = h.stopLoss ?? null;   // negative %, e.g. -10
+      const takeProfit = h.takeProfit ?? null; // positive %, e.g. 20
+
+      if (stopLoss != null && pnlPct <= stopLoss) {
+        const key = `${h.id}_sl_${stopLoss}`;
+        if (!notifiedRef.current.has(key)) {
+          notifiedRef.current.add(key);
+          if (shouldNotify('portfolio')) {
+            addNotification({
+              type: 'portfolio',
+              title: `🔴 ${h.name} 손절 라인 도달`,
+              body: `수익률 ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}% (손절 기준: ${stopLoss}%)`,
+            });
+          }
+        }
+      }
+      if (takeProfit != null && pnlPct >= takeProfit) {
+        const key = `${h.id}_tp_${takeProfit}`;
+        if (!notifiedRef.current.has(key)) {
+          notifiedRef.current.add(key);
+          if (shouldNotify('portfolio')) {
+            addNotification({
+              type: 'portfolio',
+              title: `🟢 ${h.name} 익절 라인 도달`,
+              body: `수익률 +${pnlPct.toFixed(1)}% (익절 기준: +${takeProfit}%)`,
+            });
+          }
         }
       }
     });
@@ -1146,6 +1187,24 @@ export default function PortfolioPage() {
           </div>
           <div className="flex gap-2">
             <input
+              placeholder="손절 % (예: -10)"
+              type="number"
+              value={form.stopLoss}
+              onChange={e => setForm({ ...form, stopLoss: e.target.value })}
+              className="flex-1 px-2 py-1.5 text-xs sm:text-sm rounded-md"
+              style={{ background: 'var(--bg-primary)', color: '#ef4444', border: '1px solid var(--border)' }}
+            />
+            <input
+              placeholder="익절 % (예: 20)"
+              type="number"
+              value={form.takeProfit}
+              onChange={e => setForm({ ...form, takeProfit: e.target.value })}
+              className="flex-1 px-2 py-1.5 text-xs sm:text-sm rounded-md"
+              style={{ background: 'var(--bg-primary)', color: '#22c55e', border: '1px solid var(--border)' }}
+            />
+          </div>
+          <div className="flex gap-2">
+            <input
               placeholder="메모 (선택)"
               value={form.memo}
               onChange={e => setForm({ ...form, memo: e.target.value })}
@@ -1324,6 +1383,43 @@ export default function PortfolioPage() {
                       })() : '🎯 목표가 설정...'}
                     </p>
                   )}
+                  {/* Stop-loss / Take-profit display */}
+                  {(h.stopLoss != null || h.takeProfit != null) && (() => {
+                    const pnlPct = (h.buyPrice && p) ? ((p.price - h.buyPrice) / h.buyPrice) * 100 : null;
+                    return (
+                      <div className="flex gap-2 mt-0.5">
+                        {h.stopLoss != null && (
+                          <span className="text-[9px] px-1 py-0.5 rounded" style={{
+                            background: (pnlPct != null && pnlPct <= h.stopLoss) ? 'rgba(220,38,38,0.2)' : 'rgba(220,38,38,0.08)',
+                            color: '#ef4444',
+                          }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const val = prompt(`${h.name} 손절 % (현재: ${h.stopLoss}%)`, h.stopLoss);
+                              if (val !== null) updateHolding(h.id, { stopLoss: val ? parseFloat(val) : null });
+                            }}
+                            title="클릭하여 손절 라인 수정"
+                            style={{ cursor: 'pointer', background: (pnlPct != null && pnlPct <= h.stopLoss) ? 'rgba(220,38,38,0.2)' : 'rgba(220,38,38,0.08)', color: '#ef4444' }}
+                          >
+                            🔴 손절 {h.stopLoss}%{pnlPct != null && pnlPct <= h.stopLoss ? ' ⚠️' : ''}
+                          </span>
+                        )}
+                        {h.takeProfit != null && (
+                          <span className="text-[9px] px-1 py-0.5 rounded"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const val = prompt(`${h.name} 익절 % (현재: +${h.takeProfit}%)`, h.takeProfit);
+                              if (val !== null) updateHolding(h.id, { takeProfit: val ? parseFloat(val) : null });
+                            }}
+                            title="클릭하여 익절 라인 수정"
+                            style={{ cursor: 'pointer', background: (pnlPct != null && pnlPct >= h.takeProfit) ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.08)', color: '#22c55e' }}
+                          >
+                            🟢 익절 +{h.takeProfit}%{pnlPct != null && pnlPct >= h.takeProfit ? ' 🎉' : ''}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="text-right ml-3">
                   {p ? (
