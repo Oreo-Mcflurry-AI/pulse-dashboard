@@ -610,6 +610,24 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
             }}
           >
             {cat === 'all' ? '전체' : cat === 'bookmarks' ? `★ 저장됨${bookmarks.length ? ` (${bookmarks.length})` : ''}` : ((data?.sections || []).find(s => s.category === cat)?.icon || '') + ' ' + cat}
+                {cat !== 'all' && cat !== 'bookmarks' && (() => {
+                  const count = (data?.sections || []).find(s => s.category === cat)?.articles?.length || 0;
+                  return count > 0 ? (
+                    <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-bold rounded-full" style={{
+                      background: filter === cat ? 'rgba(255,255,255,0.25)' : 'var(--border)',
+                      color: filter === cat ? 'var(--bg-primary)' : 'var(--text-muted)',
+                    }}>{count}</span>
+                  ) : null;
+                })()}
+                {cat === 'all' && (() => {
+                  const count = (data?.sections || []).reduce((sum, s) => sum + (s.articles?.length || 0), 0);
+                  return count > 0 ? (
+                    <span className="ml-1 inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-bold rounded-full" style={{
+                      background: filter === cat ? 'rgba(255,255,255,0.25)' : 'var(--border)',
+                      color: filter === cat ? 'var(--bg-primary)' : 'var(--text-muted)',
+                    }}>{count}</span>
+                  ) : null;
+                })()}
           </button>
         ))}
       </div>
