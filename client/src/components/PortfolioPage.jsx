@@ -5,6 +5,21 @@ const STORAGE_KEY = 'pulse_portfolio';
 const HISTORY_KEY = 'pulse_portfolio_history';
 const PORTFOLIOS_KEY = 'pulse_portfolios'; // list of { id, name }
 const ACTIVE_PF_KEY = 'pulse_active_portfolio';
+const TRADE_LOG_KEY = 'pulse_trade_log';
+
+// ─── Trade log ───
+function getTradeLog(pfId) {
+  try { return JSON.parse(localStorage.getItem(`${TRADE_LOG_KEY}_${pfId || 'default'}`) || '[]'); } catch { return []; }
+}
+function addTradeLog(pfId, entry) {
+  const log = getTradeLog(pfId);
+  log.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), timestamp: new Date().toISOString(), ...entry });
+  // Keep last 200 entries
+  localStorage.setItem(`${TRADE_LOG_KEY}_${pfId || 'default'}`, JSON.stringify(log.slice(0, 200)));
+}
+function clearTradeLog(pfId) {
+  localStorage.removeItem(`${TRADE_LOG_KEY}_${pfId || 'default'}`);
+}
 
 const PRESETS = [
   { symbol: 'KOSPI', name: '코스피', type: 'index' },
@@ -747,6 +762,88 @@ function HoldingsNews({ holdings }) {
   );
 }
 
+function TradeLogSection({ pfId }) {
+  const [expanded, setExpanded] = useState(false);
+  const [log, setLog] = useState([]);
+
+  useEffect(() => {
+    setLog(getTradeLog(pfId));
+  }, [pfId, expanded]);
+
+  if (log.length === 0 && !expanded) return null;
+
+  const displayLog = expanded ? log : log.slice(0, 5);
+
+  return (
+    <div className="mb-4 rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📋 거래 내역</span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
+            {log.length}건
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {log.length > 0 && (
+            <button
+              onClick={() => { if (confirm('거래 내역을 모두 삭제하시겠습니까?')) { clearTradeLog(pfId); setLog([]); } }}
+              className="text-[9px] px-1.5 py-0.5 rounded"
+              style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
+            >
+              전체 삭제
+            </button>
+          )}
+          {log.length > 5 && (
+            <button
+              onClick={() => setExpanded(v => !v)}
+              className="text-[9px] px-1.5 py-0.5 rounded"
+              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+            >
+              {expanded ? '접기' : `전체 보기 (${log.length})`}
+            </button>
+          )}
+        </div>
+      </div>
+      {log.length === 0 ? (
+        <div className="px-3 py-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+          종목 추가/삭제 시 자동으로 기록됩니다
+        </div>
+      ) : (
+        <div className={expanded ? 'max-h-64 overflow-y-auto' : ''}>
+          {displayLog.map(t => {
+            const isBuy = t.action === 'BUY';
+            const actionColor = isBuy ? '#3b82f6' : '#ef4444';
+            const actionLabel = isBuy ? '매수' : '매도';
+            const pnlColor = t.pnl > 0 ? '#22c55e' : t.pnl < 0 ? '#ef4444' : 'var(--text-muted)';
+            return (
+              <div key={t.id} className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: actionColor + '15', color: actionColor }}>
+                  {actionLabel}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium">{t.name || t.symbol}</span>
+                  {t.qty && <span className="text-[10px] ml-1" style={{ color: 'var(--text-muted)' }}>×{t.qty}</span>}
+                  {t.price && <span className="text-[10px] ml-1" style={{ color: 'var(--text-muted)' }}>@{fmt(t.price)}</span>}
+                  {t.pnl != null && (
+                    <span className="text-[10px] ml-1.5 font-medium" style={{ color: pnlColor }}>
+                      {t.pnl > 0 ? '+' : ''}{fmt(t.pnl)}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[9px] shrink-0" style={{ color: 'var(--text-muted)' }}>
+                  {new Date(t.timestamp).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                  {' '}
+                  {new Date(t.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PortfolioPage() {
   // Multi-portfolio state
   const [pfList, setPfList] = useState(getPortfolioList);
@@ -863,14 +960,37 @@ export default function PortfolioPage() {
     const next = [...holdings, item];
     setHoldings(next);
     savePortfolio(next, activePfId);
+    // Log trade
+    addTradeLog(activePfId, {
+      action: 'BUY',
+      symbol: item.symbol,
+      name: item.name,
+      price: item.buyPrice,
+      qty: item.qty,
+      memo: item.memo,
+    });
     setForm({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above', stopLoss: '', takeProfit: '' });
     setShowAdd(false);
   };
 
   const removeHolding = (id) => {
+    const removed = holdings.find(h => h.id === id);
     const next = holdings.filter(h => h.id !== id);
     setHoldings(next);
     savePortfolio(next, activePfId);
+    // Log trade
+    if (removed) {
+      const currentPrice = prices[removed.symbol]?.price;
+      addTradeLog(activePfId, {
+        action: 'SELL',
+        symbol: removed.symbol,
+        name: removed.name,
+        price: currentPrice || removed.buyPrice,
+        qty: removed.qty,
+        buyPrice: removed.buyPrice,
+        pnl: currentPrice && removed.buyPrice && removed.qty ? (currentPrice - removed.buyPrice) * removed.qty : null,
+      });
+    }
   };
 
   const updateHolding = (id, updates) => {
@@ -1111,6 +1231,9 @@ export default function PortfolioPage() {
 
       {/* Sector Heatmap */}
       <SectorHeatmap holdings={holdings} prices={prices} />
+
+      {/* Trade Log */}
+      <TradeLogSection pfId={activePfId} />
 
       {/* Holdings Related News */}
       <HoldingsNews holdings={holdings} />
