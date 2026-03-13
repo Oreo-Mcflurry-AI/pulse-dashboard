@@ -43,6 +43,70 @@ function formatDateFull(d) {
   return `${dt.getFullYear()}년 ${dt.getMonth() + 1}월 ${dt.getDate()}일 ${days[dt.getDay()]}`;
 }
 
+function MarketSummaryCard({ date }) {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    if (!date) return;
+    let cancelled = false;
+    Promise.all([
+      fetch('/api/market').then(r => r.json()).catch(() => null),
+      fetch('/api/sectors').then(r => r.json()).catch(() => null),
+    ]).then(([market, sectors]) => {
+      if (cancelled) return;
+      setData({ market, sectors });
+    });
+    return () => { cancelled = true; };
+  }, [date]);
+
+  if (!data?.market) return null;
+
+  const m = data.market;
+  const indices = [
+    { key: 'kospi', label: 'KOSPI' },
+    { key: 'kosdaq', label: 'KOSDAQ' },
+    { key: 'sp500', label: 'S&P 500' },
+    { key: 'nasdaq', label: 'NASDAQ' },
+  ].map(({ key, label }) => {
+    const d = m[key];
+    if (!d) return null;
+    const rate = parseFloat(d.changeRate) || 0;
+    return { label, value: d.value, rate, color: rate > 0 ? '#22c55e' : rate < 0 ? '#ef4444' : '#6b7280' };
+  }).filter(Boolean);
+
+  const sectorList = data.sectors?.sectors || [];
+  const upSectors = sectorList.filter(s => s.change > 0).length;
+  const downSectors = sectorList.filter(s => s.change < 0).length;
+  const topGainer = [...sectorList].sort((a, b) => b.change - a.change)[0];
+  const topLoser = [...sectorList].sort((a, b) => a.change - b.change)[0];
+
+  return (
+    <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+        📊 시황 요약
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        {indices.map(idx => (
+          <div key={idx.label} className="px-2 py-1.5 rounded-lg" style={{ background: 'var(--bg-hover)' }}>
+            <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{idx.label}</div>
+            <div className="text-sm font-bold tabular-nums">{idx.value}</div>
+            <div className="text-[10px] font-medium tabular-nums" style={{ color: idx.color }}>
+              {idx.rate > 0 ? '▲' : idx.rate < 0 ? '▼' : ''} {idx.rate > 0 ? '+' : ''}{idx.rate.toFixed(2)}%
+            </div>
+          </div>
+        ))}
+      </div>
+      {sectorList.length > 0 && (
+        <div className="flex items-center gap-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          <span>업종: <span style={{ color: '#22c55e', fontWeight: 600 }}>▲{upSectors}</span> / <span style={{ color: '#ef4444', fontWeight: 600 }}>▼{downSectors}</span></span>
+          {topGainer && <span>🔥 {topGainer.name} +{topGainer.change.toFixed(1)}%</span>}
+          {topLoser && <span>🧊 {topLoser.name} {topLoser.change.toFixed(1)}%</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function BriefingPage() {
   const [dates, setDates] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -254,6 +318,7 @@ export default function BriefingPage() {
                 다음 →
               </button>
             </div>
+            <MarketSummaryCard date={selected} />
             <article
               className="briefing-content"
               dangerouslySetInnerHTML={{ __html: marked.parse(briefing.summary || '') }}
