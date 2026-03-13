@@ -18,6 +18,26 @@ import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
 import { useWidgetLayout } from './hooks/useWidgetLayout';
 
+// ─── Visit Statistics ───
+const VISIT_KEY = 'pulse-visit-stats';
+function recordVisit() {
+  try {
+    const raw = localStorage.getItem(VISIT_KEY);
+    const stats = raw ? JSON.parse(raw) : { count: 0, firstVisit: null, lastVisit: null };
+    const now = new Date().toISOString();
+    // Only count once per session (check sessionStorage)
+    if (!sessionStorage.getItem('pulse-visited')) {
+      stats.count = (stats.count || 0) + 1;
+      sessionStorage.setItem('pulse-visited', '1');
+    }
+    if (!stats.firstVisit) stats.firstVisit = now;
+    const prevLast = stats.lastVisit;
+    stats.lastVisit = now;
+    localStorage.setItem(VISIT_KEY, JSON.stringify(stats));
+    return { ...stats, prevLastVisit: prevLast };
+  } catch { return { count: 1, firstVisit: null, lastVisit: null }; }
+}
+
 function getMarketStatus() {
   const now = new Date();
   const kst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
@@ -89,6 +109,7 @@ export default function App() {
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [now, setNow] = useState(Date.now());
   const [mktStatus, setMktStatus] = useState(getMarketStatus());
+  const [visitStats] = useState(recordVisit);
   useEffect(() => {
     const t = setInterval(() => { setNow(Date.now()); setMktStatus(getMarketStatus()); }, 5000);
     return () => clearInterval(t);
@@ -580,6 +601,19 @@ export default function App() {
                 {' · '}
                 {mktStatus.nyseOpen ? '🟢' : '⚫'} NYSE {mktStatus.nyseOpen ? '장중' : '장외'}{mktStatus.nyseCountdown ? ` (${mktStatus.nyseCountdown} 후 개장)` : ' (23:30-06:00 KST)'}
               </div>
+              {visitStats && (
+                <div style={{ opacity: 0.4 }}>
+                  👤 {visitStats.count}번째 방문
+                  {visitStats.prevLastVisit && (() => {
+                    const diff = Math.floor((Date.now() - new Date(visitStats.prevLastVisit).getTime()) / 1000);
+                    if (diff < 60) return ' · 방금 전 접속';
+                    if (diff < 3600) return ` · ${Math.floor(diff / 60)}분 전 접속`;
+                    if (diff < 86400) return ` · ${Math.floor(diff / 3600)}시간 전 접속`;
+                    return ` · ${Math.floor(diff / 86400)}일 전 접속`;
+                  })()}
+                  {visitStats.firstVisit && ` · ${Math.floor((Date.now() - new Date(visitStats.firstVisit).getTime()) / 86400000)}일째 이용 중`}
+                </div>
+              )}
             </footer>
           </>
         ) : (
