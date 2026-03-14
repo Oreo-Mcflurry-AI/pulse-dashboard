@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import Sparkline from './Sparkline';
 
-export default function MarketCard({ name, value, changeRate, sparkline, status, week52, volume, relatedNews, onClick, isFavorite, onToggleFavorite }) {
+export default function MarketCard({ name, value, changeRate, sparkline, status, week52, volume, weeklyChange, relatedNews, onClick, isFavorite, onToggleFavorite }) {
   const rate = parseFloat(changeRate) || 0;
   const isVix = name === 'VIX';
   // VIX: up = fear (red), down = calm (green) — inverted colors
@@ -102,6 +102,15 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
                   : undefined,
               }}>{arrow}</span>
             )}{' '}{changeRate || '0%'}
+            {weeklyChange && (
+              <span className="text-[8px] sm:text-[9px] ml-1.5 px-1 py-0.5 rounded" style={{
+                background: 'var(--bg-hover)',
+                color: parseFloat(weeklyChange) > 0 ? 'var(--accent-up)' : parseFloat(weeklyChange) < 0 ? 'var(--accent-down)' : 'var(--text-muted)',
+                opacity: 0.8,
+              }} title="주간 변동률">
+                W {parseFloat(weeklyChange) > 0 ? '+' : ''}{weeklyChange}
+              </span>
+            )}
           </p>
           {volume && volume.volume > 0 && (
             <p className="text-[9px] sm:text-[10px] mt-0.5 tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>

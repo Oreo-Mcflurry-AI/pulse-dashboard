@@ -155,6 +155,7 @@ export default function MarketGrid({ data, news }) {
   const sparklines = data.sparklines || {};
   const week52 = data.week52 || {};
   const volume = data.volume || {};
+  const weeklyChange = data.weeklyChange || {};
   const sortedKeys = getSortedKeys(data, sort, favorites);
 
   return (
@@ -195,6 +196,7 @@ export default function MarketGrid({ data, news }) {
             status={data[key].status}
             week52={week52[key]}
             volume={volume[key]}
+            weeklyChange={weeklyChange[key]}
             relatedNews={relatedNews[key]}
             isFavorite={favorites.includes(data[key]?.name)}
             onToggleFavorite={toggleFavorite}
