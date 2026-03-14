@@ -40,6 +40,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
 
   const handleFavToggle = useCallback(() => {
     if (onToggleFavorite) {
+      if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
       onToggleFavorite(name);
       setShowFavFeedback(true);
       setTimeout(() => setShowFavFeedback(false), 800);
@@ -64,7 +65,10 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
         background: statusBg,
         border: `1px solid ${alertBorder || (isFavorite ? 'rgba(234,179,8,0.4)' : status === 'OPEN' ? 'rgba(34,197,94,0.12)' : 'var(--border)')}`,
       }}
-      onClick={() => onClick && onClick({ name, value, changeRate, sparkline, status })}
+      onClick={() => {
+        if (navigator.vibrate) navigator.vibrate(10);
+        onClick && onClick({ name, value, changeRate, sparkline, status });
+      }}
       onDoubleClick={(e) => { e.preventDefault(); handleFavToggle(); }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
