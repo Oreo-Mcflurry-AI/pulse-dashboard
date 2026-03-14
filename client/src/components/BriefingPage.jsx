@@ -43,6 +43,77 @@ function formatDateFull(d) {
   return `${dt.getFullYear()}년 ${dt.getMonth() + 1}월 ${dt.getDate()}일 ${days[dt.getDay()]}`;
 }
 
+function GeopoliticalRiskBanner({ market }) {
+  if (!market) return null;
+
+  const alerts = [];
+  
+  // Oil price alerts
+  const oilVal = parseFloat(String(market.oil?.value).replace(/,/g, '')) || 0;
+  const oilRate = parseFloat(market.oil?.changeRate) || 0;
+  if (oilVal >= 100) {
+    alerts.push({
+      icon: '🛢️',
+      severity: oilVal >= 120 ? 'critical' : 'warning',
+      title: `유가 $${oilVal.toFixed(1)} (${oilRate >= 0 ? '+' : ''}${oilRate.toFixed(2)}%)`,
+      desc: oilVal >= 120 ? '오일쇼크 경계 수준 — 인플레이션·경기 침체 리스크 급상승' : '유가 100달러 돌파 — 인플레이션 압력 확대',
+    });
+  }
+
+  // VIX fear alerts
+  const vixVal = parseFloat(String(market.vix?.value).replace(/,/g, '')) || 0;
+  if (vixVal >= 30) {
+    alerts.push({
+      icon: '😱',
+      severity: vixVal >= 40 ? 'critical' : 'warning',
+      title: `VIX ${vixVal.toFixed(1)} — ${vixVal >= 40 ? '극공포' : '공포 구간'}`,
+      desc: '시장 변동성 극대화 — 대규모 매도 압력 주의',
+    });
+  }
+
+  // USD/KRW stress
+  const fxVal = parseFloat(String(market.usdkrw?.value).replace(/,/g, '')) || 0;
+  if (fxVal >= 1450) {
+    alerts.push({
+      icon: '💵',
+      severity: fxVal >= 1500 ? 'critical' : 'warning',
+      title: `원/달러 ${fxVal.toFixed(1)}원`,
+      desc: fxVal >= 1500 ? '환율 1,500원 돌파 — 외국인 이탈·수입물가 급등 우려' : '환율 고공행진 — 외국인 매도 압력 지속',
+    });
+  }
+
+  if (alerts.length === 0) return null;
+
+  const hasCritical = alerts.some(a => a.severity === 'critical');
+  const borderColor = hasCritical ? 'rgba(239,68,68,0.5)' : 'rgba(234,179,8,0.4)';
+  const bgColor = hasCritical ? 'rgba(239,68,68,0.06)' : 'rgba(234,179,8,0.06)';
+  const headerColor = hasCritical ? '#ef4444' : '#eab308';
+
+  return (
+    <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: bgColor, border: `1px solid ${borderColor}` }}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-sm">{hasCritical ? '🚨' : '⚠️'}</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: headerColor }}>
+          {hasCritical ? '지정학 리스크 경보' : '시장 스트레스 주의보'}
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {alerts.map((a, i) => (
+          <div key={i} className="flex items-start gap-2">
+            <span className="text-sm shrink-0">{a.icon}</span>
+            <div>
+              <div className="text-xs font-bold" style={{ color: a.severity === 'critical' ? '#ef4444' : '#eab308' }}>
+                {a.title}
+              </div>
+              <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{a.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function MarketSummaryCard({ date }) {
   const [data, setData] = useState(null);
 
@@ -81,6 +152,8 @@ function MarketSummaryCard({ date }) {
   const topLoser = [...sectorList].sort((a, b) => a.change - b.change)[0];
 
   return (
+    <>
+    <GeopoliticalRiskBanner market={m} />
     <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
         📊 시황 요약
@@ -104,6 +177,7 @@ function MarketSummaryCard({ date }) {
         </div>
       )}
     </div>
+    </>
   );
 }
 
