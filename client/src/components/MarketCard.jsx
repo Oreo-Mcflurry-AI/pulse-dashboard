@@ -1,6 +1,53 @@
 import { useState, useRef, useCallback } from 'react';
 import Sparkline from './Sparkline';
 
+function HoverDetail({ week52, value, weeklyChange, volume, name }) {
+  if (!week52 || week52.high == null) return null;
+  const current = parseFloat(String(value).replace(/,/g, ''));
+  const range = week52.high - week52.low;
+  const pct = range > 0 ? ((current - week52.low) / range * 100).toFixed(1) : '50.0';
+  const fromHigh = range > 0 ? ((week52.high - current) / week52.high * 100).toFixed(1) : '0';
+  const fromLow = range > 0 ? ((current - week52.low) / week52.low * 100).toFixed(1) : '0';
+
+  return (
+    <div
+      className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 z-50 px-3 py-2 rounded-lg pointer-events-none whitespace-nowrap"
+      style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        minWidth: 180,
+      }}
+    >
+      <div className="text-[10px] font-bold mb-1" style={{ color: 'var(--text-primary)' }}>{name}</div>
+      <div className="space-y-0.5 text-[9px]" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex justify-between gap-3">
+          <span>52주 위치</span>
+          <span className="font-medium tabular-nums" style={{ color: parseFloat(pct) > 70 ? '#22c55e' : parseFloat(pct) < 30 ? '#ef4444' : 'var(--text-primary)' }}>
+            {pct}%
+          </span>
+        </div>
+        <div className="flex justify-between gap-3">
+          <span>고점 대비</span>
+          <span className="tabular-nums">-{fromHigh}%</span>
+        </div>
+        <div className="flex justify-between gap-3">
+          <span>저점 대비</span>
+          <span className="tabular-nums">+{fromLow}%</span>
+        </div>
+        {weeklyChange && (
+          <div className="flex justify-between gap-3">
+            <span>주간 변동</span>
+            <span className="font-medium tabular-nums" style={{ color: parseFloat(weeklyChange) > 0 ? '#22c55e' : parseFloat(weeklyChange) < 0 ? '#ef4444' : 'var(--text-muted)' }}>
+              {parseFloat(weeklyChange) > 0 ? '+' : ''}{weeklyChange}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function MarketCard({ name, value, changeRate, sparkline, status, week52, volume, weeklyChange, relatedNews, onClick, isFavorite, onToggleFavorite }) {
   const rate = parseFloat(changeRate) || 0;
   const isVix = name === 'VIX';
@@ -37,6 +84,8 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
   // Long-press / double-click to toggle favorite
   const longPressRef = useRef(null);
   const [showFavFeedback, setShowFavFeedback] = useState(false);
+  const [showHover, setShowHover] = useState(false);
+  const hoverTimerRef = useRef(null);
 
   const handleFavToggle = useCallback(() => {
     if (onToggleFavorite) {
@@ -73,6 +122,8 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
+      onMouseEnter={() => { hoverTimerRef.current = setTimeout(() => setShowHover(true), 500); }}
+      onMouseLeave={() => { clearTimeout(hoverTimerRef.current); setShowHover(false); }}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick && onClick({ name, value, changeRate, sparkline, status }); }}}
     >
       <div className="flex justify-between items-start">
@@ -188,6 +239,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           </span>
         </div>
       )}
+      {showHover && <HoverDetail week52={week52} value={value} weeklyChange={weeklyChange} volume={volume} name={name} />}
     </div>
   );
 }
