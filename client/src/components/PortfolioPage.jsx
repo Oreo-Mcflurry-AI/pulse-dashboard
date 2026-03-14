@@ -1211,13 +1211,89 @@ export default function PortfolioPage() {
             </p>
           )}
         </div>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors"
-          style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
-        >
-          {showAdd ? '취소' : '+ 추가'}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              const csv = ['종목코드,종목명,매수가,수량,메모,손절(%),익절(%)'];
+              for (const h of holdings) {
+                csv.push([
+                  h.symbol, h.name, h.buyPrice ?? '', h.qty ?? '',
+                  `"${(h.memo || '').replace(/"/g, '""')}"`,
+                  h.stopLoss ?? '', h.takeProfit ?? ''
+                ].join(','));
+              }
+              const blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `portfolio_${activePfId}_${new Date().toISOString().slice(0,10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="px-2 py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors"
+            style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+            title="포트폴리오 CSV 내보내기"
+          >
+            📥 CSV
+          </button>
+          <label
+            className="px-2 py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors cursor-pointer"
+            style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+            title="CSV 파일에서 포트폴리오 가져오기"
+          >
+            📤 가져오기
+            <input type="file" accept=".csv" className="hidden" onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                const text = ev.target.result;
+                const lines = text.split('\n').filter(l => l.trim());
+                if (lines.length < 2) return;
+                const imported = [];
+                for (let i = 1; i < lines.length; i++) {
+                  // Parse CSV with quoted fields support
+                  const parts = [];
+                  let current = '', inQuotes = false;
+                  for (const ch of lines[i]) {
+                    if (ch === '"') { inQuotes = !inQuotes; }
+                    else if (ch === ',' && !inQuotes) { parts.push(current.trim()); current = ''; }
+                    else { current += ch; }
+                  }
+                  parts.push(current.trim());
+                  const [symbol, name, buyPrice, qty, memo, stopLoss, takeProfit] = parts;
+                  if (!symbol && !name) continue;
+                  imported.push({
+                    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+                    symbol: symbol || name,
+                    name: name || symbol,
+                    buyPrice: buyPrice ? parseFloat(buyPrice) : null,
+                    qty: qty ? parseFloat(qty) : null,
+                    memo: memo || '',
+                    stopLoss: stopLoss ? parseFloat(stopLoss) : null,
+                    takeProfit: takeProfit ? parseFloat(takeProfit) : null,
+                    addedAt: new Date().toISOString(),
+                  });
+                }
+                if (imported.length > 0) {
+                  const merge = confirm(`${imported.length}개 종목을 가져옵니다. 기존 보유종목에 추가할까요?\n(취소 시 기존 종목을 대체합니다)`);
+                  const next = merge ? [...holdings, ...imported] : imported;
+                  setHoldings(next);
+                  savePortfolio(next, activePfId);
+                }
+              };
+              reader.readAsText(file);
+              e.target.value = '';
+            }} />
+          </label>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            className="px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors"
+            style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
+          >
+            {showAdd ? '취소' : '+ 추가'}
+          </button>
+        </div>
       </div>
 
       {/* Performance Chart */}
