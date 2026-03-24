@@ -564,6 +564,59 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
           </div>
         </div>
       )}
+      {/* News trend by hour (category distribution) */}
+      {data?.sections?.length > 0 && (() => {
+        const allArticles = data.sections.flatMap(s => (s.articles || []).map(a => ({ ...a, category: s.category })));
+        const hourBuckets = {};
+        const catSet = new Set();
+        const catColors = { '경제': '#3b82f6', '기술': '#8b5cf6', '정치': '#ef4444', '세계': '#f97316', '한국': '#22c55e', '에너지': '#eab308', '마켓': '#06b6d4' };
+        for (const a of allArticles) {
+          if (!a.pubDate) continue;
+          const h = new Date(a.pubDate).getHours();
+          if (!hourBuckets[h]) hourBuckets[h] = {};
+          hourBuckets[h][a.category] = (hourBuckets[h][a.category] || 0) + 1;
+          catSet.add(a.category);
+        }
+        const hours = Object.keys(hourBuckets).map(Number).sort((a, b) => a - b);
+        if (hours.length < 2) return null;
+        const cats = [...catSet];
+        const maxTotal = Math.max(...hours.map(h => cats.reduce((s, c) => s + (hourBuckets[h]?.[c] || 0), 0)));
+        if (maxTotal === 0) return null;
+        return (
+          <div className="mx-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>📊 시간대별 뉴스 분포</span>
+              <div className="flex gap-2">
+                {cats.map(c => (
+                  <span key={c} className="text-[8px] flex items-center gap-0.5" style={{ color: 'var(--text-muted)' }}>
+                    <span className="inline-block w-1.5 h-1.5 rounded-full" style={{ background: catColors[c] || '#6b7280' }} />
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-end gap-px" style={{ height: 32 }}>
+              {hours.map(h => {
+                const total = cats.reduce((s, c) => s + (hourBuckets[h]?.[c] || 0), 0);
+                return (
+                  <div key={h} className="flex-1 flex flex-col justify-end" style={{ height: '100%' }} title={`${h}시: ${total}건`}>
+                    {cats.map(c => {
+                      const count = hourBuckets[h]?.[c] || 0;
+                      if (count === 0) return null;
+                      const pct = (count / maxTotal) * 100;
+                      return <div key={c} style={{ height: `${pct}%`, background: catColors[c] || '#6b7280', minHeight: count > 0 ? 2 : 0, borderRadius: '1px 1px 0 0' }} />;
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-between mt-0.5">
+              <span className="text-[8px] tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>{hours[0]}시</span>
+              <span className="text-[8px] tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>{hours[hours.length - 1]}시</span>
+            </div>
+          </div>
+        );
+      })()}
       {/* News digest card */}
       {data?.digest && data.digest.themes?.length > 0 && (
         <div className="mx-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
