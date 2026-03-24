@@ -445,8 +445,20 @@ const ALLOCATION_PROFILES = {
   },
 };
 
+const REBALANCE_KEY = 'pulse-rebalance-settings';
+const REBALANCE_NOTIFIED_KEY = 'pulse-rebalance-notified';
+
+function getRebalanceSettings() {
+  try { return JSON.parse(localStorage.getItem(REBALANCE_KEY) || '{}'); } catch { return {}; }
+}
+
 function AllocationRecommendation({ holdings, prices }) {
   const [profile, setProfile] = useState('balanced');
+  const [rebalanceThreshold, setRebalanceThreshold] = useState(() => getRebalanceSettings().threshold || 15);
+  const [showRebalanceSettings, setShowRebalanceSettings] = useState(false);
+  const rebalanceNotifiedRef = useRef(new Set(
+    (() => { try { return JSON.parse(sessionStorage.getItem(REBALANCE_NOTIFIED_KEY) || '[]'); } catch { return []; } })()
+  ));
 
   // Calculate current allocation by asset type
   const typeValues = {};
@@ -483,6 +495,29 @@ function AllocationRecommendation({ holdings, prices }) {
   const deviationLabel = deviation < 10 ? '✅ 양호' : deviation < 25 ? '⚠️ 조정 필요' : '🔴 편중됨';
   const deviationColor = deviation < 10 ? '#22c55e' : deviation < 25 ? '#f59e0b' : '#ef4444';
 
+  // Rebalance alert: notify when any asset type exceeds threshold
+  const overThreshold = allTypes.filter(type => {
+    const curr = currentPcts[type] || 0;
+    const rec = recommended[type] || 0;
+    return Math.abs(curr - rec) >= rebalanceThreshold;
+  });
+
+  useEffect(() => {
+    if (overThreshold.length === 0) return;
+    const alertKey = `rebalance_${profile}_${overThreshold.sort().join(',')}`;
+    if (rebalanceNotifiedRef.current.has(alertKey)) return;
+    rebalanceNotifiedRef.current.add(alertKey);
+    sessionStorage.setItem(REBALANCE_NOTIFIED_KEY, JSON.stringify([...rebalanceNotifiedRef.current]));
+    if (shouldNotify('portfolio')) {
+      const typeNames = overThreshold.map(t => (ASSET_TYPE_LABELS[t] || { name: t }).name);
+      addNotification({
+        type: 'portfolio',
+        title: '⚖️ 리밸런싱 필요',
+        body: `${typeNames.join(', ')} 비중이 목표 대비 ${rebalanceThreshold}%p 이상 벗어났습니다`,
+      });
+    }
+  }, [overThreshold.length, profile, rebalanceThreshold]);
+
   return (
     <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-3">
@@ -491,6 +526,14 @@ function AllocationRecommendation({ holdings, prices }) {
           <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: deviationColor + '20', color: deviationColor }}>
             {deviationLabel}
           </span>
+          <button
+            onClick={() => setShowRebalanceSettings(v => !v)}
+            className="text-[9px] px-1.5 py-0.5 rounded transition-colors"
+            style={{ background: showRebalanceSettings ? 'rgba(168,85,247,0.15)' : 'transparent', color: overThreshold.length > 0 ? '#a855f7' : 'var(--text-muted)' }}
+            title="리밸런싱 알림 설정"
+          >
+            ⚖️{overThreshold.length > 0 ? ` ${overThreshold.length}` : ''}
+          </button>
         </div>
         <div className="flex gap-1">
           {Object.entries(ALLOCATION_PROFILES).map(([key, p]) => (
@@ -510,6 +553,36 @@ function AllocationRecommendation({ holdings, prices }) {
           ))}
         </div>
       </div>
+
+      {/* Rebalance alert settings */}
+      {showRebalanceSettings && (
+        <div className="mb-3 p-2.5 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>⚖️ 리밸런싱 알림</span>
+            <span className="text-[9px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>자산 비중이 목표 대비 임계값 이상 벗어나면 알림</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>임계값</span>
+            <input
+              type="range" min="5" max="30" step="5"
+              value={rebalanceThreshold}
+              onChange={e => {
+                const v = parseInt(e.target.value);
+                setRebalanceThreshold(v);
+                localStorage.setItem(REBALANCE_KEY, JSON.stringify({ threshold: v }));
+              }}
+              className="flex-1 h-1 accent-purple-500"
+              style={{ maxWidth: 120 }}
+            />
+            <span className="text-[10px] font-bold tabular-nums" style={{ color: '#a855f7' }}>{rebalanceThreshold}%p</span>
+          </div>
+          {overThreshold.length > 0 && (
+            <div className="mt-2 text-[9px] px-2 py-1.5 rounded" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
+              ⚠️ {overThreshold.map(t => (ASSET_TYPE_LABELS[t] || { name: t }).name).join(', ')} — 목표 비중 대비 {rebalanceThreshold}%p 이상 편차
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Bar comparison */}
       <div className="space-y-2">
