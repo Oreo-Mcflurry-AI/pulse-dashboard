@@ -326,6 +326,109 @@ function PortfolioChart({ history }) {
   );
 }
 
+// ─── Returns Calendar Heatmap ───
+function ReturnCalendar({ history }) {
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  if (!history || history.length < 2) return null;
+
+  // Build daily returns map
+  const returnsMap = {};
+  for (let i = 1; i < history.length; i++) {
+    const prev = history[i - 1];
+    const curr = history[i];
+    if (prev.value > 0) {
+      returnsMap[curr.date] = ((curr.value - prev.value) / prev.value) * 100;
+    }
+  }
+
+  const [year, mon] = month.split('-').map(Number);
+  const firstDay = new Date(year, mon - 1, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, mon, 0).getDate();
+  const days = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(mon).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    days.push({ day: d, date: dateStr, ret: returnsMap[dateStr] });
+  }
+
+  const getColor = (ret) => {
+    if (ret == null) return 'var(--bg-hover)';
+    if (ret >= 3) return '#15803d';
+    if (ret >= 1.5) return '#22c55e';
+    if (ret >= 0.5) return '#86efac';
+    if (ret > -0.5) return '#d1d5db';
+    if (ret > -1.5) return '#fca5a5';
+    if (ret > -3) return '#ef4444';
+    return '#b91c1c';
+  };
+
+  const prevMonth = () => {
+    const d = new Date(year, mon - 2, 1);
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+  const nextMonth = () => {
+    const d = new Date(year, mon, 1);
+    setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
+
+  const monthReturns = days.filter(d => d.ret != null).map(d => d.ret);
+  const winDays = monthReturns.filter(r => r > 0).length;
+  const lossDays = monthReturns.filter(r => r < 0).length;
+  const totalRet = monthReturns.reduce((s, r) => s + r, 0);
+
+  return (
+    <div className="mx-3 sm:mx-4 mt-3 p-3 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <button onClick={prevMonth} className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>◀</button>
+          <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>📅 {year}년 {mon}월 수익률</span>
+          <button onClick={nextMonth} className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>▶</button>
+        </div>
+        <div className="flex items-center gap-2 text-[9px]" style={{ color: 'var(--text-muted)' }}>
+          <span style={{ color: '#22c55e' }}>▲{winDays}일</span>
+          <span style={{ color: '#ef4444' }}>▼{lossDays}일</span>
+          <span className="font-bold" style={{ color: totalRet >= 0 ? '#22c55e' : '#ef4444' }}>
+            월 {totalRet >= 0 ? '+' : ''}{totalRet.toFixed(2)}%
+          </span>
+        </div>
+      </div>
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-0.5 mb-0.5">
+        {['일','월','화','수','목','금','토'].map(d => (
+          <div key={d} className="text-center text-[8px] font-medium py-0.5" style={{ color: 'var(--text-muted)' }}>{d}</div>
+        ))}
+      </div>
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-0.5">
+        {Array(firstDay).fill(null).map((_, i) => <div key={`e${i}`} />)}
+        {days.map(({ day, date, ret }) => (
+          <div
+            key={date}
+            className="aspect-square flex flex-col items-center justify-center rounded text-[9px] transition-colors"
+            style={{ background: getColor(ret), color: ret != null ? (Math.abs(ret) >= 1.5 ? '#fff' : 'var(--text-primary)') : 'var(--text-muted)', cursor: 'default' }}
+            title={ret != null ? `${date}: ${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%` : date}
+          >
+            <span className="font-medium">{day}</span>
+            {ret != null && <span className="text-[7px] leading-none">{ret >= 0 ? '+' : ''}{ret.toFixed(1)}</span>}
+          </div>
+        ))}
+      </div>
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-1 mt-2">
+        {[{ label: '-3%↓', color: '#b91c1c' }, { label: '-1.5%', color: '#ef4444' }, { label: '-0.5%', color: '#fca5a5' }, { label: '0', color: '#d1d5db' }, { label: '+0.5%', color: '#86efac' }, { label: '+1.5%', color: '#22c55e' }, { label: '+3%↑', color: '#15803d' }].map(l => (
+          <div key={l.label} className="flex items-center gap-0.5">
+            <span className="w-2 h-2 rounded-sm" style={{ background: l.color }} />
+            <span className="text-[7px]" style={{ color: 'var(--text-muted)' }}>{l.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const DONUT_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
 
 function AllocationChart({ holdings, prices }) {
@@ -1389,6 +1492,9 @@ export default function PortfolioPage() {
 
       {/* Performance Chart */}
       <PortfolioChart history={history} />
+
+      {/* Returns Calendar Heatmap */}
+      <ReturnCalendar history={history} />
 
       {/* Allocation Donut Chart */}
       <AllocationChart holdings={holdings} prices={prices} />
