@@ -105,6 +105,7 @@ export default function App() {
   const [showPresetSave, setShowPresetSave] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [showMarketAlerts, setShowMarketAlerts] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -165,6 +166,8 @@ export default function App() {
         case '7': navigate('search'); break;
         case '6': navigate('timeline'); break;
         case 'r': if (page === 'dashboard') refetch(); break;
+        case '?': setShowShortcuts(v => !v); break;
+        case 'Escape': setShowShortcuts(false); break;
       }
     };
     window.addEventListener('keydown', onKey);
@@ -678,6 +681,46 @@ export default function App() {
       </div>
       <NotificationCenter isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
       <MarketAlertSettings isOpen={showMarketAlerts} onClose={() => setShowMarketAlerts(false)} />
+
+      {/* Keyboard shortcuts help modal */}
+      {showShortcuts && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center" onClick={() => setShowShortcuts(false)}>
+          <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }} />
+          <div
+            className="relative z-10 w-full max-w-sm mx-4 p-5 rounded-xl shadow-2xl"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>⌨️ 키보드 단축키</h3>
+              <button onClick={() => setShowShortcuts(false)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>ESC</button>
+            </div>
+            <div className="space-y-1.5">
+              {[
+                ['1', '대시보드'],
+                ['2', '📰 브리핑'],
+                ['3', '💼 포트폴리오'],
+                ['4', '📈 히스토리'],
+                ['5', '🗺 히트맵'],
+                ['6', '📅 캘린더'],
+                ['7', '🔍 종목 검색'],
+                ['R', '새로고침 (대시보드)'],
+                ['?', '이 도움말 토글'],
+                ['ESC', '모달 닫기'],
+              ].map(([key, desc]) => (
+                <div key={key} className="flex items-center justify-between py-1 px-2 rounded" style={{ background: 'var(--bg-hover)' }}>
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{desc}</span>
+                  <kbd className="text-[10px] px-2 py-0.5 rounded font-mono font-bold" style={{
+                    background: 'var(--bg-primary)', border: '1px solid var(--border)',
+                    color: 'var(--text-primary)', boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  }}>{key}</kbd>
+                </div>
+              ))}
+            </div>
+            <p className="text-[9px] mt-3 text-center" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>입력 필드 포커스 시 단축키 비활성</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
