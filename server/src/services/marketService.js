@@ -252,6 +252,28 @@ async function fetchVolumeData() {
   return result;
 }
 
+// ─── Fear & Greed score (server-side) ───
+function computeFearGreed(data) {
+  // VIX (40%): VIX 10→100, 20→50, 40→0
+  const vixVal = parseFloat(String(data.vix?.value || '20').replace(/,/g, ''));
+  const vixScore = Math.max(0, Math.min(100, 100 - ((vixVal - 10) / 30) * 100));
+  // KOSPI change (20%): +3%→80, 0→50, -3%→20
+  const kospiPct = parseFloat(data.kospi?.changeRate) || 0;
+  const kospiScore = Math.max(0, Math.min(100, 50 + (kospiPct / 3) * 30));
+  // Gold change (15%): +3%→20(fear), -3%→80(greed)
+  const goldPct = parseFloat(data.gold?.changeRate) || 0;
+  const goldScore = Math.max(0, Math.min(100, 50 - (goldPct / 3) * 30));
+  // USD/KRW change (15%): +1%→30(fear), -1%→70(greed)
+  const fxPct = parseFloat(data.usdkrw?.changeRate) || 0;
+  const fxScore = Math.max(0, Math.min(100, 50 - (fxPct / 1) * 20));
+  // BTC change (10%): +5%→80, -5%→20
+  const btcPct = parseFloat(data.btc?.changeRate) || 0;
+  const btcScore = Math.max(0, Math.min(100, 50 + (btcPct / 5) * 30));
+
+  const score = vixScore * 0.4 + kospiScore * 0.2 + goldScore * 0.15 + fxScore * 0.15 + btcScore * 0.1;
+  return Math.round(Math.max(0, Math.min(100, score)));
+}
+
 // Core fetch — called by background prefetcher and on-demand fallback
 async function fetchAllMarketData() {
   const [kospi, kosdaq, usdkrw, btc, sp500, nasdaq, dow, oil, gold, vix] = await Promise.all([
@@ -281,19 +303,24 @@ async function fetchAllMarketData() {
     updatedAt: new Date().toISOString()
   };
 
+  // Compute & attach fear/greed score
+  data.fearGreed = computeFearGreed(data);
+
   // Record history for sparklines
   const symbols = { kospi, kosdaq, usdkrw, oil, gold, btc, sp500, nasdaq, dow, vix };
   for (const [key, val] of Object.entries(symbols)) {
     const num = parseFloat(String(val.value).replace(/,/g, ''));
     if (!isNaN(num) && num > 0) addHistory(key, num);
   }
+  // Record fear/greed history
+  addHistory('fear_greed', data.fearGreed);
 
   setCache('market', data, CACHE_TTL);
   return data;
 }
 
 function buildSparklines() {
-  const keys = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'gold', 'btc', 'sp500', 'nasdaq', 'dow', 'vix'];
+  const keys = ['kospi', 'kosdaq', 'usdkrw', 'oil', 'gold', 'btc', 'sp500', 'nasdaq', 'dow', 'vix', 'fear_greed'];
   const result = {};
   for (const key of keys) {
     result[key] = getHistory(key, 48).map(r => r.value);

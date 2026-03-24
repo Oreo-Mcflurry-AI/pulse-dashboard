@@ -194,7 +194,85 @@ function MarketStatus({ label, status }) {
   );
 }
 
-export default function MarketSentiment({ data }) {
+// Mini sparkline for fear/greed history
+function FearGreedSparkline({ data }) {
+  const canvasRef = useRef(null);
+  const w = 200, h = 32;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !data || data.length < 2) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+
+    const pad = 2;
+    const min = 0, max = 100;
+    const stepX = (w - pad * 2) / (data.length - 1);
+
+    // Zone backgrounds (subtle)
+    const zones = [
+      { y1: 0, y2: 25, color: 'rgba(239,68,68,0.06)' },   // fear
+      { y1: 25, y2: 40, color: 'rgba(245,158,11,0.04)' },  // mild fear
+      { y1: 60, y2: 75, color: 'rgba(34,197,94,0.04)' },   // greed
+      { y1: 75, y2: 100, color: 'rgba(168,85,247,0.06)' }, // extreme greed
+    ];
+    for (const z of zones) {
+      const top = pad + ((max - z.y2) / (max - min)) * (h - pad * 2);
+      const bot = pad + ((max - z.y1) / (max - min)) * (h - pad * 2);
+      ctx.fillStyle = z.color;
+      ctx.fillRect(0, top, w, bot - top);
+    }
+
+    // 50 line (neutral)
+    const midY = pad + ((max - 50) / (max - min)) * (h - pad * 2);
+    ctx.setLineDash([2, 3]);
+    ctx.strokeStyle = 'rgba(128,128,128,0.2)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(0, midY);
+    ctx.lineTo(w, midY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Line
+    ctx.beginPath();
+    data.forEach((v, i) => {
+      const x = pad + i * stepX;
+      const y = pad + ((max - v) / (max - min)) * (h - pad * 2);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = 'rgba(168,85,247,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // Current dot
+    const lastX = pad + (data.length - 1) * stepX;
+    const lastY = pad + ((max - data[data.length - 1]) / (max - min)) * (h - pad * 2);
+    ctx.beginPath();
+    ctx.arc(lastX, lastY, 2.5, 0, Math.PI * 2);
+    const lastColor = data[data.length - 1] >= 60 ? '#22c55e' : data[data.length - 1] >= 40 ? '#6b7280' : '#ef4444';
+    ctx.fillStyle = lastColor;
+    ctx.fill();
+  }, [data]);
+
+  if (!data || data.length < 2) return null;
+  return (
+    <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>📈 24시간 추이</span>
+        <span className="text-[8px] tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{data.length}포인트</span>
+      </div>
+      <canvas ref={canvasRef} style={{ width: '100%', height: h, maxWidth: w }} />
+    </div>
+  );
+}
+
+export default function MarketSentiment({ data, fearGreedHistory }) {
   if (!data?.vix) return null;
 
   const { score, signals } = computeFearGreed(data);
@@ -280,6 +358,9 @@ export default function MarketSentiment({ data }) {
           <span>100 극탐욕</span>
         </div>
       </div>
+
+      {/* Fear/Greed 24h history */}
+      <FearGreedSparkline data={fearGreedHistory} />
 
       {/* KOSPI extreme move alert */}
       {data.kospi && (() => {
