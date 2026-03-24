@@ -897,7 +897,7 @@ export default function PortfolioPage() {
   const [prices, setPrices] = useState({});
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above', stopLoss: '', takeProfit: '' });
+  const [form, setForm] = useState({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above', stopLoss: '', takeProfit: '', dividend: '' });
   const [editingId, setEditingId] = useState(null);
   const [editField, setEditField] = useState(null); // 'memo' | 'buyPrice' | 'qty' | 'target'
   const [editMemo, setEditMemo] = useState('');
@@ -955,6 +955,7 @@ export default function PortfolioPage() {
       targetDir: form.targetDir || 'above',
       stopLoss: form.stopLoss ? parseFloat(form.stopLoss) : null,
       takeProfit: form.takeProfit ? parseFloat(form.takeProfit) : null,
+      dividend: form.dividend ? parseFloat(form.dividend) : null,
       addedAt: new Date().toISOString(),
     };
     const next = [...holdings, item];
@@ -969,7 +970,7 @@ export default function PortfolioPage() {
       qty: item.qty,
       memo: item.memo,
     });
-    setForm({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above', stopLoss: '', takeProfit: '' });
+    setForm({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above', stopLoss: '', takeProfit: '', dividend: '' });
     setShowAdd(false);
   };
 
@@ -1105,6 +1106,17 @@ export default function PortfolioPage() {
 
   const hasPnl = holdings.some(h => h.buyPrice && h.qty && prices[h.symbol]);
 
+  // Dividend summary
+  const totalAnnualDividend = holdings.reduce((sum, h) => {
+    if (!h.dividend || !h.qty) return sum;
+    return sum + h.dividend * h.qty;
+  }, 0);
+  const totalInvested = holdings.reduce((sum, h) => {
+    if (!h.buyPrice || !h.qty) return sum;
+    return sum + h.buyPrice * h.qty;
+  }, 0);
+  const portfolioDividendYield = totalInvested > 0 ? (totalAnnualDividend / totalInvested * 100) : 0;
+
   // Record daily snapshot + daily return alert
   useEffect(() => {
     if (totalValue > 0 && Object.keys(prices).length > 0) {
@@ -1198,6 +1210,11 @@ export default function PortfolioPage() {
           {hasPnl && (
             <p className="text-sm mt-1" style={{ color: pctColor(totalPnl) }}>
               총 손익: {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}원
+              {totalAnnualDividend > 0 && (
+                <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
+                  💰 연 배당 {fmt(totalAnnualDividend)}원 ({portfolioDividendYield.toFixed(2)}%)
+                </span>
+              )}
               <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded cursor-pointer" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
                 title="일간 수익률 알림 임계값 설정 (클릭)"
                 onClick={() => {
@@ -1214,12 +1231,12 @@ export default function PortfolioPage() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => {
-              const csv = ['종목코드,종목명,매수가,수량,메모,손절(%),익절(%)'];
+              const csv = ['종목코드,종목명,매수가,수량,메모,손절(%),익절(%),연배당금/주'];
               for (const h of holdings) {
                 csv.push([
                   h.symbol, h.name, h.buyPrice ?? '', h.qty ?? '',
                   `"${(h.memo || '').replace(/"/g, '""')}"`,
-                  h.stopLoss ?? '', h.takeProfit ?? ''
+                  h.stopLoss ?? '', h.takeProfit ?? '', h.dividend ?? ''
                 ].join(','));
               }
               const blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8' });
@@ -1261,7 +1278,7 @@ export default function PortfolioPage() {
                     else { current += ch; }
                   }
                   parts.push(current.trim());
-                  const [symbol, name, buyPrice, qty, memo, stopLoss, takeProfit] = parts;
+                  const [symbol, name, buyPrice, qty, memo, stopLoss, takeProfit, dividend] = parts;
                   if (!symbol && !name) continue;
                   imported.push({
                     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
@@ -1272,6 +1289,7 @@ export default function PortfolioPage() {
                     memo: memo || '',
                     stopLoss: stopLoss ? parseFloat(stopLoss) : null,
                     takeProfit: takeProfit ? parseFloat(takeProfit) : null,
+                    dividend: dividend ? parseFloat(dividend) : null,
                     addedAt: new Date().toISOString(),
                   });
                 }
@@ -1400,6 +1418,14 @@ export default function PortfolioPage() {
               onChange={e => setForm({ ...form, takeProfit: e.target.value })}
               className="flex-1 px-2 py-1.5 text-xs sm:text-sm rounded-md"
               style={{ background: 'var(--bg-primary)', color: '#22c55e', border: '1px solid var(--border)' }}
+            />
+            <input
+              placeholder="연간배당금/주 (선택)"
+              type="number"
+              value={form.dividend}
+              onChange={e => setForm({ ...form, dividend: e.target.value })}
+              className="flex-1 px-2 py-1.5 text-xs sm:text-sm rounded-md"
+              style={{ background: 'var(--bg-primary)', color: '#f59e0b', border: '1px solid var(--border)' }}
             />
           </div>
           <div className="flex gap-2">
@@ -1583,6 +1609,38 @@ export default function PortfolioPage() {
                     </p>
                   )}
                   {/* Stop-loss / Take-profit display */}
+                  {/* Dividend display */}
+                  {h.dividend != null && h.dividend > 0 && (
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span
+                        className="text-[9px] px-1 py-0.5 rounded cursor-pointer"
+                        style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const val = prompt(`${h.name} 연간 주당배당금 (현재: ${h.dividend}원)`, h.dividend);
+                          if (val !== null) updateHolding(h.id, { dividend: val ? parseFloat(val) : null });
+                        }}
+                        title="클릭하여 배당금 수정"
+                      >
+                        💰 배당 {fmt(h.dividend)}원/주
+                        {h.qty ? ` · 연 ${fmt(h.dividend * h.qty)}원` : ''}
+                        {h.buyPrice && h.buyPrice > 0 ? ` · ${(h.dividend / h.buyPrice * 100).toFixed(2)}%` : ''}
+                      </span>
+                    </div>
+                  )}
+                  {!h.dividend && (
+                    <p
+                      className="text-[9px] mt-0.5 cursor-pointer hover:underline"
+                      style={{ color: 'var(--text-muted)', opacity: 0.5 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const val = prompt(`${h.name} 연간 주당배당금 (원)`);
+                        if (val && parseFloat(val) > 0) updateHolding(h.id, { dividend: parseFloat(val) });
+                      }}
+                    >
+                      💰 배당금 설정...
+                    </p>
+                  )}
                   {(h.stopLoss != null || h.takeProfit != null) && (() => {
                     const pnlPct = (h.buyPrice && p) ? ((p.price - h.buyPrice) / h.buyPrice) * 100 : null;
                     return (
