@@ -544,6 +544,45 @@ export default function App() {
                 </div>
               </div>
             )}
+            {/* Yesterday's market summary banner (shows once per session) */}
+            {!sessionStorage.getItem('pulse-yesterday-dismissed') && market && (() => {
+              const items = [
+                { key: 'kospi', label: '코스피', data: market.kospi },
+                { key: 'kosdaq', label: '코스닥', data: market.kosdaq },
+                { key: 'sp500', label: 'S&P500', data: market.sp500 },
+                { key: 'usdkrw', label: 'USD/KRW', data: market.usdkrw },
+                { key: 'btc', label: 'BTC', data: market.btc },
+              ].filter(i => i.data?.value);
+              if (items.length === 0) return null;
+              const dismissBanner = () => {
+                sessionStorage.setItem('pulse-yesterday-dismissed', '1');
+                document.getElementById('yesterday-banner')?.remove();
+              };
+              return (
+                <div id="yesterday-banner" className="mx-3 sm:mx-4 mt-3 sm:mt-4 px-3 py-2.5 rounded-lg" style={{ background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-hover) 100%)', border: '1px solid var(--border)' }}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] sm:text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>📊 현재 시장 요약</span>
+                    <button onClick={dismissBanner} className="text-[10px] px-1.5 py-0.5 rounded hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>✕ 닫기</button>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1">
+                    {items.map(({ key, label, data }) => {
+                      const rate = parseFloat(data.changeRate) || 0;
+                      const color = rate > 0 ? 'var(--accent-up)' : rate < 0 ? 'var(--accent-down)' : 'var(--text-muted)';
+                      return (
+                        <span key={key} className="text-[10px] sm:text-[11px] tabular-nums whitespace-nowrap">
+                          <span style={{ color: 'var(--text-muted)' }}>{label}</span>{' '}
+                          <span className="font-medium">{data.value}</span>{' '}
+                          <span style={{ color }} className="font-medium">
+                            {rate > 0 ? '▲' : rate < 0 ? '▼' : ''}{data.changeRate || '0%'}
+                          </span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Today's headline summary */}
             {news?.digest?.headline && (
               <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
