@@ -106,10 +106,12 @@ router.get('/:symbol', async (req, res) => {
   const type = req.query.type || 'daily';
 
   // Intraday from DB
-  if (type === 'intraday') {
-    const data = getIntradayFromDB(symbol, 24);
+  if (type === 'intraday' || symbol === 'fear_greed') {
+    // fear_greed only has intraday DB data (no external daily API)
+    const hours = symbol === 'fear_greed' ? { '1m': 720, '3m': 2160, '6m': 4320, '1y': 8760, '24h': 24 }[period] || 168 : 24;
+    const data = getIntradayFromDB(symbol, hours);
     res.set('Cache-Control', 'public, max-age=30');
-    return res.json({ symbol, period: '24h', type: 'intraday', data });
+    return res.json({ symbol, period: symbol === 'fear_greed' ? period : '24h', type: 'intraday', data });
   }
 
   // Daily data
@@ -246,6 +248,7 @@ router.get('/', (req, res) => {
       { key: 'btc', name: 'BTC/KRW', type: 'crypto' },
       { key: 'oil', name: 'WTI', type: 'commodity' },
       { key: 'gold', name: 'GOLD', type: 'commodity' },
+      { key: 'fear_greed', name: '공포/탐욕', type: 'sentiment' },
     ],
   });
 });

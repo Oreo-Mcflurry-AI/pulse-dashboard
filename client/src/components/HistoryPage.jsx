@@ -11,6 +11,7 @@ const SYMBOLS = [
   { key: 'btc', name: 'BTC/KRW', color: '#f59e0b' },
   { key: 'oil', name: 'WTI', color: '#64748b' },
   { key: 'gold', name: 'GOLD', color: '#eab308' },
+  { key: 'fear_greed', name: '공포/탐욕', color: '#a855f7' },
 ];
 
 const PERIODS = [
@@ -238,7 +239,15 @@ export default function HistoryPage() {
     try {
       const res = await fetch(`/api/history/${sym}?period=${per}`);
       const json = await res.json();
-      return json.data || [];
+      let data = json.data || [];
+      // Intraday data comes as {time, value} — convert to OHLC format
+      if (data.length > 0 && data[0].time && data[0].value != null && !data[0].date) {
+        data = data.map(d => ({
+          date: d.time.slice(0, 16).replace('T', ' '),
+          open: d.value, high: d.value, low: d.value, close: d.value,
+        }));
+      }
+      return data;
     } catch {
       return [];
     }
