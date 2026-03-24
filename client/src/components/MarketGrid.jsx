@@ -158,8 +158,33 @@ export default function MarketGrid({ data, news }) {
   const weeklyChange = data.weeklyChange || {};
   const sortedKeys = getSortedKeys(data, sort, favorites);
 
+  // Quick summary chips for top 5 markets
+  const summaryKeys = ['kospi', 'kosdaq', 'usdkrw', 'btc', 'sp500'];
+  const summaryItems = summaryKeys.map(k => data[k]).filter(Boolean);
+
   return (
     <div className="px-3 sm:px-4">
+      {/* Quick glance summary bar */}
+      {summaryItems.length > 0 && (
+        <div className="flex items-center gap-2 mb-2 px-1 overflow-x-auto scrollbar-hide" role="status" aria-label="마켓 요약">
+          {summaryItems.map(item => {
+            const rate = parseFloat(item.changeRate) || 0;
+            const isVix = item.name === 'VIX';
+            const isUp = isVix ? rate < 0 : rate > 0;
+            const isDown = isVix ? rate > 0 : rate < 0;
+            return (
+              <span key={item.name} className="text-[10px] sm:text-[11px] whitespace-nowrap tabular-nums" style={{ color: isUp ? 'var(--accent-up)' : isDown ? 'var(--accent-down)' : 'var(--text-muted)' }}>
+                {item.name} {rate > 0 ? '▲' : rate < 0 ? '▼' : ''}{item.changeRate}
+              </span>
+            );
+          })}
+          {data.updatedAt && (
+            <span className="text-[9px] ml-auto whitespace-nowrap" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
+              {new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex justify-end gap-1 mb-1">
         {SORT_OPTIONS.map(opt => (
           <button
