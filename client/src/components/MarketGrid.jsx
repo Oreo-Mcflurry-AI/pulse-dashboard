@@ -26,19 +26,24 @@ const MARKET_KEYWORDS = {
   vix: ['VIX', '공포지수', '변동성'],
 };
 
-function findRelatedNews(key, news) {
+function findRelatedNews(key, news, maxCount = 3) {
   if (!news?.sections?.length) return null;
   const keywords = MARKET_KEYWORDS[key] || [];
   if (keywords.length === 0) return null;
+  const matches = [];
+  const seen = new Set();
   for (const section of news.sections) {
     for (const article of (section.articles || [])) {
+      if (seen.has(article.url)) continue;
       const title = (article.title || '').toLowerCase();
       if (keywords.some(kw => title.toLowerCase().includes(kw.toLowerCase()))) {
-        return article;
+        matches.push(article);
+        seen.add(article.url);
+        if (matches.length >= maxCount) return matches;
       }
     }
   }
-  return null;
+  return matches.length > 0 ? matches : null;
 }
 
 function exportCSV(data) {

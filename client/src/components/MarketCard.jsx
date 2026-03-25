@@ -215,21 +215,28 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           </div>
         );
       })()}
-      {relatedNews && (
-        <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid var(--border)' }}>
-          <a
-            href={relatedNews.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[9px] sm:text-[10px] leading-tight block truncate hover:underline"
-            style={{ color: 'var(--text-muted)' }}
-            title={relatedNews.title}
-            onClick={(e) => e.stopPropagation()}
-          >
-            📰 {relatedNews.title}
-          </a>
-        </div>
-      )}
+      {relatedNews && (() => {
+        const items = Array.isArray(relatedNews) ? relatedNews : [relatedNews];
+        if (items.length === 0) return null;
+        return (
+          <div className="mt-1.5 pt-1.5 space-y-0.5" style={{ borderTop: '1px solid var(--border)' }}>
+            {items.slice(0, 3).map((news, i) => (
+              <a
+                key={i}
+                href={news.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[9px] sm:text-[10px] leading-tight block truncate hover:underline"
+                style={{ color: 'var(--text-muted)', opacity: i === 0 ? 1 : 0.7 }}
+                title={news.title}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {i === 0 ? '📰' : '·'} {news.title}
+              </a>
+            ))}
+          </div>
+        );
+      })()}
       {/* Favorite toggle feedback */}
       {showFavFeedback && (
         <div className="absolute inset-0 flex items-center justify-center rounded-lg sm:rounded-xl pointer-events-none"
