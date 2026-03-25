@@ -267,6 +267,11 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
                     · {estimateReadTime(a.title, a.source)}
                   </span>
                 </span>
+                {a.altSources?.length > 0 && (
+                  <span className="text-[8px] flex items-center gap-0.5 mt-0.5" style={{ color: 'var(--text-muted)', opacity: 0.6 }} title={a.altSources.map(s => s.source).join(', ')}>
+                    +{a.altSources.length}개 매체
+                  </span>
+                )}
               </div>
             </a>
             </NewsPopover>

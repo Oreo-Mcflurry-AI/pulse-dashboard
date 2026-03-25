@@ -161,6 +161,54 @@ function generateDigest(sections, sentimentSummary) {
   };
 }
 
+// ─── Deduplication: merge near-duplicate articles ───
+function normalizeTitle(title) {
+  return (title || '').toLowerCase()
+    .replace(/[^\w가-힣\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function titleSimilarity(a, b) {
+  const wordsA = new Set(normalizeTitle(a).split(' ').filter(w => w.length >= 2));
+  const wordsB = new Set(normalizeTitle(b).split(' ').filter(w => w.length >= 2));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  let overlap = 0;
+  for (const w of wordsA) if (wordsB.has(w)) overlap++;
+  return overlap / Math.min(wordsA.size, wordsB.size);
+}
+
+function deduplicateArticles(sections) {
+  // Collect all articles with section reference
+  const all = [];
+  for (const sec of sections) {
+    for (const a of sec.articles) {
+      all.push({ article: a, section: sec });
+    }
+  }
+  // Mark duplicates (keep first occurrence, attach altSources to it)
+  const dominated = new Set();
+  for (let i = 0; i < all.length; i++) {
+    if (dominated.has(i)) continue;
+    for (let j = i + 1; j < all.length; j++) {
+      if (dominated.has(j)) continue;
+      if (titleSimilarity(all[i].article.title, all[j].article.title) >= 0.6) {
+        // Keep article i, mark j as duplicate
+        if (!all[i].article.altSources) all[i].article.altSources = [];
+        all[i].article.altSources.push({ source: all[j].article.source, url: all[j].article.url });
+        dominated.add(j);
+      }
+    }
+  }
+  // Remove dominated articles from their sections
+  if (dominated.size > 0) {
+    const domArticles = new Set([...dominated].map(idx => all[idx].article));
+    for (const sec of sections) {
+      sec.articles = sec.articles.filter(a => !domArticles.has(a));
+    }
+  }
+}
+
 // Core fetch — called by background prefetcher
 async function fetchAllNews() {
   const [googleResults, koreaEcon, koreaMarket] = await Promise.all([
@@ -181,6 +229,9 @@ async function fetchAllNews() {
     ...googleResults,
     { category: '한국', icon: '🇰🇷', articles: koreaArticles }
   ].filter(s => s.articles.length > 0);
+
+  // Deduplicate similar articles across sections
+  deduplicateArticles(sections);
 
   // Compute sentiment for all articles
   const sentiment = computeSentimentSummary(sections);
