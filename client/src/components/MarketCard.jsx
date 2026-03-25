@@ -1,5 +1,48 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Sparkline from './Sparkline';
+
+function NewsCarousel({ items }) {
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef(null);
+  const len = items.length;
+
+  useEffect(() => {
+    if (len <= 1) return;
+    timerRef.current = setInterval(() => setIdx(i => (i + 1) % len), 5000);
+    return () => clearInterval(timerRef.current);
+  }, [len]);
+
+  const news = items[idx];
+  return (
+    <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid var(--border)' }}>
+      <div className="flex items-center gap-1">
+        <a
+          href={news.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[9px] sm:text-[10px] leading-tight flex-1 truncate hover:underline transition-opacity duration-300"
+          style={{ color: 'var(--text-muted)' }}
+          title={news.title}
+          onClick={(e) => e.stopPropagation()}
+        >
+          📰 {news.title}
+        </a>
+        {len > 1 && (
+          <div className="flex gap-0.5 shrink-0">
+            {items.map((_, i) => (
+              <span
+                key={i}
+                className="inline-block w-1 h-1 rounded-full cursor-pointer"
+                style={{ background: i === idx ? 'var(--text-muted)' : 'var(--border)', transition: 'background 0.3s' }}
+                onClick={(e) => { e.stopPropagation(); setIdx(i); clearInterval(timerRef.current); }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function HoverDetail({ week52, value, weeklyChange, volume, name }) {
   if (!week52 || week52.high == null) return null;
@@ -218,24 +261,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
       {relatedNews && (() => {
         const items = Array.isArray(relatedNews) ? relatedNews : [relatedNews];
         if (items.length === 0) return null;
-        return (
-          <div className="mt-1.5 pt-1.5 space-y-0.5" style={{ borderTop: '1px solid var(--border)' }}>
-            {items.slice(0, 3).map((news, i) => (
-              <a
-                key={i}
-                href={news.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[9px] sm:text-[10px] leading-tight block truncate hover:underline"
-                style={{ color: 'var(--text-muted)', opacity: i === 0 ? 1 : 0.7 }}
-                title={news.title}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {i === 0 ? '📰' : '·'} {news.title}
-              </a>
-            ))}
-          </div>
-        );
+        return <NewsCarousel items={items.slice(0, 3)} />;
       })()}
       {/* Favorite toggle feedback */}
       {showFavFeedback && (
