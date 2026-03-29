@@ -149,13 +149,17 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
 
   return (
     <div
-      className="rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors cursor-pointer hover:opacity-90 relative"
+      className={`rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors cursor-pointer hover:opacity-90 relative${absRate >= 5 ? ' alert-extreme' : ''}`}
       role="button"
       tabIndex={0}
       aria-label={`${name} ${value} ${changeRate || '0%'} 상세 차트 보기${isFavorite ? ' (즐겨찾기)' : ''}`}
       style={{
         background: statusBg,
         border: `1px solid ${alertBorder || (isFavorite ? 'rgba(234,179,8,0.4)' : status === 'OPEN' ? 'rgba(34,197,94,0.12)' : 'var(--border)')}`,
+        ...(absRate >= 5 ? {
+          animation: 'alertPulse 2s ease-in-out infinite, alertGlow 2s ease-in-out infinite',
+          '--alert-glow-color': isDown ? 'rgba(220,38,38,0.25)' : 'rgba(34,197,94,0.25)',
+        } : {}),
       }}
       onClick={() => {
         if (navigator.vibrate) navigator.vibrate(10);

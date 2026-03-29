@@ -47,6 +47,14 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(2px); }
 }
+@keyframes alertPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+@keyframes alertGlow {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 12px 2px var(--alert-glow-color, rgba(220,38,38,0.3)); }
+}
 
 /* Accessibility: focus-visible outline for keyboard navigation */
 *:focus-visible {
