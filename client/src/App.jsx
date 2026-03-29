@@ -12,6 +12,7 @@ const HeatmapPage = lazy(() => import('./components/HeatmapPage'));
 const CalendarPage = lazy(() => import('./components/CalendarPage'));
 const StockSearch = lazy(() => import('./components/StockSearch'));
 const MarketTimeline = lazy(() => import('./components/MarketTimeline'));
+const RSSFeeds = lazy(() => import('./components/RSSFeeds'));
 import NotificationCenter, { NotificationBadge } from './components/NotificationCenter';
 import MarketAlertSettings, { useMarketAlertChecker } from './components/MarketAlerts';
 import { useMarketData } from './hooks/useMarketData';
@@ -96,7 +97,8 @@ export default function App() {
     window.location.hash === '#heatmap' ? 'heatmap' :
     window.location.hash === '#timeline' ? 'timeline' :
     window.location.hash === '#calendar' ? 'calendar' :
-    window.location.hash === '#search' ? 'search' : 'dashboard'
+    window.location.hash === '#search' ? 'search' :
+    window.location.hash === '#rss' ? 'rss' : 'dashboard'
   );
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle, mode: themeMode, setMode: setThemeMode, colorScheme, setColorScheme } = useTheme();
@@ -165,6 +167,7 @@ export default function App() {
         case '6': navigate('calendar'); break;
         case '7': navigate('search'); break;
         case '8': navigate('timeline'); break;
+        case '9': navigate('rss'); break;
         case 'r': if (page === 'dashboard') refetch(); break;
         case '?': setShowShortcuts(v => !v); break;
         case 'Escape': setShowShortcuts(false); break;
@@ -325,6 +328,18 @@ export default function App() {
                 }}
               >
                 🌍 타임라인
+              </button>
+              <button
+                onClick={() => navigate('rss')}
+                aria-current={page === 'rss' ? 'page' : undefined}
+                className="px-2 py-1 text-xs sm:text-sm rounded-md transition-colors"
+                style={{
+                  background: page === 'rss' ? 'var(--bg-hover)' : 'transparent',
+                  color: page === 'rss' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  fontWeight: page === 'rss' ? 600 : 400,
+                }}
+              >
+                📡 RSS
               </button>
             </nav>
           </div>
@@ -672,6 +687,8 @@ export default function App() {
               <CalendarPage />
             ) : page === 'search' ? (
               <StockSearch />
+            ) : page === 'rss' ? (
+              <RSSFeeds />
             ) : (
               <MarketTimeline />
             )}
@@ -709,6 +726,7 @@ export default function App() {
             { id: 'history', icon: '📈', label: '히스토리' },
             { id: 'calendar', icon: '📅', label: '캘린더' },
             { id: 'timeline', icon: '🌍', label: '타임라인' },
+            { id: 'rss', icon: '📡', label: 'RSS' },
           ];
           const isMoreActive = moreTabs.some(t => t.id === page);
           const [showMore, setShowMore] = useState(false);
@@ -780,6 +798,7 @@ export default function App() {
                 ['6', '📅 캘린더'],
                 ['7', '🔍 종목 검색'],
                 ['8', '🌍 타임라인'],
+                ['9', '📡 RSS 피드'],
                 ['R', '새로고침 (대시보드)'],
                 ['?', '이 도움말 토글'],
                 ['ESC', '모달 닫기'],
