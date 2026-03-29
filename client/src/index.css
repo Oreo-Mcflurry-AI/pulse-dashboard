@@ -173,3 +173,8 @@
   background: none;
   padding: 0;
 }
+
+/* Mobile bottom nav safe area */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

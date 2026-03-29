@@ -164,7 +164,7 @@ export default function App() {
         case '5': navigate('heatmap'); break;
         case '6': navigate('calendar'); break;
         case '7': navigate('search'); break;
-        case '6': navigate('timeline'); break;
+        case '8': navigate('timeline'); break;
         case 'r': if (page === 'dashboard') refetch(); break;
         case '?': setShowShortcuts(v => !v); break;
         case 'Escape': setShowShortcuts(false); break;
@@ -222,14 +222,14 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen transition-colors duration-200" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
+    <div className="min-h-screen pb-16 sm:pb-0 transition-colors duration-200" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
       <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
       <div className="max-w-5xl mx-auto">
         <header role="banner" className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${live ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} title={live ? 'LIVE (실시간)' : 'Polling (30s)'} role="status" aria-label={live ? '실시간 연결됨' : '폴링 모드'} />
             <h1 className="text-base sm:text-xl font-bold tracking-tight cursor-pointer" onClick={() => navigate('dashboard')}>PULSE</h1>
-            <nav aria-label="주요 메뉴" className="flex items-center gap-1 ml-2 sm:ml-4">
+            <nav aria-label="주요 메뉴" className="hidden sm:flex items-center gap-1 ml-2 sm:ml-4">
               <button
                 onClick={() => navigate('dashboard')}
                 aria-current={page === 'dashboard' ? 'page' : undefined}
@@ -679,6 +679,81 @@ export default function App() {
         )}
         </main>
       </div>
+      {/* Mobile bottom navigation */}
+      <nav aria-label="모바일 메뉴" className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-1 py-1.5 safe-area-pb" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+        {[
+          { id: 'dashboard', icon: '📊', label: '대시보드' },
+          { id: 'briefings', icon: '📰', label: '브리핑' },
+          { id: 'portfolio', icon: '💼', label: '포트폴리오' },
+          { id: 'heatmap', icon: '🗺️', label: '히트맵' },
+          { id: 'search', icon: '🔍', label: '종목' },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => navigate(tab.id)}
+            aria-current={page === tab.id ? 'page' : undefined}
+            className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors min-w-0"
+            style={{
+              color: page === tab.id ? 'var(--text-primary)' : 'var(--text-muted)',
+              background: page === tab.id ? 'var(--bg-hover)' : 'transparent',
+              opacity: page === tab.id ? 1 : 0.7,
+            }}
+          >
+            <span className="text-base leading-none">{tab.icon}</span>
+            <span className="text-[9px] font-medium truncate max-w-[3.5rem]">{tab.label}</span>
+          </button>
+        ))}
+        {/* More menu for remaining pages */}
+        {(() => {
+          const moreTabs = [
+            { id: 'history', icon: '📈', label: '히스토리' },
+            { id: 'calendar', icon: '📅', label: '캘린더' },
+            { id: 'timeline', icon: '🌍', label: '타임라인' },
+          ];
+          const isMoreActive = moreTabs.some(t => t.id === page);
+          const [showMore, setShowMore] = useState(false);
+          return (
+            <div className="relative">
+              <button
+                onClick={() => setShowMore(v => !v)}
+                className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors"
+                style={{
+                  color: isMoreActive ? 'var(--text-primary)' : 'var(--text-muted)',
+                  background: isMoreActive || showMore ? 'var(--bg-hover)' : 'transparent',
+                  opacity: isMoreActive ? 1 : 0.7,
+                }}
+                aria-expanded={showMore}
+                aria-label="더보기 메뉴"
+              >
+                <span className="text-base leading-none">{isMoreActive ? moreTabs.find(t => t.id === page)?.icon : '···'}</span>
+                <span className="text-[9px] font-medium">{isMoreActive ? moreTabs.find(t => t.id === page)?.label : '더보기'}</span>
+              </button>
+              {showMore && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowMore(false)} />
+                  <div className="absolute bottom-full right-0 mb-2 z-50 rounded-lg py-1 min-w-[120px] shadow-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+                    {moreTabs.map(tab => (
+                      <button
+                        key={tab.id}
+                        onClick={() => { navigate(tab.id); setShowMore(false); }}
+                        className="flex items-center gap-2 w-full px-3 py-2 text-left transition-colors"
+                        style={{
+                          color: page === tab.id ? 'var(--text-primary)' : 'var(--text-muted)',
+                          background: page === tab.id ? 'var(--bg-hover)' : 'transparent',
+                          fontWeight: page === tab.id ? 600 : 400,
+                        }}
+                      >
+                        <span>{tab.icon}</span>
+                        <span className="text-xs">{tab.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
+      </nav>
       <NotificationCenter isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
       <MarketAlertSettings isOpen={showMarketAlerts} onClose={() => setShowMarketAlerts(false)} />
 
@@ -704,6 +779,7 @@ export default function App() {
                 ['5', '🗺 히트맵'],
                 ['6', '📅 캘린더'],
                 ['7', '🔍 종목 검색'],
+                ['8', '🌍 타임라인'],
                 ['R', '새로고침 (대시보드)'],
                 ['?', '이 도움말 토글'],
                 ['ESC', '모달 닫기'],
