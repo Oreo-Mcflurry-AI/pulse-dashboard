@@ -1071,6 +1071,8 @@ export default function PortfolioPage() {
 
   const [holdings, setHoldings] = useState(() => loadPortfolio(getActivePortfolioId()));
   const [prices, setPrices] = useState({});
+  const [usdkrw, setUsdkrw] = useState(null);
+  const [showUsd, setShowUsd] = useState(() => localStorage.getItem('pulse_pf_show_usd') === '1');
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ symbol: '', name: '', buyPrice: '', qty: '', memo: '', targetPrice: '', targetDir: 'above', stopLoss: '', takeProfit: '', dividend: '' });
@@ -1109,6 +1111,11 @@ export default function PortfolioPage() {
         if (!isNaN(price)) p[symbol] = { price, change: parseFloat(d.change) || 0, pct };
       }
       setPrices(p);
+      // Capture USD/KRW rate for currency conversion
+      if (data.usdkrw?.value) {
+        const rate = parseFloat(String(data.usdkrw.value).replace(/,/g, ''));
+        if (!isNaN(rate) && rate > 0) setUsdkrw(rate);
+      }
     } catch (e) {
       console.error('Portfolio price fetch error:', e);
     } finally {
@@ -1386,6 +1393,11 @@ export default function PortfolioPage() {
           {hasPnl && (
             <p className="text-sm mt-1" style={{ color: pctColor(totalPnl) }}>
               총 손익: {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}원
+              {showUsd && usdkrw > 0 && (
+                <span className="text-[10px] ml-1.5" style={{ color: 'var(--text-muted)', opacity: 0.8 }}>
+                  (${(totalPnl / usdkrw).toLocaleString('en-US', { maximumFractionDigits: 0 })})
+                </span>
+              )}
               {totalAnnualDividend > 0 && (
                 <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
                   💰 연 배당 {fmt(totalAnnualDividend)}원 ({portfolioDividendYield.toFixed(2)}%)
@@ -1403,8 +1415,37 @@ export default function PortfolioPage() {
               </span>
             </p>
           )}
+          {totalValue > 0 && (
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              총 평가: {fmt(totalValue)}원
+              {showUsd && usdkrw > 0 && (
+                <span className="ml-1.5" style={{ opacity: 0.8 }}>
+                  (${(totalValue / usdkrw).toLocaleString('en-US', { maximumFractionDigits: 0 })})
+                </span>
+              )}
+              {usdkrw > 0 && (
+                <span className="text-[9px] ml-1 px-1 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', opacity: 0.6 }}>
+                  ₩{fmt(usdkrw)}/$
+                </span>
+              )}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
+          {usdkrw > 0 && (
+            <button
+              onClick={() => { const next = !showUsd; setShowUsd(next); localStorage.setItem('pulse_pf_show_usd', next ? '1' : '0'); }}
+              className="px-2 py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors"
+              style={{
+                background: showUsd ? 'rgba(59,130,246,0.15)' : 'var(--bg-hover)',
+                color: showUsd ? '#3b82f6' : 'var(--text-muted)',
+                border: `1px solid ${showUsd ? 'rgba(59,130,246,0.3)' : 'var(--border)'}`,
+              }}
+              title="USD 환산 표시 토글"
+            >
+              💱 USD
+            </button>
+          )}
           <button
             onClick={() => {
               const csv = ['종목코드,종목명,매수가,수량,메모,손절(%),익절(%),연배당금/주'];
@@ -1867,6 +1908,11 @@ export default function PortfolioPage() {
                       {pnl != null && (
                         <div className="text-xs font-medium" style={{ color: pctColor(pnl) }}>
                           {pnl >= 0 ? '+' : ''}{fmt(pnl)}원 ({pnlPct >= 0 ? '+' : ''}{pnlPct?.toFixed(1)}%)
+                          {showUsd && usdkrw > 0 && (
+                            <span className="text-[9px] ml-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
+                              ${(pnl / usdkrw).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                            </span>
+                          )}
                         </div>
                       )}
                     </>
