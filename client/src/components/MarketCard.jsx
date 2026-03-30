@@ -44,7 +44,7 @@ function NewsCarousel({ items }) {
   );
 }
 
-function HoverDetail({ week52, value, weeklyChange, volume, name }) {
+function HoverDetail({ week52, value, weeklyChange, volume, name, intraday }) {
   if (!week52 || week52.high == null) return null;
   const current = parseFloat(String(value).replace(/,/g, ''));
   const range = week52.high - week52.low;
@@ -78,6 +78,18 @@ function HoverDetail({ week52, value, weeklyChange, volume, name }) {
           <span>저점 대비</span>
           <span className="tabular-nums">+{fromLow}%</span>
         </div>
+        {intraday && intraday.high != null && (
+          <>
+            <div className="flex justify-between gap-3">
+              <span>장중 고가</span>
+              <span className="tabular-nums" style={{ color: 'var(--accent-up)' }}>{intraday.high.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span>장중 저가</span>
+              <span className="tabular-nums" style={{ color: 'var(--accent-down)' }}>{intraday.low.toLocaleString()}</span>
+            </div>
+          </>
+        )}
         {weeklyChange && (
           <div className="flex justify-between gap-3">
             <span>주간 변동</span>
@@ -91,7 +103,7 @@ function HoverDetail({ week52, value, weeklyChange, volume, name }) {
   );
 }
 
-export default function MarketCard({ name, value, changeRate, sparkline, status, week52, volume, weeklyChange, relatedNews, onClick, isFavorite, onToggleFavorite }) {
+export default function MarketCard({ name, value, changeRate, sparkline, status, week52, volume, weeklyChange, intraday, relatedNews, onClick, isFavorite, onToggleFavorite }) {
   const rate = parseFloat(changeRate) || 0;
   const isVix = name === 'VIX';
   // VIX: up = fear (red), down = calm (green) — inverted colors
@@ -231,6 +243,32 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           <Sparkline data={sparkline} color={sparkColor} width={40} height={16} />
         </div>
       </div>
+      {intraday && intraday.high != null && intraday.low != null && intraday.high !== intraday.low && (() => {
+        const current = parseFloat(String(value).replace(/,/g, ''));
+        const range = intraday.high - intraday.low;
+        const pct = range > 0 ? Math.max(0, Math.min(100, ((current - intraday.low) / range) * 100)) : 50;
+        const fmt = (n) => n >= 10000 ? n.toLocaleString('en-US', { maximumFractionDigits: 0 }) : n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+        return (
+          <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid var(--border)' }}>
+            <div className="flex justify-between items-center mb-0.5">
+              <span className="text-[8px]" style={{ color: 'var(--accent-down)' }}>L {fmt(intraday.low)}</span>
+              <span className="text-[8px] font-medium" style={{ color: 'var(--text-muted)' }}>장중</span>
+              <span className="text-[8px]" style={{ color: 'var(--accent-up)' }}>H {fmt(intraday.high)}</span>
+            </div>
+            <div className="relative h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+              <div className="absolute inset-y-0 left-0 rounded-full" style={{
+                width: `${pct}%`,
+                background: `linear-gradient(90deg, var(--accent-down), ${pct > 50 ? 'var(--accent-up)' : 'var(--text-muted)'})`,
+              }} />
+              <div className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full" style={{
+                left: `calc(${pct}% - 3px)`,
+                background: sparkColor,
+                boxShadow: '0 0 2px rgba(0,0,0,0.3)',
+              }} />
+            </div>
+          </div>
+        );
+      })()}
       {week52 && week52.high != null && week52.low != null && (() => {
         const current = parseFloat(String(value).replace(/,/g, ''));
         const range = week52.high - week52.low;
@@ -276,7 +314,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           </span>
         </div>
       )}
-      {showHover && <HoverDetail week52={week52} value={value} weeklyChange={weeklyChange} volume={volume} name={name} />}
+      {showHover && <HoverDetail week52={week52} value={value} weeklyChange={weeklyChange} volume={volume} name={name} intraday={intraday} />}
     </div>
   );
 }

@@ -274,6 +274,72 @@ function computeFearGreed(data) {
   return Math.round(Math.max(0, Math.min(100, score)));
 }
 
+// ─── Intraday high/low ───
+const INTRADAY_TTL = 60_000; // 1min
+let intradayCache = { data: null, updatedAt: 0 };
+
+async function fetchIntradayHL() {
+  if (intradayCache.data && Date.now() - intradayCache.updatedAt < INTRADAY_TTL) {
+    return intradayCache.data;
+  }
+  const result = {};
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10).replace(/-/g, '');
+
+  // Domestic indices via siseJson
+  for (const symbol of ['KOSPI', 'KOSDAQ']) {
+    try {
+      const url = `https://api.finance.naver.com/siseJson.naver?symbol=${symbol}&requestType=1&startTime=${today}&endTime=${today}&timeframe=day`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+      const text = await res.text();
+      const match = text.match(/\["20\d{6}",\s*([\d.]+),\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)/);
+      if (match) {
+        result[symbol.toLowerCase()] = {
+          open: parseFloat(match[1]),
+          high: parseFloat(match[2]),
+          low: parseFloat(match[3]),
+          close: parseFloat(match[4]),
+        };
+      }
+    } catch {}
+  }
+
+  // US indices via chart endpoint (last trading day)
+  for (const [key, code] of [['sp500', '.INX'], ['nasdaq', '.IXIC'], ['dow', '.DJI'], ['vix', '.VIX']]) {
+    try {
+      const end = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const start = new Date(now - 3 * 86400000).toISOString().slice(0, 10).replace(/-/g, '');
+      const url = `https://api.stock.naver.com/chart/foreign/index/${encodeURIComponent(code)}/day?startDateTime=${start}0000&endDateTime=${end}2359`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const last = data[data.length - 1];
+        if (last.highPrice && last.lowPrice) {
+          result[key] = {
+            open: parseFloat(last.openPrice) || 0,
+            high: parseFloat(last.highPrice),
+            low: parseFloat(last.lowPrice),
+            close: parseFloat(last.closePrice) || 0,
+          };
+        }
+      }
+    } catch {}
+  }
+
+  // BTC via Upbit
+  try {
+    const res = await fetch('https://api.upbit.com/v1/candles/days?market=KRW-BTC&count=1', { signal: AbortSignal.timeout(FETCH_TIMEOUT) });
+    const candles = await res.json();
+    if (Array.isArray(candles) && candles.length > 0) {
+      const c = candles[0];
+      result.btc = { open: c.opening_price, high: c.high_price, low: c.low_price, close: c.trade_price };
+    }
+  } catch {}
+
+  intradayCache = { data: result, updatedAt: Date.now() };
+  return result;
+}
+
 // Core fetch — called by background prefetcher and on-demand fallback
 async function fetchAllMarketData() {
   const [kospi, kosdaq, usdkrw, btc, sp500, nasdaq, dow, oil, gold, vix] = await Promise.all([
@@ -342,7 +408,8 @@ async function prefetch() {
     // 52-week data (fetched less frequently, has its own cache)
     const week52 = await fetchAll52WeekData().catch(() => null);
     const volume = await fetchVolumeData().catch(() => null);
-    memCache = { market, sparklines, week52, volume, updatedAt: Date.now() };
+    const intraday = await fetchIntradayHL().catch(() => null);
+    memCache = { market, sparklines, week52, volume, intraday, updatedAt: Date.now() };
   } catch (e) {
     // Keep stale memCache on failure; log for debugging
     console.error('[market prefetch] error:', e.message);
@@ -383,6 +450,11 @@ export async function getWeek52() {
 export async function getVolume() {
   if (memCache.volume) return memCache.volume;
   return fetchVolumeData().catch(() => ({}));
+}
+
+export async function getIntraday() {
+  if (memCache.intraday) return memCache.intraday;
+  return fetchIntradayHL().catch(() => ({}));
 }
 
 export async function getSparklines() {

@@ -161,6 +161,7 @@ export default function MarketGrid({ data, news }) {
   const week52 = data.week52 || {};
   const volume = data.volume || {};
   const weeklyChange = data.weeklyChange || {};
+  const intraday = data.intraday || {};
   const sortedKeys = getSortedKeys(data, sort, favorites);
 
   // Quick summary chips for top 5 markets
@@ -227,6 +228,7 @@ export default function MarketGrid({ data, news }) {
             week52={week52[key]}
             volume={volume[key]}
             weeklyChange={weeklyChange[key]}
+            intraday={intraday[key]}
             relatedNews={relatedNews[key]}
             isFavorite={favorites.includes(data[key]?.name)}
             onToggleFavorite={toggleFavorite}

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getMarketData, getSparklines, getWeek52, getVolume } from '../services/marketService.js';
+import { getMarketData, getSparklines, getWeek52, getVolume, getIntraday } from '../services/marketService.js';
 
 const router = Router();
 
@@ -85,15 +85,16 @@ async function getWeeklyChange() {
 
 router.get('/', async (req, res) => {
   try {
-    const [data, sparklines, week52, volume, weeklyChange] = await Promise.all([
+    const [data, sparklines, week52, volume, weeklyChange, intraday] = await Promise.all([
       getMarketData(),
       getSparklines(),
       getWeek52(),
       getVolume(),
       getWeeklyChange(),
+      getIntraday(),
     ]);
     res.set('Cache-Control', 'public, max-age=15, stale-while-revalidate=30');
-    res.json({ ...data, sparklines, week52, volume, weeklyChange });
+    res.json({ ...data, sparklines, week52, volume, weeklyChange, intraday });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
