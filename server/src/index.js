@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import marketRouter from './routes/market.js';
@@ -21,6 +22,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = 4100;
 
+app.use(helmet({
+  contentSecurityPolicy: false,  // CSP handled by frontend build
+  crossOriginEmbedderPolicy: false,  // allow cross-origin images (OG thumbnails)
+}));
 app.use(cors());
 app.use(express.json());
 

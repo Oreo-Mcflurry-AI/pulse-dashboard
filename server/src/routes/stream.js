@@ -25,8 +25,8 @@ async function fetchAll() {
 
 function broadcast(data) {
   const payload = `data: ${JSON.stringify(data)}\n\n`;
-  clients.forEach((res) => {
-    try { res.write(payload); } catch { /* client gone */ }
+  clients = clients.filter((res) => {
+    try { return res.write(payload); } catch { return false; }
   });
 }
 
