@@ -43,16 +43,36 @@ app.use('/api/og', ogRouter);
 app.use('/api/weather', weatherRouter);
 app.use('/api/rss', rssRouter);
 
+// Global error handler for API routes
+app.use('/api', (err, req, res, _next) => {
+  const status = err.status || 500;
+  const message = err.message || 'Internal Server Error';
+  console.error(`[ERROR] ${req.method} ${req.originalUrl} → ${status}: ${message}`);
+  if (status === 500) console.error(err.stack);
+  res.status(status).json({ error: message });
+});
+
 // Serve static frontend in production
 app.use(express.static(join(__dirname, '../../client/dist')));
 app.get('/{*path}', (req, res) => {
   res.sendFile(join(__dirname, '../../client/dist/index.html'));
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🔴 Pulse Dashboard API running on :${PORT}`);
   startMarketPrefetch();
   console.log(`📊 Market prefetch started (30s interval)`);
   startNewsPrefetch();
   console.log(`📰 News prefetch started (5min interval)`);
+});
+
+// Graceful shutdown (PM2 sends SIGINT)
+process.on('SIGINT', () => {
+  console.log('\n⏹️  Shutting down gracefully...');
+  server.close(() => {
+    console.log('✅ Server closed');
+    process.exit(0);
+  });
+  // Force exit after 5s if connections linger
+  setTimeout(() => process.exit(1), 5000);
 });
