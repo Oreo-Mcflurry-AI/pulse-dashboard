@@ -86,6 +86,11 @@ app.use('/api/og', ogRouter);
 app.use('/api/weather', weatherRouter);
 app.use('/api/rss', rssRouter);
 
+// API 404 handler (unmatched /api/* routes return JSON, not SPA HTML)
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `API endpoint not found: ${req.method} ${req.originalUrl}` });
+});
+
 // Global error handler for API routes
 app.use('/api', (err, req, res, _next) => {
   const status = err.status || 500;
