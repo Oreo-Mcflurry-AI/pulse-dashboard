@@ -6,6 +6,7 @@ const router = Router();
 // GET /api/briefings — 날짜 목록
 router.get('/', (req, res) => {
   const dates = getBriefingDates();
+  res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
   res.json({ dates });
 });
 
@@ -15,6 +16,8 @@ router.get('/:date', (req, res) => {
   if (!summary && !articles.length) {
     return res.status(404).json({ error: 'No briefing for this date' });
   }
+  // Briefings are immutable once saved, cache aggressively
+  res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
   res.json({ date: req.params.date, summary, articles });
 });
 
