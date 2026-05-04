@@ -127,6 +127,15 @@ const server = app.listen(PORT, () => {
   console.log(`📰 News prefetch started (5min interval)`);
 });
 
+// ─── Crash protection: log and stay alive ───
+process.on('uncaughtException', (err) => {
+  console.error('🔥 Uncaught exception:', err.message);
+  console.error(err.stack);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('🔥 Unhandled rejection:', reason);
+});
+
 // Graceful shutdown (PM2 sends SIGINT)
 process.on('SIGINT', () => {
   console.log('\n⏹️  Shutting down gracefully...');
