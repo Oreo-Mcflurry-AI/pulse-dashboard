@@ -24,6 +24,7 @@ db.exec(`
 db.exec(`CREATE INDEX IF NOT EXISTS idx_mh_symbol_time ON market_history(symbol, recorded_at)`);
 
 export function addHistory(symbol, value) {
+  if (value == null || isNaN(value)) return; // skip null/undefined/NaN values
   db.prepare('INSERT INTO market_history (symbol, value, recorded_at) VALUES (?, ?, ?)').run(
     symbol, value, Date.now()
   );

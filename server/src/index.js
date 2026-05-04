@@ -32,6 +32,19 @@ app.use(cors());
 app.use(compression());
 app.use(express.json());
 
+// ─── Compact access logger ───
+app.use('/api', (req, res, next) => {
+  if (req.path === '/stream' || req.path === '/health') return next();
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    const status = res.statusCode;
+    const color = status >= 500 ? '\x1b[31m' : status >= 400 ? '\x1b[33m' : '\x1b[32m';
+    console.log(`${color}${status}\x1b[0m ${req.method} ${req.originalUrl} ${ms}ms`);
+  });
+  next();
+});
+
 // ─── API request stats (exposed via /api/health) ───
 export const apiStats = { totalRequests: 0, totalTimeMs: 0, routes: {} };
 app.use('/api', (req, res, next) => {
