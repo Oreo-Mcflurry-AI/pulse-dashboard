@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import marketRouter from './routes/market.js';
@@ -27,7 +28,25 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,  // allow cross-origin images (OG thumbnails)
 }));
 app.use(cors());
+app.use(compression());
 app.use(express.json());
+
+// ─── API request stats (exposed via /api/health) ───
+export const apiStats = { totalRequests: 0, totalTimeMs: 0, routes: {} };
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health' || req.path === '/stream') return next(); // skip self + SSE
+  const start = Date.now();
+  res.on('finish', () => {
+    const elapsed = Date.now() - start;
+    apiStats.totalRequests++;
+    apiStats.totalTimeMs += elapsed;
+    const key = req.originalUrl.replace('/api/', '').split(/[/?]/)[0] || 'unknown';
+    if (!apiStats.routes[key]) apiStats.routes[key] = { count: 0, totalMs: 0 };
+    apiStats.routes[key].count++;
+    apiStats.routes[key].totalMs += elapsed;
+  });
+  next();
+});
 
 // API routes
 app.use('/api/market', marketRouter);
