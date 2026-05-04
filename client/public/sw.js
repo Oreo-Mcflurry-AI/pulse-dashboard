@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pulse-v1';
+const CACHE_NAME = 'pulse-v2';
 const STATIC_ASSETS = ['/', '/index.html'];
 
 self.addEventListener('install', (e) => {
@@ -21,13 +21,21 @@ self.addEventListener('fetch', (e) => {
   const { request } = e;
   const url = new URL(request.url);
 
+  // SSE stream: always network (must be before /api/ check)
+  if (url.pathname.startsWith('/api/stream')) {
+    return;
+  }
+
   // API calls: network-first (cache fallback for offline)
   if (url.pathname.startsWith('/api/')) {
     e.respondWith(
       fetch(request)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          // Only cache successful GET responses
+          if (request.method === 'GET' && res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
           return res;
         })
         .catch(() => caches.match(request))
@@ -35,20 +43,18 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // SSE stream: always network
-  if (url.pathname.startsWith('/api/stream')) {
-    return;
-  }
-
-  // Static assets: cache-first
+  // Static assets: stale-while-revalidate
   e.respondWith(
     caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((res) => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+      const networkFetch = fetch(request).then((res) => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
         return res;
-      });
+      }).catch(() => cached);
+
+      return cached || networkFetch;
     })
   );
 });
