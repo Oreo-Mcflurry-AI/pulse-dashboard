@@ -131,4 +131,33 @@ export function setOgData(urlHash, data) {
   );
 }
 
+// ─── Periodic DB maintenance (every 6 hours) ───
+function dbMaintenance() {
+  try {
+    const now = Date.now();
+    // Remove expired cache entries
+    const expiredCache = db.prepare('DELETE FROM cache WHERE expires_at < ?').run(now);
+    // Remove market history older than 7 days
+    const oldHistory = db.prepare('DELETE FROM market_history WHERE recorded_at < ?').run(now - 7 * 24 * 60 * 60 * 1000);
+    // Remove stale OG data older than 7 days
+    const oldOg = db.prepare('DELETE FROM og_images WHERE fetched_at < ?').run(now - 7 * 24 * 60 * 60 * 1000);
+    // Remove briefings older than 90 days
+    const cutoff = new Date(now - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const oldBriefings = db.prepare('DELETE FROM briefings WHERE date < ?').run(cutoff);
+    const oldSummaries = db.prepare('DELETE FROM briefing_summaries WHERE date < ?').run(cutoff);
+
+    const total = (expiredCache.changes || 0) + (oldHistory.changes || 0) + (oldOg.changes || 0) + (oldBriefings.changes || 0) + (oldSummaries.changes || 0);
+    if (total > 0) {
+      console.log(`🧹 DB cleanup: ${expiredCache.changes} cache, ${oldHistory.changes} history, ${oldOg.changes} og, ${oldBriefings.changes + oldSummaries.changes} briefings`);
+      db.pragma('wal_checkpoint(TRUNCATE)');
+    }
+  } catch (e) {
+    console.error('DB maintenance error:', e.message);
+  }
+}
+
+// Run on startup + every 6 hours
+dbMaintenance();
+setInterval(dbMaintenance, 6 * 60 * 60 * 1000);
+
 export default db;
