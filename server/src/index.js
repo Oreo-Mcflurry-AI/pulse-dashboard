@@ -49,6 +49,19 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// Request timeout for API routes (15s, excludes SSE stream)
+app.use('/api', (req, res, next) => {
+  if (req.path === '/stream') return next(); // SSE is long-lived
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(504).json({ error: 'Gateway timeout' });
+    }
+  }, 15000);
+  res.on('finish', () => clearTimeout(timeout));
+  res.on('close', () => clearTimeout(timeout));
+  next();
+});
+
 // Rate limiting for API routes (100 req/min per IP)
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
