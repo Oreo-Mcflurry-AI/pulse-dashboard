@@ -14,6 +14,7 @@ const FEEDS = [
   { category: '글로벌', query: 'world economy markets war', icon: '🌍' },
   { category: '중동', query: 'Iran war Middle East oil', icon: '🔥' },
   { category: '시장', query: 'stock market crypto oil price', icon: '📈' },
+  { category: '글로벌 부동산', query: 'real estate housing mortgage property market', icon: '🏘️' },
 ];
 
 async function fetchGoogleFeed(query, limit = 5) {
