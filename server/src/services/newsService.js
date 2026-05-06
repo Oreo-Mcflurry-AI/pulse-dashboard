@@ -14,7 +14,6 @@ const FEEDS = [
   { category: '글로벌', query: 'world economy markets war', icon: '🌍' },
   { category: '중동', query: 'Iran war Middle East oil', icon: '🔥' },
   { category: '시장', query: 'stock market crypto oil price', icon: '📈' },
-  { category: '글로벌 부동산', query: 'real estate housing mortgage property market', icon: '🏘️' },
 ];
 
 async function fetchGoogleFeed(query, limit = 5) {
@@ -212,7 +211,7 @@ function deduplicateArticles(sections) {
 
 // Core fetch — called by background prefetcher
 async function fetchAllNews() {
-  const [googleResults, koreaEcon, koreaMarket, koreaRealEstate] = await Promise.all([
+  const [googleResults, koreaEcon, koreaMarket] = await Promise.all([
     Promise.all(
       FEEDS.map(async (feed) => ({
         category: feed.category,
@@ -222,15 +221,13 @@ async function fetchAllNews() {
     ),
     fetchNaverNews('경제 증시 환율', 4),
     fetchNaverNews('이란 전쟁 중동', 3),
-    fetchNaverNews('부동산 아파트 매매 전세 분양', 4),
   ]);
 
   const koreaArticles = [...koreaMarket, ...koreaEcon].slice(0, 6);
 
   const sections = [
     ...googleResults,
-    { category: '한국', icon: '🇰🇷', articles: koreaArticles },
-    { category: '부동산', icon: '🏠', articles: koreaRealEstate }
+    { category: '한국', icon: '🇰🇷', articles: koreaArticles }
   ].filter(s => s.articles.length > 0);
 
   // Deduplicate similar articles across sections
