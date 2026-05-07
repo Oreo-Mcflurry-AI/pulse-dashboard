@@ -131,6 +131,35 @@ export function setOgData(urlHash, data) {
   );
 }
 
+// ─── API stats persistence ───
+db.exec(`
+  CREATE TABLE IF NOT EXISTS api_stats (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    data TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )
+`);
+
+export function saveApiStats(stats) {
+  try {
+    db.prepare('INSERT OR REPLACE INTO api_stats (id, data, updated_at) VALUES (1, ?, ?)').run(
+      JSON.stringify(stats), Date.now()
+    );
+  } catch (e) {
+    console.error('Failed to save API stats:', e.message);
+  }
+}
+
+export function loadApiStats() {
+  try {
+    const row = db.prepare('SELECT data FROM api_stats WHERE id = 1').get();
+    if (row) return JSON.parse(row.data);
+  } catch (e) {
+    console.error('Failed to load API stats:', e.message);
+  }
+  return null;
+}
+
 // ─── Periodic DB maintenance (every 6 hours) ───
 function dbMaintenance() {
   try {

@@ -19,6 +19,7 @@ import weatherRouter from './routes/weather.js';
 import rssRouter from './routes/rss.js';
 import { startMarketPrefetch } from './services/marketService.js';
 import { startNewsPrefetch } from './services/newsService.js';
+import { saveApiStats, loadApiStats } from './db.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -45,8 +46,9 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// ─── API request stats (exposed via /api/health) ───
-export const apiStats = { totalRequests: 0, totalTimeMs: 0, routes: {} };
+// ─── API request stats (exposed via /api/health, persisted to DB) ───
+const restored = loadApiStats();
+export const apiStats = restored || { totalRequests: 0, totalTimeMs: 0, routes: {} };
 app.use('/api', (req, res, next) => {
   if (req.path === '/health' || req.path === '/stream') return next(); // skip self + SSE
   const start = Date.now();
@@ -125,7 +127,11 @@ const server = app.listen(PORT, () => {
   console.log(`📊 Market prefetch started (30s interval)`);
   startNewsPrefetch();
   console.log(`📰 News prefetch started (5min interval)`);
+  if (restored) console.log(`📈 API stats restored (${restored.totalRequests} requests)`);
 });
+
+// Persist API stats every 5 minutes
+setInterval(() => saveApiStats(apiStats), 5 * 60 * 1000);
 
 // ─── Crash protection: log and stay alive ───
 process.on('uncaughtException', (err) => {
@@ -139,6 +145,8 @@ process.on('unhandledRejection', (reason) => {
 // Graceful shutdown (PM2 sends SIGINT)
 process.on('SIGINT', () => {
   console.log('\n⏹️  Shutting down gracefully...');
+  saveApiStats(apiStats);
+  console.log('💾 API stats saved');
   server.close(() => {
     console.log('✅ Server closed');
     process.exit(0);
