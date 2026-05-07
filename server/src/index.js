@@ -143,6 +143,14 @@ app.use('/api', (err, req, res, _next) => {
   res.status(status).json({ error: message });
 });
 
+// ─── robots.txt (prevent API crawling) ───
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send('User-agent: *\nDisallow: /api/\nAllow: /\n');
+});
+
+// ─── favicon.ico (prevent 404 noise) ───
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Serve static frontend in production
 app.use(express.static(join(__dirname, '../../client/dist')));
 app.get('/{*path}', (req, res) => {
