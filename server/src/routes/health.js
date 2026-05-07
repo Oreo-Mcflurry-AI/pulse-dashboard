@@ -2,9 +2,21 @@ import { Router } from 'express';
 import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+import { getSseClientCount } from './stream.js';
 
 const router = Router();
 const startedAt = Date.now();
+let peakHeapMB = 0;
+let peakRssMB = 0;
+
+// Track peak memory every 30s
+setInterval(() => {
+  const mem = process.memoryUsage();
+  const heap = Math.round(mem.heapUsed / 1024 / 1024);
+  const rss = Math.round(mem.rss / 1024 / 1024);
+  if (heap > peakHeapMB) peakHeapMB = heap;
+  if (rss > peakRssMB) peakRssMB = rss;
+}, 30000);
 
 // Lazy import to avoid circular dependency
 let getIndexMod;
@@ -45,15 +57,23 @@ router.get('/', async (req, res) => {
     visitors = { date: v.date, uniqueIPs: v.ips.size, totalHits: v.total };
   } catch { /* ignore */ }
 
+  const currentHeap = Math.round(mem.heapUsed / 1024 / 1024);
+  const currentRss = Math.round(mem.rss / 1024 / 1024);
+  if (currentHeap > peakHeapMB) peakHeapMB = currentHeap;
+  if (currentRss > peakRssMB) peakRssMB = currentRss;
+
   res.json({
     status: 'ok',
     version: serverVersion,
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
-    memoryMB: Math.round(mem.rss / 1024 / 1024),
-    heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024),
+    memoryMB: currentRss,
+    heapUsedMB: currentHeap,
     heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024),
+    peakRssMB,
+    peakHeapMB,
+    sseClients: getSseClientCount(),
     ...(stats && { apiStats: stats }),
     ...(visitors && { visitors }),
     timestamp: new Date().toISOString(),

@@ -6,6 +6,7 @@ const router = Router();
 
 // Shared state: server polls once, pushes to all SSE clients
 let clients = [];
+export function getSseClientCount() { return clients.length; }
 let cachedData = null;
 let intervalId = null;
 
