@@ -33,15 +33,25 @@ app.use(cors());
 app.use(compression());
 app.use(express.json());
 
-// ─── Compact access logger ───
+// ─── X-Response-Time header + compact access logger ───
 app.use('/api', (req, res, next) => {
-  if (req.path === '/stream' || req.path === '/health') return next();
+  if (req.path === '/stream') return next();
   const start = Date.now();
+  // Inject X-Response-Time header before response is sent
+  const origWriteHead = res.writeHead;
+  res.writeHead = function (statusCode, ...rest) {
+    if (!res.headersSent) {
+      res.setHeader('X-Response-Time', `${Date.now() - start}ms`);
+    }
+    return origWriteHead.call(this, statusCode, ...rest);
+  };
   res.on('finish', () => {
-    const ms = Date.now() - start;
-    const status = res.statusCode;
-    const color = status >= 500 ? '\x1b[31m' : status >= 400 ? '\x1b[33m' : '\x1b[32m';
-    console.log(`${color}${status}\x1b[0m ${req.method} ${req.originalUrl} ${ms}ms`);
+    if (req.path !== '/health') {
+      const ms = Date.now() - start;
+      const status = res.statusCode;
+      const color = status >= 500 ? '\x1b[31m' : status >= 400 ? '\x1b[33m' : '\x1b[32m';
+      console.log(`${color}${status}\x1b[0m ${req.method} ${req.originalUrl} ${ms}ms`);
+    }
   });
   next();
 });
