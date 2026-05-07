@@ -7,13 +7,12 @@ const router = Router();
 const startedAt = Date.now();
 
 // Lazy import to avoid circular dependency
-let getApiStats;
-async function loadStats() {
-  if (!getApiStats) {
-    const mod = await import('../index.js');
-    getApiStats = () => mod.apiStats;
+let getIndexMod;
+async function loadIndex() {
+  if (!getIndexMod) {
+    getIndexMod = await import('../index.js');
   }
-  return getApiStats();
+  return getIndexMod;
 }
 
 // Read server version from package.json once at startup
@@ -32,14 +31,18 @@ router.get('/', async (req, res) => {
   const mem = process.memoryUsage();
 
   let stats = null;
+  let visitors = null;
   try {
-    const s = await loadStats();
+    const mod = await loadIndex();
+    const s = mod.apiStats;
     const avgMs = s.totalRequests > 0 ? Math.round(s.totalTimeMs / s.totalRequests) : 0;
     const routeAvg = {};
     for (const [k, v] of Object.entries(s.routes)) {
       routeAvg[k] = { count: v.count, avgMs: Math.round(v.totalMs / v.count) };
     }
     stats = { totalRequests: s.totalRequests, avgResponseMs: avgMs, routes: routeAvg };
+    const v = mod.visitorStats;
+    visitors = { date: v.date, uniqueIPs: v.ips.size, totalHits: v.total };
   } catch { /* ignore */ }
 
   res.json({
@@ -52,6 +55,7 @@ router.get('/', async (req, res) => {
     heapUsedMB: Math.round(mem.heapUsed / 1024 / 1024),
     heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024),
     ...(stats && { apiStats: stats }),
+    ...(visitors && { visitors }),
     timestamp: new Date().toISOString(),
   });
 });

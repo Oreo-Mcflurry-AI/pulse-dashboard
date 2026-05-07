@@ -49,6 +49,24 @@ app.use('/api', (req, res, next) => {
 // ─── API request stats (exposed via /api/health, persisted to DB) ───
 const restored = loadApiStats();
 export const apiStats = restored || { totalRequests: 0, totalTimeMs: 0, routes: {} };
+
+// ─── Daily unique visitors (IP-based, resets at midnight UTC) ───
+export const visitorStats = { date: new Date().toISOString().slice(0, 10), ips: new Set(), total: 0 };
+function trackVisitor(ip) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (visitorStats.date !== today) {
+    visitorStats.date = today;
+    visitorStats.ips = new Set();
+    visitorStats.total = 0;
+  }
+  visitorStats.total++;
+  visitorStats.ips.add(ip);
+}
+app.use('/api', (req, res, next) => {
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+  trackVisitor(ip);
+  next();
+});
 app.use('/api', (req, res, next) => {
   if (req.path === '/health' || req.path === '/stream') return next(); // skip self + SSE
   const start = Date.now();
