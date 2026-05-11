@@ -25,7 +25,7 @@ function DateList({ dates, selected, onSelect }) {
         </button>
       ))}
       {dates.length === 0 && (
-        <p className="text-sm px-3 py-4" style={{ color: 'var(--text-muted)' }}>아직 브리핑이 없습니다</p>
+        <p className="text-sm px-3 py-4" style={{ color: 'var(--text-muted)' }}>{t('briefing.empty')}</p>
       )}
     </div>
   );
@@ -181,7 +181,7 @@ function MarketSummaryCard({ date }) {
   );
 }
 
-export default function BriefingPage() {
+export default function BriefingPage({ t = (k) => k, lang = 'ko' }) {
   const [dates, setDates] = useState([]);
   const [selected, setSelected] = useState(null);
   const [briefing, setBriefing] = useState(null);
@@ -278,7 +278,7 @@ export default function BriefingPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <span className="text-sm animate-pulse" style={{ color: 'var(--text-muted)' }}>로딩 중...</span>
+        <span className="text-sm animate-pulse" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</span>
       </div>
     );
   }
@@ -292,7 +292,7 @@ export default function BriefingPage() {
           className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm"
           style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)' }}
         >
-          <span>{selected ? formatDate(selected) : '날짜 선택'}</span>
+          <span>{selected ? formatDate(selected) : t('briefing.selectDate')}</span>
           <span>{mobileOpen ? '▲' : '▼'}</span>
         </button>
         {mobileOpen && (
@@ -316,9 +316,9 @@ export default function BriefingPage() {
       {/* Main content */}
       <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
         {!selected ? (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>날짜를 선택해 주세요</p>
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('briefing.selectDatePrompt')}</p>
         ) : !briefing ? (
-          <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>로딩 중...</div>
+          <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</div>
         ) : (
           <>
             {/* Date navigation header */}
@@ -332,7 +332,7 @@ export default function BriefingPage() {
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-30"
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
               >
-                ← 이전
+                ← {t('briefing.prev')}
               </button>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
@@ -343,12 +343,12 @@ export default function BriefingPage() {
                     const text = `📰 ${formatDateFull(selected)} 브리핑\n\n${briefing?.summary || ''}`;
                     navigator.clipboard.writeText(text).then(() => {
                       const el = document.getElementById('copy-feedback');
-                      if (el) { el.textContent = '복사됨!'; setTimeout(() => { el.textContent = ''; }, 2000); }
+                      if (el) { el.textContent = t('briefing.copied'); setTimeout(() => { el.textContent = ''; }, 2000); }
                     });
                   }}
                   className="text-[10px] px-1.5 py-0.5 rounded transition-colors"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-                  title="브리핑 텍스트 복사"
+                  title={t('briefing.copyBriefing')}
                 >
                   📋
                 </button>
@@ -389,7 +389,7 @@ export default function BriefingPage() {
                 className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs transition-colors disabled:opacity-30"
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
               >
-                다음 →
+                {t('briefing.next')} →
               </button>
             </div>
             <MarketSummaryCard date={selected} />

@@ -101,7 +101,7 @@ function EventRow({ event }) {
   );
 }
 
-export default function CalendarPage() {
+export default function CalendarPage({ t = (k) => k }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // 'all' | 'high' | 'USD' | 'EUR' etc
@@ -139,10 +139,10 @@ export default function CalendarPage() {
     <div className="px-3 sm:px-4 py-4 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-base sm:text-lg font-bold">📅 경제 캘린더</h2>
+          <h2 className="text-base sm:text-lg font-bold">{t('calendar.title')}</h2>
           {data && (
             <p className="text-[10px] sm:text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              이번주 {data.totalEvents}건 · 주요 {data.highImpact}건
+              {t('calendar.weekSummary').replace('{total}', data.totalEvents).replace('{high}', data.highImpact)}
             </p>
           )}
         </div>
@@ -151,9 +151,9 @@ export default function CalendarPage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-1.5 mb-3">
         {[
-          { key: 'all', label: '전체' },
-          { key: 'high', label: '🔴 주요만' },
-          { key: 'medium+', label: '🟡+ 보통↑' },
+          { key: 'all', label: t('calendar.filterAll') },
+          { key: 'high', label: t('calendar.filterHigh') },
+          { key: 'medium+', label: t('calendar.filterMediumUp') },
         ].map(f => (
           <button
             key={f.key}
@@ -187,19 +187,19 @@ export default function CalendarPage() {
         })}
         <label className="flex items-center gap-1 ml-auto text-[10px] cursor-pointer" style={{ color: 'var(--text-muted)' }}>
           <input type="checkbox" checked={showPast} onChange={() => setShowPast(!showPast)} className="w-3 h-3" />
-          지난 일정
+          {t('calendar.showPast')}
         </label>
       </div>
 
       {/* Calendar */}
       {loading ? (
         <div className="flex items-center justify-center h-48">
-          <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>캘린더 불러오는 중...</div>
+          <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>{t('calendar.loading')}</div>
         </div>
       ) : dates.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48" style={{ color: 'var(--text-muted)' }}>
           <span className="text-3xl mb-2">📭</span>
-          <span className="text-xs">표시할 이벤트가 없습니다</span>
+          <span className="text-xs">{t('calendar.noEvents')}</span>
           {data?.error && <span className="text-[10px] mt-1" style={{ color: '#f59e0b' }}>{data.error}</span>}
         </div>
       ) : (
@@ -219,9 +219,9 @@ export default function CalendarPage() {
                   <span className="text-xs font-bold" style={{ color: today ? '#3b82f6' : 'var(--text-primary)' }}>
                     {formatDate(date)}
                   </span>
-                  {today && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: '#3b82f620', color: '#3b82f6' }}>오늘</span>}
+                  {today && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: '#3b82f620', color: '#3b82f6' }}>{t('calendar.today')}</span>}
                   <span className="text-[9px] ml-auto" style={{ color: 'var(--text-muted)' }}>
-                    {filtered[date].length}건
+                    {filtered[date].length}{t('calendar.countSuffix')}
                     {filtered[date].filter(e => e.impactLevel >= 3).length > 0 &&
                       ` · 🔴 ${filtered[date].filter(e => e.impactLevel >= 3).length}`
                     }
@@ -241,11 +241,11 @@ export default function CalendarPage() {
 
       {/* Legend */}
       <div className="mt-4 flex flex-wrap gap-3 text-[9px]" style={{ color: 'var(--text-muted)' }}>
-        <span>시간은 KST 기준</span>
-        <span>🔴 높음 = 시장 영향 큼</span>
-        <span>🟡 보통 = 시장 영향 중간</span>
-        <span>⚪ 낮음 = 시장 영향 적음</span>
-        <span>출처: ForexFactory</span>
+        <span>{t('calendar.legendTime')}</span>
+        <span>{t('calendar.legendHigh')}</span>
+        <span>{t('calendar.legendMedium')}</span>
+        <span>{t('calendar.legendLow')}</span>
+        <span>{t('calendar.legendSource')}</span>
       </div>
     </div>
   );

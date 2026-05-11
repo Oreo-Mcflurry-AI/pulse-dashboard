@@ -690,7 +690,7 @@ export default function App() {
         ) : (
           <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</div></div>}>
             {page === 'briefings' ? (
-              <BriefingPage />
+              <BriefingPage t={t} lang={lang} />
             ) : page === 'portfolio' ? (
               <PortfolioPage />
             ) : page === 'history' ? (
@@ -698,7 +698,7 @@ export default function App() {
             ) : page === 'heatmap' ? (
               <HeatmapPage />
             ) : page === 'calendar' ? (
-              <CalendarPage />
+              <CalendarPage t={t} lang={lang} />
             ) : page === 'search' ? (
               <StockSearch />
             ) : page === 'rss' ? (
