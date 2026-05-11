@@ -1020,7 +1020,7 @@ function TradeLogSection({ pfId }) {
   );
 }
 
-export default function PortfolioPage() {
+export default function PortfolioPage({ t = (k) => k }) {
   // Multi-portfolio state
   const [pfList, setPfList] = useState(getPortfolioList);
   const [activePfId, setActivePfId] = useState(getActivePortfolioId);
@@ -1389,10 +1389,10 @@ export default function PortfolioPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold">💼 {activePf?.name || '포트폴리오'}</h2>
+          <h2 className="text-lg sm:text-xl font-bold">💼 {activePf?.name || t('portfolio.titleFallback')}</h2>
           {hasPnl && (
             <p className="text-sm mt-1" style={{ color: pctColor(totalPnl) }}>
-              총 손익: {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}원
+              {t('portfolio.totalPnl')}: {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}원
               {showUsd && usdkrw > 0 && (
                 <span className="text-[10px] ml-1.5" style={{ color: 'var(--text-muted)', opacity: 0.8 }}>
                   (${(totalPnl / usdkrw).toLocaleString('en-US', { maximumFractionDigits: 0 })})
@@ -1400,24 +1400,24 @@ export default function PortfolioPage() {
               )}
               {totalAnnualDividend > 0 && (
                 <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
-                  💰 연 배당 {fmt(totalAnnualDividend)}원 ({portfolioDividendYield.toFixed(2)}%)
+                  💰 {t('portfolio.annualDividend')} {fmt(totalAnnualDividend)}원 ({portfolioDividendYield.toFixed(2)}%)
                 </span>
               )}
               <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded cursor-pointer" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
                 title="일간 수익률 알림 임계값 설정 (클릭)"
                 onClick={() => {
                   const cur = localStorage.getItem('pulse_pf_alert_threshold') || '3';
-                  const val = prompt(`일간 수익률 알림 임계값 (±%)`, cur);
+                  const val = prompt(`${t('portfolio.dailyAlertPrompt')}`, cur);
                   if (val && !isNaN(parseFloat(val))) localStorage.setItem('pulse_pf_alert_threshold', val);
                 }}
               >
-                🔔 ±{localStorage.getItem('pulse_pf_alert_threshold') || '3'}% 알림
+                🔔 ±{localStorage.getItem('pulse_pf_alert_threshold') || '3'}% {t('portfolio.dailyAlertBadge')}
               </span>
             </p>
           )}
           {totalValue > 0 && (
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              총 평가: {fmt(totalValue)}원
+              {t('portfolio.totalValue')}: {fmt(totalValue)}원
               {showUsd && usdkrw > 0 && (
                 <span className="ml-1.5" style={{ opacity: 0.8 }}>
                   (${(totalValue / usdkrw).toLocaleString('en-US', { maximumFractionDigits: 0 })})
@@ -1441,7 +1441,7 @@ export default function PortfolioPage() {
                 color: showUsd ? '#3b82f6' : 'var(--text-muted)',
                 border: `1px solid ${showUsd ? 'rgba(59,130,246,0.3)' : 'var(--border)'}`,
               }}
-              title="USD 환산 표시 토글"
+              title={t('portfolio.usdToggle')}
             >
               💱 USD
             </button>
@@ -1466,14 +1466,14 @@ export default function PortfolioPage() {
             }}
             className="px-2 py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors"
             style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-            title="포트폴리오 CSV 내보내기"
+            title={t('portfolio.exportCsv')}
           >
             📥 CSV
           </button>
           <label
             className="px-2 py-1.5 text-[10px] sm:text-xs rounded-lg transition-colors cursor-pointer"
             style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-            title="CSV 파일에서 포트폴리오 가져오기"
+            title={t('portfolio.importCsv')}
           >
             📤 가져오기
             <input type="file" accept=".csv" className="hidden" onChange={(e) => {
@@ -1526,7 +1526,7 @@ export default function PortfolioPage() {
             className="px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-colors"
             style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
           >
-            {showAdd ? '취소' : '+ 추가'}
+            {showAdd ? t('portfolio.cancel') : t('portfolio.add')}
           </button>
         </div>
       </div>
@@ -1573,21 +1573,21 @@ export default function PortfolioPage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
             <input
-              placeholder="종목코드"
+              placeholder={t('portfolio.formSymbol')}
               value={form.symbol}
               onChange={e => setForm({ ...form, symbol: e.target.value })}
               className="px-2 py-1.5 text-xs sm:text-sm rounded-md"
               style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
             />
             <input
-              placeholder="종목명"
+              placeholder={t('portfolio.formName')}
               value={form.name}
               onChange={e => setForm({ ...form, name: e.target.value })}
               className="px-2 py-1.5 text-xs sm:text-sm rounded-md"
               style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
             />
             <input
-              placeholder="매수가"
+              placeholder={t('portfolio.formBuyPrice')}
               type="number"
               value={form.buyPrice}
               onChange={e => setForm({ ...form, buyPrice: e.target.value })}
@@ -1595,7 +1595,7 @@ export default function PortfolioPage() {
               style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
             />
             <input
-              placeholder="수량"
+              placeholder={t('portfolio.formQty')}
               type="number"
               value={form.qty}
               onChange={e => setForm({ ...form, qty: e.target.value })}
@@ -1661,7 +1661,7 @@ export default function PortfolioPage() {
               className="px-4 py-1.5 text-xs sm:text-sm rounded-md font-medium"
               style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
             >
-              추가
+              {t('portfolio.formAdd')}
             </button>
           </div>
         </div>
@@ -1671,8 +1671,8 @@ export default function PortfolioPage() {
       {holdings.length === 0 ? (
         <div className="text-center py-12 sm:py-16" style={{ color: 'var(--text-muted)' }}>
           <div className="text-3xl sm:text-4xl mb-3">📊</div>
-          <p className="text-sm sm:text-base">보유 종목이 없습니다</p>
-          <p className="text-xs mt-1" style={{ opacity: 0.6 }}>위의 + 추가 버튼으로 종목을 등록하세요</p>
+          <p className="text-sm sm:text-base">{t('portfolio.emptyTitle')}</p>
+          <p className="text-xs mt-1" style={{ opacity: 0.6 }}>{t('portfolio.emptyHint')}</p>
         </div>
       ) : (
         <div className="space-y-2 sm:space-y-3">
@@ -1751,7 +1751,7 @@ export default function PortfolioPage() {
                         }}
                         className="w-20 px-1.5 py-0.5 text-xs rounded"
                         style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
-                        placeholder="매수가"
+                        placeholder={t('portfolio.formBuyPrice')}
                       />
                       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>×</span>
                       <input
@@ -1767,7 +1767,7 @@ export default function PortfolioPage() {
                         }}
                         className="w-16 px-1.5 py-0.5 text-xs rounded"
                         style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
-                        placeholder="수량"
+                        placeholder={t('portfolio.formQty')}
                       />
                       <button onClick={() => {
                         updateHolding(h.id, { buyPrice: editBuyPrice ? parseFloat(editBuyPrice) : null, qty: editQty ? parseFloat(editQty) : null });
@@ -1936,7 +1936,7 @@ export default function PortfolioPage() {
 
       {loading && (
         <div className="text-center text-xs mt-4" style={{ color: 'var(--text-muted)' }}>
-          시세 불러오는 중...
+          {t('portfolio.loadingPrices')}
         </div>
       )}
     </div>

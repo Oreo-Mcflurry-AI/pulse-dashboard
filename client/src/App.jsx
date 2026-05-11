@@ -692,7 +692,7 @@ export default function App() {
             {page === 'briefings' ? (
               <BriefingPage t={t} lang={lang} />
             ) : page === 'portfolio' ? (
-              <PortfolioPage />
+              <PortfolioPage t={t} />
             ) : page === 'history' ? (
               <HistoryPage t={t} />
             ) : page === 'heatmap' ? (
