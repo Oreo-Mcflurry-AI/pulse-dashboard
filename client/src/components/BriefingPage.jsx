@@ -7,7 +7,7 @@ marked.setOptions({
   gfm: true,
 });
 
-function DateList({ dates, selected, onSelect }) {
+function DateList({ dates, selected, onSelect, t, lang = 'ko' }) {
   return (
     <div className="space-y-0.5">
       {dates.map(d => (
@@ -21,7 +21,7 @@ function DateList({ dates, selected, onSelect }) {
             fontWeight: d === selected ? 600 : 400,
           }}
         >
-          {formatDate(d)}
+          {formatDate(d, lang)}
         </button>
       ))}
       {dates.length === 0 && (
@@ -31,19 +31,27 @@ function DateList({ dates, selected, onSelect }) {
   );
 }
 
-function formatDate(d) {
+function formatDate(d, lang = 'ko') {
   const dt = new Date(d + 'T00:00:00');
-  const days = ['일', '월', '화', '수', '목', '금', '토'];
-  return `${dt.getMonth() + 1}/${dt.getDate()} (${days[dt.getDay()]})`;
+  const locale = lang === 'en' ? 'en-US' : 'ko-KR';
+  const weekday = dt.toLocaleDateString(locale, { weekday: 'short' });
+  const mm = dt.getMonth() + 1;
+  const dd = dt.getDate();
+  return `${mm}/${dd} (${weekday})`;
 }
 
-function formatDateFull(d) {
+function formatDateFull(d, lang = 'ko') {
   const dt = new Date(d + 'T00:00:00');
-  const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
-  return `${dt.getFullYear()}년 ${dt.getMonth() + 1}월 ${dt.getDate()}일 ${days[dt.getDay()]}`;
+  const locale = lang === 'en' ? 'en-US' : 'ko-KR';
+  return dt.toLocaleDateString(locale, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
 }
 
-function GeopoliticalRiskBanner({ market }) {
+function GeopoliticalRiskBanner({ market, t }) {
   if (!market) return null;
 
   const alerts = [];
@@ -94,7 +102,7 @@ function GeopoliticalRiskBanner({ market }) {
       <div className="flex items-center gap-2 mb-2">
         <span className="text-sm">{hasCritical ? '🚨' : '⚠️'}</span>
         <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: headerColor }}>
-          {hasCritical ? '지정학 리스크 경보' : '시장 스트레스 주의보'}
+          {hasCritical ? t('briefing.geoRiskAlert') : t('briefing.marketStressWatch') }
         </span>
       </div>
       <div className="space-y-1.5">
@@ -114,7 +122,7 @@ function GeopoliticalRiskBanner({ market }) {
   );
 }
 
-function MarketSummaryCard({ date }) {
+function MarketSummaryCard({ date, t }) {
   const [data, setData] = useState(null);
 
   useEffect(() => {
@@ -153,10 +161,10 @@ function MarketSummaryCard({ date }) {
 
   return (
     <>
-    <GeopoliticalRiskBanner market={m} />
+    <GeopoliticalRiskBanner market={m} t={t} />
     <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-        📊 시황 요약
+        {t('briefing.marketSummary')}
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         {indices.map(idx => (
@@ -171,9 +179,9 @@ function MarketSummaryCard({ date }) {
       </div>
       {sectorList.length > 0 && (
         <div className="flex items-center gap-3 text-[10px]" style={{ color: 'var(--text-muted)' }}>
-          <span>업종: <span style={{ color: '#22c55e', fontWeight: 600 }}>▲{upSectors}</span> / <span style={{ color: '#ef4444', fontWeight: 600 }}>▼{downSectors}</span></span>
-          {topGainer && <span>🔥 {topGainer.name} +{topGainer.change.toFixed(1)}%</span>}
-          {topLoser && <span>🧊 {topLoser.name} {topLoser.change.toFixed(1)}%</span>}
+          <span>{t('briefing.sectorsLabel')}: <span style={{ color: '#22c55e', fontWeight: 600 }}>▲{upSectors} {t('briefing.sectorsUp')}</span> / <span style={{ color: '#ef4444', fontWeight: 600 }}>▼{downSectors} {t('briefing.sectorsDown')}</span></span>
+          {topGainer && <span>🔥 {t('briefing.topGainer')} {topGainer.name} +{topGainer.change.toFixed(1)}%</span>}
+          {topLoser && <span>🧊 {t('briefing.topLoser')} {topLoser.name} {topLoser.change.toFixed(1)}%</span>}
         </div>
       )}
     </div>
@@ -297,7 +305,7 @@ export default function BriefingPage({ t = (k) => k, lang = 'ko' }) {
         </button>
         {mobileOpen && (
           <div className="mt-2 max-h-48 overflow-y-auto rounded-lg p-1" style={{ background: 'var(--bg-secondary)' }}>
-            <DateList dates={dates} selected={selected} onSelect={handleSelect} />
+            <DateList dates={dates} selected={selected} onSelect={handleSelect} t={t} lang={lang} />
           </div>
         )}
       </div>
@@ -308,9 +316,9 @@ export default function BriefingPage({ t = (k) => k, lang = 'ko' }) {
         style={{ borderRight: '1px solid var(--border)', maxHeight: 'calc(100vh - 120px)' }}
       >
         <h3 className="text-xs font-bold uppercase tracking-wider px-3 mb-2" style={{ color: 'var(--text-muted)' }}>
-          📅 날짜
+          {t('briefing.dateLabel')}
         </h3>
-        <DateList dates={dates} selected={selected} onSelect={handleSelect} />
+        <DateList dates={dates} selected={selected} onSelect={handleSelect} t={t} lang={lang} />
       </aside>
 
       {/* Main content */}
@@ -336,11 +344,12 @@ export default function BriefingPage({ t = (k) => k, lang = 'ko' }) {
               </button>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                  {formatDateFull(selected)}
+                  {formatDateFull(selected, lang)}
                 </span>
                 <button
                   onClick={() => {
-                    const text = `📰 ${formatDateFull(selected)} 브리핑\n\n${briefing?.summary || ''}`;
+                    const title = t('briefing.briefingTitleWithDate').replace('{date}', formatDateFull(selected, lang));
+                    const text = `${title}\n\n${briefing?.summary || ''}`;
                     navigator.clipboard.writeText(text).then(() => {
                       const el = document.getElementById('copy-feedback');
                       if (el) { el.textContent = t('briefing.copied'); setTimeout(() => { el.textContent = ''; }, 2000); }
@@ -363,7 +372,7 @@ export default function BriefingPage({ t = (k) => k, lang = 'ko' }) {
                         background: ttsPlaying ? (ttsPaused ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)') : 'var(--bg-hover)',
                         color: ttsPlaying ? (ttsPaused ? '#eab308' : '#22c55e') : 'var(--text-muted)',
                       }}
-                      title={ttsPlaying ? (ttsPaused ? '이어서 재생' : '일시정지') : '음성으로 듣기'}
+                      title={ttsPlaying ? (ttsPaused ? t('briefing.ttsResume') : t('briefing.ttsPause')) : t('briefing.ttsListen')}
                     >
                       {ttsPlaying ? (ttsPaused ? '▶️' : '⏸️') : '🔊'}
                     </button>
@@ -372,7 +381,7 @@ export default function BriefingPage({ t = (k) => k, lang = 'ko' }) {
                         onClick={stopTts}
                         className="text-[10px] px-1 py-0.5 rounded transition-colors"
                         style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
-                        title="정지"
+                        title={t('briefing.ttsStop')}
                       >
                         ⏹️
                       </button>
@@ -392,7 +401,7 @@ export default function BriefingPage({ t = (k) => k, lang = 'ko' }) {
                 {t('briefing.next')} →
               </button>
             </div>
-            <MarketSummaryCard date={selected} />
+            <MarketSummaryCard date={selected} t={t} />
             <article
               className="briefing-content"
               dangerouslySetInnerHTML={{ __html: marked.parse(briefing.summary || '') }}
