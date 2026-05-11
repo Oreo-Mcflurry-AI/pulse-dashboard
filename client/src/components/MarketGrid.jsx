@@ -46,8 +46,15 @@ function findRelatedNews(key, news, maxCount = 3) {
   return matches.length > 0 ? matches : null;
 }
 
-function exportCSV(data) {
-  const rows = [['종목', '현재가', '변동', '변동률', '장상태', '시각']];
+function exportCSV(data, t) {
+  const rows = [[
+    t('marketGrid.csvName'),
+    t('marketGrid.csvValue'),
+    t('marketGrid.csvChange'),
+    t('marketGrid.csvChangeRate'),
+    t('marketGrid.csvStatus'),
+    t('marketGrid.csvTime'),
+  ]];
   KEYS.forEach(key => {
     const d = data[key];
     if (!d) return;
@@ -72,10 +79,10 @@ function exportCSV(data) {
 }
 
 const SORT_OPTIONS = [
-  { key: 'default', label: '기본' },
-  { key: 'change_desc', label: '▲ 상승순' },
-  { key: 'change_asc', label: '▼ 하락순' },
-  { key: 'name', label: 'ㄱ-ㄴ 이름순' },
+  { key: 'default', labelKey: 'marketGrid.sortDefault' },
+  { key: 'change_desc', labelKey: 'marketGrid.sortRisers' },
+  { key: 'change_asc', labelKey: 'marketGrid.sortFallers' },
+  { key: 'name', labelKey: 'marketGrid.sortName' },
 ];
 
 function getSortedKeys(data, sortKey, favorites) {
@@ -98,7 +105,7 @@ function getSortedKeys(data, sortKey, favorites) {
   return [...keys].sort(sortFn);
 }
 
-export default function MarketGrid({ data, news }) {
+export default function MarketGrid({ data, news, t = (key) => key }) {
   const [modal, setModal] = useState(null);
   const [sort, setSort] = useState('default');
   const [favorites, setFavorites] = useState(getFavorites);
@@ -137,15 +144,19 @@ export default function MarketGrid({ data, news }) {
 
       if ((crossedThreshold || bigSwing) && shouldNotify('market')) {
         const arrow = currRate > 0 ? '▲' : currRate < 0 ? '▼' : '';
-        const label = bigSwing && !crossedThreshold ? '급변' : currRate >= ALERT_THRESHOLD ? '급등' : '급락';
+        const label = bigSwing && !crossedThreshold
+          ? t('marketGrid.alertSwing')
+          : currRate >= ALERT_THRESHOLD
+            ? t('marketGrid.alertRise')
+            : t('marketGrid.alertDrop');
         addNotification({
           type: 'market',
           title: `${curr.name} ${label} ${arrow}${curr.changeRate}`,
-          body: `현재가: ${curr.value}`,
+          body: `${t('marketGrid.alertCurrentPrice')}: ${curr.value}`,
         });
       }
     }
-  }, [data]);
+  }, [data, t]);
 
   const relatedNews = useMemo(() => {
     if (!news?.sections?.length) return {};
@@ -172,7 +183,7 @@ export default function MarketGrid({ data, news }) {
     <div className="px-3 sm:px-4">
       {/* Quick glance summary bar */}
       {summaryItems.length > 0 && (
-        <div className="flex items-center gap-2 mb-2 px-1 overflow-x-auto scrollbar-hide" role="status" aria-label="마켓 요약">
+        <div className="flex items-center gap-2 mb-2 px-1 overflow-x-auto scrollbar-hide" role="status" aria-label={t('marketGrid.summaryAria')}>
           {summaryItems.map(item => {
             const rate = parseFloat(item.changeRate) || 0;
             const isVix = item.name === 'VIX';
@@ -186,7 +197,7 @@ export default function MarketGrid({ data, news }) {
           })}
           {data.updatedAt && (
             <span className="text-[9px] ml-auto whitespace-nowrap" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
-              {new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              {new Date(data.updatedAt).toLocaleTimeString(t('common.locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </span>
           )}
         </div>
@@ -196,7 +207,7 @@ export default function MarketGrid({ data, news }) {
           <button
             key={opt.key}
             onClick={() => setSort(opt.key)}
-            aria-label={`${opt.label} 정렬`}
+            aria-label={t('marketGrid.sortAria').replace('{label}', t(opt.labelKey))}
             aria-pressed={sort === opt.key}
             className="text-[10px] sm:text-xs px-2 py-1 rounded transition-colors"
             style={{
@@ -205,15 +216,15 @@ export default function MarketGrid({ data, news }) {
               fontWeight: sort === opt.key ? 600 : 400,
             }}
           >
-            {opt.label}
+            {t(opt.labelKey)}
           </button>
         ))}
         <button
-          onClick={() => exportCSV(data)}
+          onClick={() => exportCSV(data, t)}
           className="text-[10px] sm:text-xs px-2 py-1 rounded transition-colors"
           style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}
-          title="시세 CSV 다운로드"
-          aria-label="시세 데이터 CSV 다운로드"
+          title={t('marketGrid.downloadCsv')}
+          aria-label={t('marketGrid.downloadCsvAria')}
         >
           📥 CSV
         </button>

@@ -638,7 +638,7 @@ export default function App() {
                 switch (w.id) {
                   case 'weather': return <WeatherWidget key={w.id} t={t} />;
                   case 'sentiment': return <MarketSentiment data={market} fearGreedHistory={market?.sparklines?.fear_greed} t={t} />;
-                  case 'market': return <MarketGrid data={market} news={news} />;
+                  case 'market': return <MarketGrid data={market} news={news} t={t} />;
                   case 'news': return (
                     <>
                       <div style={{ borderTop: '1px solid var(--border)' }} />
