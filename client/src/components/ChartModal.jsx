@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { LANG_KEY, makeT, resolveInitialLanguage } from '../i18n';
 
-function DetailChart({ data = [], color = '#94a3b8', width = 500, height = 200 }) {
+function DetailChart({ data = [], color = '#94a3b8', width = 500, height = 200, noDataLabel = 'No data' }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -84,7 +85,7 @@ function DetailChart({ data = [], color = '#94a3b8', width = 500, height = 200 }
   if (!data || data.length < 2) {
     return (
       <div className="flex items-center justify-center" style={{ width, height, color: 'var(--text-muted)' }}>
-        <span className="text-sm">차트 데이터 없음</span>
+        <span className="text-sm">{noDataLabel}</span>
       </div>
     );
   }
@@ -92,7 +93,7 @@ function DetailChart({ data = [], color = '#94a3b8', width = 500, height = 200 }
   return <canvas ref={canvasRef} style={{ width, height }} />;
 }
 
-function CurrencyConverter({ exchangeRate }) {
+function CurrencyConverter({ exchangeRate, t, locale }) {
   const [usd, setUsd] = useState('1');
   const [krw, setKrw] = useState(String(Math.round(exchangeRate)));
   const [direction, setDirection] = useState('usd'); // which field was last edited
@@ -115,7 +116,7 @@ function CurrencyConverter({ exchangeRate }) {
   return (
     <div className="mt-4 rounded-xl p-3" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
       <div className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
-        💱 환율 계산기
+        💱 {t('chartModal.currencyConverter')}
       </div>
       <div className="flex items-center gap-2">
         <div className="flex-1">
@@ -147,13 +148,24 @@ function CurrencyConverter({ exchangeRate }) {
         </div>
       </div>
       <div className="text-[10px] mt-1.5 text-right" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>
-        1 USD = {exchangeRate.toLocaleString('ko-KR')} KRW
+        1 USD = {exchangeRate.toLocaleString(locale)} KRW
       </div>
     </div>
   );
 }
 
 export default function ChartModal({ card, sparkline, onClose }) {
+  const [lang, setLang] = useState(resolveInitialLanguage());
+  const t = makeT(lang);
+
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === LANG_KEY && (e.newValue === 'ko' || e.newValue === 'en')) setLang(e.newValue);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   if (!card) return null;
 
   const rate = parseFloat(card.changeRate) || 0;
@@ -177,7 +189,7 @@ export default function ChartModal({ card, sparkline, onClose }) {
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label={`${card.name} 상세 차트`}
+      aria-label={`${card.name} ${t('chartModal.detailChart')}`}
     >
       <div
         className="w-full max-w-lg rounded-2xl p-5 shadow-2xl"
@@ -199,7 +211,7 @@ export default function ChartModal({ card, sparkline, onClose }) {
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
             style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-            aria-label="닫기"
+            aria-label={t('app.close')}
           >
             ✕
           </button>
@@ -207,17 +219,17 @@ export default function ChartModal({ card, sparkline, onClose }) {
 
         {/* Chart */}
         <div className="flex justify-center">
-          <DetailChart data={sparkline} color={color} width={460} height={200} />
+          <DetailChart data={sparkline} color={color} width={460} height={200} noDataLabel={t('chartModal.noData')} />
         </div>
 
         {/* Stats */}
         {sparkline && sparkline.length >= 2 && (
           <div className="grid grid-cols-4 gap-3 mt-4 text-center">
             {[
-              { label: '최고', val: Math.max(...sparkline) },
-              { label: '최저', val: Math.min(...sparkline) },
-              { label: '평균', val: (sparkline.reduce((a, b) => a + b, 0) / sparkline.length) },
-              { label: '데이터', val: `${sparkline.length}개` },
+              { label: t('chartModal.max'), val: Math.max(...sparkline) },
+              { label: t('chartModal.min'), val: Math.min(...sparkline) },
+              { label: t('chartModal.avg'), val: (sparkline.reduce((a, b) => a + b, 0) / sparkline.length) },
+              { label: t('chartModal.data'), val: `${sparkline.length}${t('chartModal.countSuffix')}` },
             ].map(({ label, val }) => (
               <div key={label} className="rounded-lg p-2" style={{ background: 'var(--bg-hover)' }}>
                 <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{label}</div>
@@ -232,7 +244,7 @@ export default function ChartModal({ card, sparkline, onClose }) {
         {/* Currency converter for USD/KRW */}
         {card.name && card.name.includes('USD/KRW') && (() => {
           const exRate = parseFloat(String(card.value).replace(/,/g, ''));
-          return !isNaN(exRate) ? <CurrencyConverter exchangeRate={exRate} /> : null;
+          return !isNaN(exRate) ? <CurrencyConverter exchangeRate={exRate} t={t} locale={t('common.locale')} /> : null;
         })()}
       </div>
     </div>

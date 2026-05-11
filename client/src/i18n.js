@@ -194,6 +194,16 @@ export const translations = {
       ariaLabel: '날씨 정보',
       feelsLike: '체감',
     },
+    chartModal: {
+      noData: '차트 데이터 없음',
+      currencyConverter: '환율 계산기',
+      detailChart: '상세 차트',
+      max: '최고',
+      min: '최저',
+      avg: '평균',
+      data: '데이터',
+      countSuffix: '개',
+    },
     alerts: {
       notificationTitleSuffix: '알림',
       settingsTitle: '마켓 알림 설정',
@@ -507,6 +517,16 @@ export const translations = {
     weather: {
       ariaLabel: 'Weather information',
       feelsLike: 'Feels like',
+    },
+    chartModal: {
+      noData: 'No chart data',
+      currencyConverter: 'FX converter',
+      detailChart: 'detail chart',
+      max: 'High',
+      min: 'Low',
+      avg: 'Avg',
+      data: 'Data',
+      countSuffix: '',
     },
     alerts: {
       notificationTitleSuffix: 'alert',
