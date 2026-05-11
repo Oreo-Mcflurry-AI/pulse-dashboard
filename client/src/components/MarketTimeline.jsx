@@ -2,16 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 // Global market sessions (all times in local exchange timezone)
 const MARKETS = [
-  { id: 'tokyo', name: '도쿄', flag: '🇯🇵', tz: 'Asia/Tokyo', open: [9, 0], close: [15, 0], color: '#ef4444' },
-  { id: 'shanghai', name: '상하이', flag: '🇨🇳', tz: 'Asia/Shanghai', open: [9, 30], close: [15, 0], color: '#f97316' },
-  { id: 'hk', name: '홍콩', flag: '🇭🇰', tz: 'Asia/Hong_Kong', open: [9, 30], close: [16, 0], color: '#eab308' },
-  { id: 'krx', name: 'KRX', flag: '🇰🇷', tz: 'Asia/Seoul', open: [9, 0], close: [15, 30], color: '#22c55e', highlight: true },
-  { id: 'mumbai', name: '뭄바이', flag: '🇮🇳', tz: 'Asia/Kolkata', open: [9, 15], close: [15, 30], color: '#14b8a6' },
-  { id: 'london', name: '런던', flag: '🇬🇧', tz: 'Europe/London', open: [8, 0], close: [16, 30], color: '#3b82f6' },
-  { id: 'frankfurt', name: '프랑크', flag: '🇩🇪', tz: 'Europe/Berlin', open: [9, 0], close: [17, 30], color: '#6366f1' },
-  { id: 'nyse', name: 'NYSE', flag: '🇺🇸', tz: 'America/New_York', open: [9, 30], close: [16, 0], color: '#8b5cf6' },
-  { id: 'nasdaq', name: 'NASDAQ', flag: '🇺🇸', tz: 'America/New_York', open: [9, 30], close: [16, 0], color: '#a855f7' },
-  { id: 'sao', name: '상파울루', flag: '🇧🇷', tz: 'America/Sao_Paulo', open: [10, 0], close: [17, 0], color: '#ec4899' },
+  { id: 'tokyo', nameKey: 'timeline.marketNames.tokyo', name: '도쿄', flag: '🇯🇵', tz: 'Asia/Tokyo', open: [9, 0], close: [15, 0], color: '#ef4444' },
+  { id: 'shanghai', nameKey: 'timeline.marketNames.shanghai', name: '상하이', flag: '🇨🇳', tz: 'Asia/Shanghai', open: [9, 30], close: [15, 0], color: '#f97316' },
+  { id: 'hk', nameKey: 'timeline.marketNames.hk', name: '홍콩', flag: '🇭🇰', tz: 'Asia/Hong_Kong', open: [9, 30], close: [16, 0], color: '#eab308' },
+  { id: 'krx', nameKey: 'timeline.marketNames.krx', name: 'KRX', flag: '🇰🇷', tz: 'Asia/Seoul', open: [9, 0], close: [15, 30], color: '#22c55e', highlight: true },
+  { id: 'mumbai', nameKey: 'timeline.marketNames.mumbai', name: '뭄바이', flag: '🇮🇳', tz: 'Asia/Kolkata', open: [9, 15], close: [15, 30], color: '#14b8a6' },
+  { id: 'london', nameKey: 'timeline.marketNames.london', name: '런던', flag: '🇬🇧', tz: 'Europe/London', open: [8, 0], close: [16, 30], color: '#3b82f6' },
+  { id: 'frankfurt', nameKey: 'timeline.marketNames.frankfurt', name: '프랑크', flag: '🇩🇪', tz: 'Europe/Berlin', open: [9, 0], close: [17, 30], color: '#6366f1' },
+  { id: 'nyse', nameKey: 'timeline.marketNames.nyse', name: 'NYSE', flag: '🇺🇸', tz: 'America/New_York', open: [9, 30], close: [16, 0], color: '#8b5cf6' },
+  { id: 'nasdaq', nameKey: 'timeline.marketNames.nasdaq', name: 'NASDAQ', flag: '🇺🇸', tz: 'America/New_York', open: [9, 30], close: [16, 0], color: '#a855f7' },
+  { id: 'sao', nameKey: 'timeline.marketNames.sao', name: '상파울루', flag: '🇧🇷', tz: 'America/Sao_Paulo', open: [10, 0], close: [17, 0], color: '#ec4899' },
 ];
 
 function getMarketNow(market) {
@@ -60,15 +60,15 @@ function getMarketNow(market) {
   };
 }
 
-function fmtDuration(mins) {
+function fmtDuration(mins, t) {
   if (mins == null) return '';
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  if (h > 0) return `${h}시간 ${m}분`;
-  return `${m}분`;
+  if (h > 0) return `${h}${t('app.hours')} ${m}${t('app.minutes')}`;
+  return `${m}${t('app.minutes')}`;
 }
 
-function TimelineBar({ markets, kstHour }) {
+function TimelineBar({ markets, t }) {
   const canvasRef = useRef(null);
   const w = 800;
   const h = markets.length * 36 + 40;
@@ -129,7 +129,7 @@ function TimelineBar({ markets, kstHour }) {
     // "Now" label
     ctx.fillStyle = '#ef4444';
     ctx.font = 'bold 9px system-ui';
-    ctx.fillText('▼ NOW', nowX, padTop - 2);
+    ctx.fillText(t('timeline.nowLabel'), nowX, padTop - 2);
 
     // Draw market bars
     markets.forEach((m, i) => {
@@ -139,7 +139,7 @@ function TimelineBar({ markets, kstHour }) {
       ctx.fillStyle = m.isOpen ? m.color : 'rgba(128,128,128,0.5)';
       ctx.font = m.highlight ? 'bold 11px system-ui' : '11px system-ui';
       ctx.textAlign = 'right';
-      ctx.fillText(`${m.flag} ${m.name}`, padLeft - 8, y + barH / 2 + 4);
+      ctx.fillText(`${m.flag} ${t(m.nameKey) === m.nameKey ? m.name : t(m.nameKey)}`, padLeft - 8, y + barH / 2 + 4);
 
       // Convert market open/close to KST minutes
       const now = new Date();
@@ -213,7 +213,7 @@ function TimelineBar({ markets, kstHour }) {
         ctx.font = 'bold 8px system-ui';
         ctx.textAlign = 'left';
         const barX = padLeft + Math.max(0, openKSTMins) * pxPerMin;
-        ctx.fillText('OPEN', barX + 3, y + barH - 3);
+        ctx.fillText(t('timeline.barOpen'), barX + 3, y + barH - 3);
       }
     });
   }, [markets, h]);
@@ -227,7 +227,7 @@ function TimelineBar({ markets, kstHour }) {
   );
 }
 
-export default function MarketTimeline() {
+export default function MarketTimeline({ t = (key) => key }) {
   const [markets, setMarkets] = useState([]);
   const [now, setNow] = useState(new Date());
 
@@ -248,7 +248,7 @@ export default function MarketTimeline() {
   return (
     <div className="px-3 sm:px-4 py-4 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base sm:text-lg font-bold">🌍 글로벌 마켓 타임라인</h2>
+        <h2 className="text-base sm:text-lg font-bold">{t('timeline.title')}</h2>
         <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>KST {kstStr}</span>
       </div>
 
@@ -265,12 +265,12 @@ export default function MarketTimeline() {
           >
             <div className="flex items-center gap-1.5 mb-1">
               <span className="text-sm">{m.flag}</span>
-              <span className="text-[10px] sm:text-xs font-medium truncate">{m.name}</span>
+              <span className="text-[10px] sm:text-xs font-medium truncate">{t(m.nameKey) === m.nameKey ? m.name : t(m.nameKey)}</span>
               <span className={`w-1.5 h-1.5 rounded-full ${m.isOpen ? 'animate-pulse' : ''}`}
                 style={{ background: m.isOpen ? '#22c55e' : '#6b7280' }} />
             </div>
             <div className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>
-              {m.localTime} 현지
+              {m.localTime} {t('timeline.local')}
             </div>
             {m.isOpen ? (
               <>
@@ -278,13 +278,13 @@ export default function MarketTimeline() {
                   <div className="h-full rounded-full transition-all" style={{ width: `${m.progress}%`, background: m.color }} />
                 </div>
                 <div className="text-[9px] mt-0.5" style={{ color: m.color }}>
-                  마감까지 {fmtDuration(m.nextEvent)}
+                  {t('timeline.untilClose').replace('{time}', fmtDuration(m.nextEvent, t))}
                 </div>
               </>
             ) : (
               <div className="text-[9px] mt-1" style={{ color: 'var(--text-muted)' }}>
-                {m.nextEventType === 'open' ? `개장까지 ${fmtDuration(m.nextEvent)}` :
-                 !m.isWeekday ? '주말 휴장' : '폐장'}
+                {m.nextEventType === 'open' ? t('timeline.untilOpen').replace('{time}', fmtDuration(m.nextEvent, t)) :
+                 !m.isWeekday ? t('timeline.weekendClosed') : t('timeline.closed')}
               </div>
             )}
           </div>
@@ -294,9 +294,9 @@ export default function MarketTimeline() {
       {/* Timeline Chart */}
       <div className="rounded-xl p-3 sm:p-4 mb-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
         <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>
-          24시간 타임라인 (KST 기준)
+          {t('timeline.chartTitle')}
         </div>
-        <TimelineBar markets={markets} />
+        <TimelineBar markets={markets} t={t} />
       </div>
 
       {/* Summary */}
@@ -304,18 +304,18 @@ export default function MarketTimeline() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <div className="text-xs font-bold mb-2" style={{ color: '#22c55e' }}>
-              🟢 개장 중 ({openMarkets.length})
+              {t('timeline.openMarkets').replace('{count}', openMarkets.length)}
             </div>
             {openMarkets.length === 0 ? (
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>현재 개장 중인 시장 없음</div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('timeline.noOpenMarkets')}</div>
             ) : (
               <div className="space-y-1.5">
                 {openMarkets.map(m => (
                   <div key={m.id} className="flex items-center gap-2">
                     <span>{m.flag}</span>
-                    <span className="text-xs flex-1">{m.name}</span>
+                    <span className="text-xs flex-1">{t(m.nameKey) === m.nameKey ? m.name : t(m.nameKey)}</span>
                     <span className="text-[10px] tabular-nums" style={{ color: m.color }}>
-                      {m.progress}% 진행 · 마감 {fmtDuration(m.nextEvent)} 후
+                      {t('timeline.progressUntilClose').replace('{progress}', m.progress).replace('{time}', fmtDuration(m.nextEvent, t))}
                     </span>
                   </div>
                 ))}
@@ -324,16 +324,16 @@ export default function MarketTimeline() {
           </div>
           <div>
             <div className="text-xs font-bold mb-2" style={{ color: '#6b7280' }}>
-              ⚫ 폐장 ({closedMarkets.length})
+              {t('timeline.closedMarkets').replace('{count}', closedMarkets.length)}
             </div>
             <div className="space-y-1.5">
               {closedMarkets.map(m => (
                 <div key={m.id} className="flex items-center gap-2">
                   <span>{m.flag}</span>
-                  <span className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>{m.name}</span>
+                  <span className="text-xs flex-1" style={{ color: 'var(--text-muted)' }}>{t(m.nameKey) === m.nameKey ? m.name : t(m.nameKey)}</span>
                   <span className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                    {m.nextEventType === 'open' ? `개장 ${fmtDuration(m.nextEvent)} 후` :
-                     !m.isWeekday ? '주말' : `${String(m.open[0]).padStart(2,'0')}:${String(m.open[1]).padStart(2,'0')} 개장`}
+                    {m.nextEventType === 'open' ? t('timeline.openIn').replace('{time}', fmtDuration(m.nextEvent, t)) :
+                     !m.isWeekday ? t('timeline.weekend') : t('timeline.openAt').replace('{time}', `${String(m.open[0]).padStart(2,'0')}:${String(m.open[1]).padStart(2,'0')}`)}
                   </span>
                 </div>
               ))}

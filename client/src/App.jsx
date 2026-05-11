@@ -704,7 +704,7 @@ export default function App() {
             ) : page === 'rss' ? (
               <RSSFeeds />
             ) : (
-              <MarketTimeline />
+              <MarketTimeline t={t} />
             )}
           </Suspense>
         )}

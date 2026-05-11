@@ -445,7 +445,7 @@ export default function HeatmapPage() {
 
       {/* Global Market Timeline */}
       <div className="mt-6" style={{ borderTop: '1px solid var(--border)', paddingTop: '1rem' }}>
-        <MarketTimeline />
+        <MarketTimeline t={t} />
       </div>
 
       {selectedSector && (
