@@ -51,7 +51,7 @@ function fmt(n) {
   return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-export default function StockSearch() {
+export default function StockSearch({ t = (k) => k }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -109,7 +109,7 @@ export default function StockSearch() {
 
   return (
     <div className="px-3 sm:px-4 py-4 max-w-5xl mx-auto">
-      <h2 className="text-base sm:text-lg font-bold mb-4">🔍 종목 검색</h2>
+      <h2 className="text-base sm:text-lg font-bold mb-4">{t('search.title')}</h2>
 
       {/* Search input */}
       <div className="relative mb-4">
@@ -117,7 +117,7 @@ export default function StockSearch() {
           ref={inputRef}
           value={query}
           onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
-          placeholder="종목명 또는 코드 검색 (예: 삼성전자, 005930)"
+          placeholder={t('search.placeholder')}
           className="w-full px-4 py-2.5 text-sm rounded-xl"
           style={{
             background: 'var(--bg-card)',
@@ -157,7 +157,7 @@ export default function StockSearch() {
       {/* Recent searches */}
       {!selected && !query && recentSearches.length > 0 && (
         <div className="mb-4">
-          <div className="text-[10px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>최근 검색</div>
+          <div className="text-[10px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>{t('search.recent')}</div>
           <div className="flex flex-wrap gap-1.5">
             {recentSearches.map(r => (
               <button
@@ -174,7 +174,7 @@ export default function StockSearch() {
               className="text-[9px] px-2 py-1 rounded-full"
               style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)' }}
             >
-              지우기
+              {t('search.clear')}
             </button>
           </div>
         </div>
@@ -183,7 +183,7 @@ export default function StockSearch() {
       {/* Stock detail */}
       {loading && (
         <div className="flex items-center justify-center h-48">
-          <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>불러오는 중...</div>
+          <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</div>
         </div>
       )}
 
@@ -201,7 +201,7 @@ export default function StockSearch() {
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl sm:text-3xl font-bold tabular-nums">{detail.price}</span>
-                  <span className="text-sm" style={{ color: 'var(--text-muted)' }}>원</span>
+                  <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('search.currencyWon')}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-sm font-medium tabular-nums" style={{ color: colorClass }}>
@@ -216,14 +216,14 @@ export default function StockSearch() {
           {/* Stats grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { label: '시가총액', value: detail.marketCap ? `${(parseFloat(String(detail.marketCap).replace(/,/g, '')) / 10000).toFixed(0)}조원` : '-' },
-              { label: '거래량', value: detail.volume || '-' },
-              { label: 'PER', value: detail.per || '-' },
-              { label: 'PBR', value: detail.pbr || '-' },
-              { label: '52주 최고', value: fmt(detail.high52w), color: '#22c55e' },
-              { label: '52주 최저', value: fmt(detail.low52w), color: '#ef4444' },
-              { label: '배당수익률', value: detail.dividend ? `${detail.dividend}%` : '-' },
-              { label: '장 상태', value: detail.status === 'OPEN' ? '🟢 장중' : '⚫ 마감' },
+              { label: t('search.marketCap'), value: detail.marketCap ? `${(parseFloat(String(detail.marketCap).replace(/,/g, '')) / 10000).toFixed(0)}${t('search.trillionWon')}` : '-' },
+              { label: t('search.volume'), value: detail.volume || '-' },
+              { label: t('search.per'), value: detail.per || '-' },
+              { label: t('search.pbr'), value: detail.pbr || '-' },
+              { label: t('search.high52w'), value: fmt(detail.high52w), color: '#22c55e' },
+              { label: t('search.low52w'), value: fmt(detail.low52w), color: '#ef4444' },
+              { label: t('search.dividendYield'), value: detail.dividend ? `${detail.dividend}%` : '-' },
+              { label: t('search.marketStatus'), value: detail.status === 'OPEN' ? t('search.marketOpen') : t('search.marketClosed') },
             ].map((s, i) => (
               <div key={i} className="px-3 py-2 rounded-lg" style={{ background: 'var(--bg-hover)' }}>
                 <div className="text-[9px] sm:text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.label}</div>
@@ -237,7 +237,7 @@ export default function StockSearch() {
           {/* 1-month chart */}
           {detail.chart && detail.chart.length > 2 && (
             <div className="rounded-xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-              <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>1개월 추이</div>
+              <div className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>{t('search.monthTrend')}</div>
               <MiniChart data={detail.chart} width={Math.min(window.innerWidth - 48, 860)} height={120} />
               <div className="flex justify-between mt-1 text-[9px]" style={{ color: 'var(--text-muted)' }}>
                 <span>{detail.chart[0]?.date}</span>
@@ -252,8 +252,8 @@ export default function StockSearch() {
       {!selected && !loading && !query && recentSearches.length === 0 && (
         <div className="flex flex-col items-center justify-center h-48" style={{ color: 'var(--text-muted)' }}>
           <span className="text-3xl mb-2">🔍</span>
-          <span className="text-xs">종목명이나 코드를 검색하세요</span>
-          <span className="text-[10px] mt-1">예: 삼성전자, SK하이닉스, 005930</span>
+          <span className="text-xs">{t('search.emptyTitle')}</span>
+          <span className="text-[10px] mt-1">{t('search.emptyExample')}</span>
         </div>
       )}
     </div>

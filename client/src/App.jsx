@@ -700,7 +700,7 @@ export default function App() {
             ) : page === 'calendar' ? (
               <CalendarPage t={t} lang={lang} />
             ) : page === 'search' ? (
-              <StockSearch />
+              <StockSearch t={t} />
             ) : page === 'rss' ? (
               <RSSFeeds />
             ) : (
