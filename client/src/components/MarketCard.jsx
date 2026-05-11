@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Sparkline from './Sparkline';
+import { LANG_KEY, makeT, resolveInitialLanguage } from '../i18n';
 
 function NewsCarousel({ items }) {
   const [idx, setIdx] = useState(0);
@@ -44,7 +45,7 @@ function NewsCarousel({ items }) {
   );
 }
 
-function HoverDetail({ week52, value, weeklyChange, volume, name, intraday }) {
+function HoverDetail({ week52, value, weeklyChange, volume, name, intraday, t }) {
   if (!week52 || week52.high == null) return null;
   const current = parseFloat(String(value).replace(/,/g, ''));
   const range = week52.high - week52.low;
@@ -65,34 +66,34 @@ function HoverDetail({ week52, value, weeklyChange, volume, name, intraday }) {
       <div className="text-[10px] font-bold mb-1" style={{ color: 'var(--text-primary)' }}>{name}</div>
       <div className="space-y-0.5 text-[9px]" style={{ color: 'var(--text-muted)' }}>
         <div className="flex justify-between gap-3">
-          <span>52주 위치</span>
+          <span>{t('marketCard.position52w')}</span>
           <span className="font-medium tabular-nums" style={{ color: parseFloat(pct) > 70 ? '#22c55e' : parseFloat(pct) < 30 ? '#ef4444' : 'var(--text-primary)' }}>
             {pct}%
           </span>
         </div>
         <div className="flex justify-between gap-3">
-          <span>고점 대비</span>
+          <span>{t('marketCard.fromHigh')}</span>
           <span className="tabular-nums">-{fromHigh}%</span>
         </div>
         <div className="flex justify-between gap-3">
-          <span>저점 대비</span>
+          <span>{t('marketCard.fromLow')}</span>
           <span className="tabular-nums">+{fromLow}%</span>
         </div>
         {intraday && intraday.high != null && (
           <>
             <div className="flex justify-between gap-3">
-              <span>장중 고가</span>
+              <span>{t('marketCard.intradayHigh')}</span>
               <span className="tabular-nums" style={{ color: 'var(--accent-up)' }}>{intraday.high.toLocaleString()}</span>
             </div>
             <div className="flex justify-between gap-3">
-              <span>장중 저가</span>
+              <span>{t('marketCard.intradayLow')}</span>
               <span className="tabular-nums" style={{ color: 'var(--accent-down)' }}>{intraday.low.toLocaleString()}</span>
             </div>
           </>
         )}
         {weeklyChange && (
           <div className="flex justify-between gap-3">
-            <span>주간 변동</span>
+            <span>{t('marketCard.weeklyChange')}</span>
             <span className="font-medium tabular-nums" style={{ color: parseFloat(weeklyChange) > 0 ? '#22c55e' : parseFloat(weeklyChange) < 0 ? '#ef4444' : 'var(--text-muted)' }}>
               {parseFloat(weeklyChange) > 0 ? '+' : ''}{weeklyChange}
             </span>
@@ -104,6 +105,10 @@ function HoverDetail({ week52, value, weeklyChange, volume, name, intraday }) {
 }
 
 export default function MarketCard({ name, value, changeRate, sparkline, status, week52, volume, weeklyChange, intraday, relatedNews, onClick, isFavorite, onToggleFavorite }) {
+  const lang = useMemo(() => {
+    try { return localStorage.getItem(LANG_KEY) || resolveInitialLanguage(); } catch { return 'ko'; }
+  }, []);
+  const t = useMemo(() => makeT(lang), [lang]);
   const rate = parseFloat(changeRate) || 0;
   const isVix = name === 'VIX';
   // VIX: up = fear (red), down = calm (green) — inverted colors
@@ -115,7 +120,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
 
   // VIX fear level badge
   const vixVal = isVix ? parseFloat(String(value).replace(/,/g, '')) : 0;
-  const vixLevel = isVix ? (vixVal >= 30 ? '🔴 극공포' : vixVal >= 20 ? '🟡 경계' : '🟢 안정') : '';
+  const vixLevel = isVix ? (vixVal >= 30 ? t('marketCard.vixExtremeFear') : vixVal >= 20 ? t('marketCard.vixCaution') : t('marketCard.vixStable')) : '';
 
   // Alert styling for extreme moves (±3% or more)
   const absRate = Math.abs(rate);
@@ -164,7 +169,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
       className={`rounded-lg sm:rounded-xl p-3 sm:p-4 transition-colors cursor-pointer hover:opacity-90 relative${absRate >= 5 ? ' alert-extreme' : ''}`}
       role="button"
       tabIndex={0}
-      aria-label={`${name} ${value} ${changeRate || '0%'} 상세 차트 보기${isFavorite ? ' (즐겨찾기)' : ''}`}
+      aria-label={`${name} ${value} ${changeRate || '0%'} ${t('marketCard.viewDetailChart')}${isFavorite ? ` (${t('marketCard.favorite')})` : ''}`}
       style={{
         background: statusBg,
         border: `1px solid ${alertBorder || (isFavorite ? 'rgba(234,179,8,0.4)' : status === 'OPEN' ? 'rgba(34,197,94,0.12)' : 'var(--border)')}`,
@@ -192,15 +197,15 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
               {isFavorite && <span className="text-[8px] mr-0.5" style={{ color: '#eab308' }}>★</span>}
               {name}
             </p>
-            {status === 'OPEN' && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="장중" />}
-            {status === 'PREOPEN' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" title="프리마켓" />}
+            {status === 'OPEN' && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title={t('marketCard.open')} />}
+            {status === 'PREOPEN' && <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse" title={t('marketCard.preopen')} />}
             {status && (
               <span className="text-[8px] sm:text-[9px] px-1 py-0.5 rounded" style={{
                 background: status === 'OPEN' ? 'rgba(34,197,94,0.15)' : status === 'PREOPEN' ? 'rgba(234,179,8,0.15)' : 'rgba(107,114,128,0.15)',
                 color: status === 'OPEN' ? '#22c55e' : status === 'PREOPEN' ? '#eab308' : 'var(--text-muted)',
-              }}>{status === 'OPEN' ? 'LIVE' : status === 'PREOPEN' ? '프리' : '마감'}</span>
+              }}>{status === 'OPEN' ? t('marketCard.live') : status === 'PREOPEN' ? t('marketCard.pre') : t('marketCard.closed')}</span>
             )}
-            {absRate >= 5 && <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: isDown ? 'rgba(220,38,38,0.2)' : 'rgba(34,197,94,0.2)', color: isDown ? '#dc2626' : '#22c55e' }}>급{isDown ? '락' : '등'}</span>}
+            {absRate >= 5 && <span className="text-[9px] px-1 py-0.5 rounded" style={{ background: isDown ? 'rgba(220,38,38,0.2)' : 'rgba(34,197,94,0.2)', color: isDown ? '#dc2626' : '#22c55e' }}>{t(isDown ? 'marketCard.sharpDrop' : 'marketCard.sharpRise')}</span>}
             {vixLevel && <span className="text-[8px] sm:text-[9px]">{vixLevel}</span>}
           </div>
           <p className="text-base sm:text-xl font-bold tabular-nums truncate">{value || '-'}</p>
@@ -217,7 +222,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
                 background: 'var(--bg-hover)',
                 color: parseFloat(weeklyChange) > 0 ? 'var(--accent-up)' : parseFloat(weeklyChange) < 0 ? 'var(--accent-down)' : 'var(--text-muted)',
                 opacity: 0.8,
-              }} title="주간 변동률">
+              }} title={t('marketCard.weeklyChangeRate')}>
                 W {parseFloat(weeklyChange) > 0 ? '+' : ''}{weeklyChange}
               </span>
             )}
@@ -252,7 +257,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           <div className="mt-1.5 pt-1.5" style={{ borderTop: '1px solid var(--border)' }}>
             <div className="flex justify-between items-center mb-0.5">
               <span className="text-[8px]" style={{ color: 'var(--accent-down)' }}>L {fmt(intraday.low)}</span>
-              <span className="text-[8px] font-medium" style={{ color: 'var(--text-muted)' }}>장중</span>
+              <span className="text-[8px] font-medium" style={{ color: 'var(--text-muted)' }}>{t('marketCard.intraday')}</span>
               <span className="text-[8px]" style={{ color: 'var(--accent-up)' }}>H {fmt(intraday.high)}</span>
             </div>
             <div className="relative h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
@@ -278,9 +283,9 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
         return (
           <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
             <div className="flex justify-between items-center mb-1">
-              <span className="text-[8px] sm:text-[9px]" style={{ color: 'var(--text-muted)' }}>52주 최저</span>
-              <span className="text-[8px] sm:text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>52W Range</span>
-              <span className="text-[8px] sm:text-[9px]" style={{ color: 'var(--text-muted)' }}>52주 최고</span>
+              <span className="text-[8px] sm:text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('marketCard.low52w')}</span>
+              <span className="text-[8px] sm:text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>{t('marketCard.range52w')}</span>
+              <span className="text-[8px] sm:text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('marketCard.high52w')}</span>
             </div>
             <div className="relative h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
               <div className="absolute inset-y-0 left-0 rounded-full" style={{
@@ -314,7 +319,7 @@ export default function MarketCard({ name, value, changeRate, sparkline, status,
           </span>
         </div>
       )}
-      {showHover && <HoverDetail week52={week52} value={value} weeklyChange={weeklyChange} volume={volume} name={name} intraday={intraday} />}
+      {showHover && <HoverDetail week52={week52} value={value} weeklyChange={weeklyChange} volume={volume} name={name} intraday={intraday} t={t} />}
     </div>
   );
 }

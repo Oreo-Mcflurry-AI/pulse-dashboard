@@ -103,6 +103,12 @@ export const translations = {
       sortName: 'ㄱ-ㄴ',
       sortSize: '규모',
     },
+    marketCard: {
+      position52w: '52주 위치', fromHigh: '고점 대비', fromLow: '저점 대비', intradayHigh: '장중 고가', intradayLow: '장중 저가',
+      weeklyChange: '주간 변동', viewDetailChart: '상세 차트 보기', favorite: '즐겨찾기', open: '장중', preopen: '프리마켓', live: 'LIVE', pre: '프리', closed: '마감',
+      sharpDrop: '급락', sharpRise: '급등', weeklyChangeRate: '주간 변동률', intraday: '장중', low52w: '52주 최저', range52w: '52주 범위', high52w: '52주 최고',
+      vixExtremeFear: '🔴 극공포', vixCaution: '🟡 경계', vixStable: '🟢 안정',
+    },
     search: {
       title: '🔍 종목 검색',
       placeholder: '종목명 또는 코드 검색 (예: 삼성전자, 005930)',
@@ -406,6 +412,12 @@ export const translations = {
       sortDown: '▼',
       sortName: 'A-Z',
       sortSize: 'Size',
+    },
+    marketCard: {
+      position52w: '52-week position', fromHigh: 'From high', fromLow: 'From low', intradayHigh: 'Intraday high', intradayLow: 'Intraday low',
+      weeklyChange: 'Weekly change', viewDetailChart: 'view detail chart', favorite: 'favorite', open: 'Open', preopen: 'Pre-market', live: 'LIVE', pre: 'PRE', closed: 'Closed',
+      sharpDrop: 'Sharp drop', sharpRise: 'Sharp rise', weeklyChangeRate: 'Weekly change rate', intraday: 'Intraday', low52w: '52-week low', range52w: '52W Range', high52w: '52-week high',
+      vixExtremeFear: '🔴 Extreme fear', vixCaution: '🟡 Caution', vixStable: '🟢 Stable',
     },
     search: {
       title: '🔍 Stock Search',
