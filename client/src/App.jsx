@@ -694,7 +694,7 @@ export default function App() {
             ) : page === 'portfolio' ? (
               <PortfolioPage />
             ) : page === 'history' ? (
-              <HistoryPage />
+              <HistoryPage t={t} />
             ) : page === 'heatmap' ? (
               <HeatmapPage />
             ) : page === 'calendar' ? (

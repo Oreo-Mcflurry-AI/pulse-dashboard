@@ -11,14 +11,14 @@ const SYMBOLS = [
   { key: 'btc', name: 'BTC/KRW', color: '#f59e0b' },
   { key: 'oil', name: 'WTI', color: '#64748b' },
   { key: 'gold', name: 'GOLD', color: '#eab308' },
-  { key: 'fear_greed', name: '공포/탐욕', color: '#a855f7' },
+  { key: 'fear_greed', name: 'Fear/Greed', color: '#a855f7' },
 ];
 
 const PERIODS = [
-  { key: '1m', label: '1개월' },
-  { key: '3m', label: '3개월' },
-  { key: '6m', label: '6개월' },
-  { key: '1y', label: '1년' },
+  { key: '1m', label: '1M' },
+  { key: '3m', label: '3M' },
+  { key: '6m', label: '6M' },
+  { key: '1y', label: '1Y' },
 ];
 
 function formatNumber(n, symbol) {
@@ -34,7 +34,7 @@ function formatDate(d) {
   return `${parts[1]}/${parts[2]}`;
 }
 
-function Chart({ data, symbol, color, width, height }) {
+function Chart({ data, symbol, color, width, height, t }) {
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const padding = { top: 20, right: 12, bottom: 30, left: 60 };
@@ -165,10 +165,10 @@ function Chart({ data, symbol, color, width, height }) {
         >
           <div className="font-medium mb-0.5">{tooltip.data.date}</div>
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5" style={{ color: 'var(--text-muted)' }}>
-            <span>시가</span><span className="text-right tabular-nums">{formatNumber(tooltip.data.open, symbol)}</span>
-            <span>고가</span><span className="text-right tabular-nums" style={{ color: '#22c55e' }}>{formatNumber(tooltip.data.high, symbol)}</span>
-            <span>저가</span><span className="text-right tabular-nums" style={{ color: '#ef4444' }}>{formatNumber(tooltip.data.low, symbol)}</span>
-            <span>종가</span><span className="text-right tabular-nums font-medium" style={{ color }}>{formatNumber(tooltip.data.close, symbol)}</span>
+            <span>{t('history.open')}</span><span className="text-right tabular-nums">{formatNumber(tooltip.data.open, symbol)}</span>
+            <span>{t('history.high')}</span><span className="text-right tabular-nums" style={{ color: '#22c55e' }}>{formatNumber(tooltip.data.high, symbol)}</span>
+            <span>{t('history.low')}</span><span className="text-right tabular-nums" style={{ color: '#ef4444' }}>{formatNumber(tooltip.data.low, symbol)}</span>
+            <span>{t('history.close')}</span><span className="text-right tabular-nums font-medium" style={{ color }}>{formatNumber(tooltip.data.close, symbol)}</span>
           </div>
         </div>
       )}
@@ -176,7 +176,7 @@ function Chart({ data, symbol, color, width, height }) {
   );
 }
 
-function StatsRow({ data, symbol, color }) {
+function StatsRow({ data, symbol, color, t }) {
   if (!data || data.length < 2) return null;
   const first = data[0].close;
   const last = data[data.length - 1].close;
@@ -192,11 +192,11 @@ function StatsRow({ data, symbol, color }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3 mt-3 px-1">
       {[
-        { label: '시작', value: formatNumber(first, symbol) },
-        { label: '현재', value: formatNumber(last, symbol), highlight: true },
-        { label: '변동', value: `${isUp ? '+' : ''}${formatNumber(change, symbol)} (${isUp ? '+' : ''}${changePct}%)`, color: isUp ? '#22c55e' : '#ef4444' },
-        { label: '최고', value: formatNumber(max, symbol), color: '#22c55e' },
-        { label: '최저', value: formatNumber(min, symbol), color: '#ef4444' },
+        { label: t('history.start'), value: formatNumber(first, symbol) },
+        { label: t('history.current'), value: formatNumber(last, symbol), highlight: true },
+        { label: t('history.change'), value: `${isUp ? '+' : ''}${formatNumber(change, symbol)} (${isUp ? '+' : ''}${changePct}%)`, color: isUp ? '#22c55e' : '#ef4444' },
+        { label: t('history.max'), value: formatNumber(max, symbol), color: '#22c55e' },
+        { label: t('history.min'), value: formatNumber(min, symbol), color: '#ef4444' },
       ].map((s, i) => (
         <div key={i} className="px-2 py-1.5 rounded-lg" style={{ background: 'var(--bg-hover)' }}>
           <div className="text-[9px] sm:text-[10px]" style={{ color: 'var(--text-muted)' }}>{s.label}</div>
@@ -212,7 +212,7 @@ function StatsRow({ data, symbol, color }) {
   );
 }
 
-export default function HistoryPage() {
+export default function HistoryPage({ t = (k) => k }) {
   const [selected, setSelected] = useState('kospi');
   const [period, setPeriod] = useState('3m');
   const [data, setData] = useState(null);
@@ -261,7 +261,7 @@ export default function HistoryPage() {
       if (!cancelled) {
         setData(d);
         setLoading(false);
-        if (d.length === 0) setError('데이터가 없습니다');
+        if (d.length === 0) setError(t('history.noData'));
       }
     });
     return () => { cancelled = true; };
@@ -281,7 +281,7 @@ export default function HistoryPage() {
     <div ref={containerRef} className="px-3 sm:px-4 py-4 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base sm:text-lg font-bold">📈 시세 히스토리</h2>
+        <h2 className="text-base sm:text-lg font-bold">📈 {t('history.title')}</h2>
       </div>
 
       {/* Symbol selector */}
@@ -321,14 +321,14 @@ export default function HistoryPage() {
         ))}
         {/* Compare toggle */}
         <div className="ml-auto flex items-center gap-1">
-          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>비교:</span>
+          <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('history.compare')}</span>
           <select
             value={compare || ''}
             onChange={(e) => setCompare(e.target.value || null)}
             className="text-[10px] sm:text-xs px-1.5 py-1 rounded"
             style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
           >
-            <option value="">없음</option>
+            <option value="">{t('history.none')}</option>
             {SYMBOLS.filter(s => s.key !== selected).map(s => (
               <option key={s.key} value={s.key}>{s.name}</option>
             ))}
@@ -350,18 +350,18 @@ export default function HistoryPage() {
         </div>
         {loading ? (
           <div className="flex items-center justify-center" style={{ height: chartHeight }}>
-            <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>불러오는 중...</div>
+            <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</div>
           </div>
         ) : error ? (
           <div className="flex items-center justify-center" style={{ height: chartHeight }}>
-            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>⚠️ {error}</div>
+            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>⚠️ {error || t('history.noData')}</div>
           </div>
         ) : (
           <>
-            <Chart data={data} symbol={selected} color={sym?.color || '#888'} width={chartWidth} height={chartHeight} />
+            <Chart data={data} symbol={selected} color={sym?.color || '#888'} width={chartWidth} height={chartHeight} t={t} />
             {compare && compareData && compareData.length > 0 && (
               <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
-                <Chart data={compareData} symbol={compare} color={compSym?.color || '#888'} width={chartWidth} height={Math.round(chartHeight * 0.6)} />
+                <Chart data={compareData} symbol={compare} color={compSym?.color || '#888'} width={chartWidth} height={Math.round(chartHeight * 0.6)} t={t} />
               </div>
             )}
           </>
@@ -400,15 +400,15 @@ export default function HistoryPage() {
           }
           const corr = (varA > 0 && varB > 0) ? cov / Math.sqrt(varA * varB) : 0;
           const absCorr = Math.abs(corr);
-          const corrLabel = absCorr >= 0.8 ? '매우 강함' : absCorr >= 0.6 ? '강함' : absCorr >= 0.4 ? '보통' : absCorr >= 0.2 ? '약함' : '거의 없음';
+          const corrLabel = absCorr >= 0.8 ? t('history.corrVeryStrong') : absCorr >= 0.6 ? t('history.corrStrong') : absCorr >= 0.4 ? t('history.corrModerate') : absCorr >= 0.2 ? t('history.corrWeak') : t('history.corrVeryWeak');
           const corrColor = corr >= 0.6 ? '#22c55e' : corr >= 0.2 ? '#3b82f6' : corr >= -0.2 ? '#6b7280' : corr >= -0.6 ? '#f59e0b' : '#ef4444';
-          const corrDir = corr > 0.1 ? '양의 상관' : corr < -0.1 ? '음의 상관' : '무상관';
+          const corrDir = corr > 0.1 ? t('history.corrPositive') : corr < -0.1 ? t('history.corrNegative') : t('history.corrNone');
 
           return (
             <div className="mt-2 p-2 rounded-lg" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>📐 상관관계</span>
+                  <span className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>📐 {t('history.correlation')}</span>
                   <span className="text-xs font-bold tabular-nums" style={{ color: corrColor }}>
                     {corr >= 0 ? '+' : ''}{corr.toFixed(3)}
                   </span>
@@ -417,7 +417,7 @@ export default function HistoryPage() {
                   </span>
                 </div>
                 <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                  {sym?.name} vs {compSym?.name} · {n}일 일간수익률 기준
+                  {sym?.name} vs {compSym?.name} · {n}{t('history.dayReturnBasis')}
                 </span>
               </div>
               {/* Correlation bar */}
@@ -433,20 +433,20 @@ export default function HistoryPage() {
                 />
               </div>
               <div className="flex justify-between mt-0.5 text-[8px]" style={{ color: 'var(--text-muted)' }}>
-                <span>-1 (역상관)</span>
+                <span>{t('history.negCorrelationScale')}</span>
                 <span>0</span>
-                <span>+1 (정상관)</span>
+                <span>{t('history.posCorrelationScale')}</span>
               </div>
             </div>
           );
         })()}
 
         {/* Stats */}
-        {data && data.length > 0 && <StatsRow data={data} symbol={selected} color={sym?.color || '#888'} />}
+        {data && data.length > 0 && <StatsRow data={data} symbol={selected} color={sym?.color || '#888'} t={t} />}
         {compare && compareData && compareData.length > 0 && (
           <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
             <div className="text-[10px] font-medium mb-1" style={{ color: compSym?.color }}>{compSym?.name}</div>
-            <StatsRow data={compareData} symbol={compare} color={compSym?.color || '#888'} />
+            <StatsRow data={compareData} symbol={compare} color={compSym?.color || '#888'} t={t} />
           </div>
         )}
       </div>
@@ -455,10 +455,10 @@ export default function HistoryPage() {
       {data && data.length > 0 && (
         <div className="mt-4 rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
-            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>일별 데이터 ({data.length}일)</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('history.dailyData')} ({data.length}{t('history.daysUnit')})</span>
             <button
               onClick={() => {
-                const rows = [['날짜', '시가', '고가', '저가', '종가']];
+                const rows = [[t('history.date'), t('history.open'), t('history.high'), t('history.low'), t('history.close')]];
                 data.forEach(d => rows.push([d.date, d.open, d.high, d.low, d.close]));
                 const csv = rows.map(r => r.join(',')).join('\n');
                 const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv' });
@@ -477,12 +477,12 @@ export default function HistoryPage() {
             <table className="w-full text-[10px] sm:text-xs">
               <thead>
                 <tr style={{ background: 'var(--bg-hover)' }}>
-                  <th className="px-3 py-1.5 text-left font-medium" style={{ color: 'var(--text-muted)' }}>날짜</th>
-                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: 'var(--text-muted)' }}>시가</th>
-                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: '#22c55e' }}>고가</th>
-                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: '#ef4444' }}>저가</th>
-                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: 'var(--text-muted)' }}>종가</th>
-                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: 'var(--text-muted)' }}>변동</th>
+                  <th className="px-3 py-1.5 text-left font-medium" style={{ color: 'var(--text-muted)' }}>{t('history.date')}</th>
+                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: 'var(--text-muted)' }}>{t('history.open')}</th>
+                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: '#22c55e' }}>{t('history.high')}</th>
+                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: '#ef4444' }}>{t('history.low')}</th>
+                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: 'var(--text-muted)' }}>{t('history.close')}</th>
+                  <th className="px-3 py-1.5 text-right font-medium" style={{ color: 'var(--text-muted)' }}>{t('history.change')}</th>
                 </tr>
               </thead>
               <tbody>
