@@ -22,18 +22,18 @@ function getCachedArticles() {
 }
 function setCachedArticles(data) { localStorage.setItem(RSS_CACHE_KEY, JSON.stringify(data)); }
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, t) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   if (isNaN(diff) || diff < 0) return '';
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}분 전`;
+  if (mins < 60) return `${mins}${t('rss.minutesAgo')}`;
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}시간 전`;
-  return `${Math.floor(hrs / 24)}일 전`;
+  if (hrs < 24) return `${hrs}${t('rss.hoursAgo')}`;
+  return `${Math.floor(hrs / 24)}${t('rss.daysAgo')}`;
 }
 
-export default function RSSFeeds() {
+export default function RSSFeeds({ t = (k) => k }) {
   const [feeds, setFeeds] = useState(getFeeds);
   const [articles, setArticles] = useState({});
   const [loading, setLoading] = useState(false);
@@ -69,8 +69,8 @@ export default function RSSFeeds() {
       }
       setArticles(map);
       setCachedArticles(map);
-      if (errCount > 0 && errCount < feeds.length) setError(`${errCount}개 피드 로딩 실패`);
-      else if (errCount === feeds.length && feeds.length > 0) setError('모든 피드 로딩 실패');
+      if (errCount > 0 && errCount < feeds.length) setError(`${errCount}${t('rss.feedLoadFailedSuffix')}`);
+      else if (errCount === feeds.length && feeds.length > 0) setError(t('rss.allFeedsLoadFailed'));
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export default function RSSFeeds() {
   const addFeed = () => {
     const url = newUrl.trim();
     if (!url) return;
-    if (feeds.some(f => f.url === url)) { setError('이미 등록된 피드입니다'); return; }
+    if (feeds.some(f => f.url === url)) { setError(t('rss.alreadyAdded')); return; }
     const name = newName.trim() || url.replace(/^https?:\/\//, '').split('/')[0];
     const next = [...feeds, { name, url, addedAt: new Date().toISOString() }];
     setFeeds(next);
@@ -132,18 +132,18 @@ export default function RSSFeeds() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-3 px-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📡 RSS 피드</h2>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>{t('rss.title')}</h2>
           <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-            {feeds.length}개 구독
+            {feeds.length}{t('rss.subscribedCountSuffix')}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          {loading && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>로딩중...</span>}
+          {loading && <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('rss.loading')}</span>}
           <button
             onClick={fetchAll}
             className="text-[10px] sm:text-xs px-2 py-1 rounded transition-colors"
             style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-            title="새로고침"
+            title={t('rss.refresh')}
           >🔄</button>
           <button
             onClick={() => setShowManage(v => !v)}
@@ -152,7 +152,7 @@ export default function RSSFeeds() {
               background: showManage ? 'rgba(59,130,246,0.15)' : 'var(--bg-hover)',
               color: showManage ? '#3b82f6' : 'var(--text-muted)',
             }}
-          >⚙️ 관리</button>
+          >{t('rss.manage')}</button>
         </div>
       </div>
 
@@ -165,12 +165,12 @@ export default function RSSFeeds() {
       {/* Management panel */}
       {showManage && (
         <div className="mx-2 mb-3 p-3 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
-          <div className="text-[11px] font-bold mb-2" style={{ color: 'var(--text-muted)' }}>피드 추가</div>
+          <div className="text-[11px] font-bold mb-2" style={{ color: 'var(--text-muted)' }}>{t('rss.addFeed')}</div>
           <div className="flex gap-1.5 mb-2">
             <input
               value={newUrl}
               onChange={e => setNewUrl(e.target.value)}
-              placeholder="RSS/Atom 피드 URL"
+              placeholder={t('rss.feedUrlPlaceholder')}
               className="flex-1 px-2 py-1.5 text-xs rounded"
               style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
               onKeyDown={e => { if (e.key === 'Enter') addFeed(); }}
@@ -178,7 +178,7 @@ export default function RSSFeeds() {
             <input
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              placeholder="이름 (선택)"
+              placeholder={t('rss.nameOptionalPlaceholder')}
               className="w-24 px-2 py-1.5 text-xs rounded"
               style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
             />
@@ -186,11 +186,11 @@ export default function RSSFeeds() {
               onClick={addFeed}
               className="px-3 py-1.5 text-xs rounded font-medium"
               style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
-            >추가</button>
+            >{t('rss.add')}</button>
           </div>
 
           {/* Suggestions */}
-          <div className="text-[10px] mb-1.5" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>추천 피드:</div>
+          <div className="text-[10px] mb-1.5" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{t('rss.suggestedFeeds')}</div>
           <div className="flex flex-wrap gap-1 mb-3">
             {SUGGESTIONS.map(s => {
               const added = feeds.some(f => f.url === s.url);
@@ -217,7 +217,7 @@ export default function RSSFeeds() {
           {/* Current feeds */}
           {feeds.length > 0 && (
             <div>
-              <div className="text-[10px] mb-1.5" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>구독 목록:</div>
+              <div className="text-[10px] mb-1.5" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{t('rss.subscriptions')}</div>
               <div className="space-y-1">
                 {feeds.map(f => (
                   <div key={f.url} className="flex items-center justify-between px-2 py-1 rounded" style={{ background: 'var(--bg-card)' }}>
@@ -226,7 +226,7 @@ export default function RSSFeeds() {
                       <span className="text-[9px] ml-2 truncate" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>{f.url}</span>
                       {articles[f.url] && (
                         <span className="text-[9px] ml-1.5" style={{ color: articles[f.url].error ? '#ef4444' : '#22c55e' }}>
-                          {articles[f.url].error ? '⚠️ 오류' : `${articles[f.url].items?.length || 0}건`}
+                          {articles[f.url].error ? t('rss.error') : `${articles[f.url].items?.length || 0}${t('rss.countSuffix')}`}
                         </span>
                       )}
                     </div>
@@ -251,7 +251,7 @@ export default function RSSFeeds() {
               fontWeight: filter === 'all' ? 600 : 400,
             }}
           >
-            전체 {allArticles.length > 0 && <span className="ml-1 text-[9px] opacity-70">{Object.values(articles).reduce((s, d) => s + (d.items?.length || 0), 0)}</span>}
+            {t('rss.all')} {allArticles.length > 0 && <span className="ml-1 text-[9px] opacity-70">{Object.values(articles).reduce((s, d) => s + (d.items?.length || 0), 0)}</span>}
           </button>
           {feeds.map(f => {
             const count = articles[f.url]?.items?.length || 0;
@@ -277,14 +277,14 @@ export default function RSSFeeds() {
       {feeds.length === 0 && (
         <div className="text-center py-12">
           <div className="text-3xl mb-3">📡</div>
-          <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>RSS 피드를 구독해보세요</p>
-          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>관심 있는 뉴스 소스의 RSS/Atom 피드를 추가하면 여기서 한눈에 확인할 수 있습니다</p>
+          <p className="text-sm mb-2" style={{ color: 'var(--text-muted)' }}>{t('rss.emptyTitle')}</p>
+          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{t('rss.emptyDescription')}</p>
           <button
             onClick={() => setShowManage(true)}
             className="px-4 py-2 text-xs rounded-lg font-medium"
             style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}
           >
-            ⚙️ 피드 추가하기
+            {t('rss.addFeedCta')}
           </button>
         </div>
       )}
@@ -310,14 +310,14 @@ export default function RSSFeeds() {
                 </span>
                 <div className="flex flex-col items-end shrink-0">
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.feedName}</span>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{timeAgo(a.pubDate)}</span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>{timeAgo(a.pubDate, t)}</span>
                 </div>
               </a>
             </div>
           ))}
           {allArticles.length > 50 && (
             <p className="text-center text-[10px] py-2" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
-              +{allArticles.length - 50}건 더 있음
+              +{allArticles.length - 50}{t('rss.moreItems')}
             </p>
           )}
         </div>

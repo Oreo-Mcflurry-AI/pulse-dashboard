@@ -702,7 +702,7 @@ export default function App() {
             ) : page === 'search' ? (
               <StockSearch t={t} />
             ) : page === 'rss' ? (
-              <RSSFeeds />
+              <RSSFeeds t={t} />
             ) : (
               <MarketTimeline t={t} />
             )}
