@@ -20,6 +20,7 @@ export const translations = {
       mainMenu: '주요 메뉴',
       mobileMenu: '모바일 메뉴',
       languageToggle: '언어 전환',
+      locale: 'ko-KR',
     },
     dashboard: {
       widgetSettings: '⚙️ 위젯 순서 설정',
@@ -80,6 +81,9 @@ export const translations = {
       legendMedium: '🟡 보통 = 시장 영향 중간',
       legendLow: '⚪ 낮음 = 시장 영향 적음',
       legendSource: '출처: ForexFactory',
+      result: '결과',
+      forecast: '예상',
+      previous: '이전',
     },
     heatmap: {
       title: '🗺️ 업종별 히트맵',
@@ -330,6 +334,7 @@ export const translations = {
       mainMenu: 'Main navigation',
       mobileMenu: 'Mobile navigation',
       languageToggle: 'Toggle language',
+      locale: 'en-US',
     },
     dashboard: {
       widgetSettings: '⚙️ Widget order settings',
@@ -390,6 +395,9 @@ export const translations = {
       legendMedium: '🟡 Medium = moderate market impact',
       legendLow: '⚪ Low = light market impact',
       legendSource: 'Source: ForexFactory',
+      result: 'Actual',
+      forecast: 'Forecast',
+      previous: 'Previous',
     },
     heatmap: {
       title: '🗺️ Sector Heatmap',

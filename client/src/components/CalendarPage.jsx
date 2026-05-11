@@ -1,13 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 
 const IMPACT_COLORS = {
-  3: { bg: '#ef444420', border: '#ef444440', text: '#ef4444', label: '🔴 높음' },
-  2: { bg: '#f59e0b20', border: '#f59e0b40', text: '#f59e0b', label: '🟡 보통' },
-  1: { bg: '#6b728020', border: '#6b728040', text: '#6b7280', label: '⚪ 낮음' },
-  0: { bg: '#6b728010', border: '#6b728020', text: '#6b728080', label: '📅 휴일' },
+  3: { bg: '#ef444420', border: '#ef444440', text: '#ef4444' },
+  2: { bg: '#f59e0b20', border: '#f59e0b40', text: '#f59e0b' },
+  1: { bg: '#6b728020', border: '#6b728040', text: '#6b7280' },
+  0: { bg: '#6b728010', border: '#6b728020', text: '#6b728080' },
 };
-
-const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
 
 function formatTime(dateStr) {
   if (!dateStr) return '';
@@ -16,9 +14,10 @@ function formatTime(dateStr) {
   return `${String(kst.getHours()).padStart(2, '0')}:${String(kst.getMinutes()).padStart(2, '0')}`;
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr, locale = 'ko-KR') {
   const d = new Date(dateStr + 'T00:00:00');
-  return `${d.getMonth() + 1}/${d.getDate()} (${DAY_NAMES[d.getDay()]})`;
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: 'short', timeZone: 'Asia/Seoul' }).format(d);
+  return `${d.getMonth() + 1}/${d.getDate()} (${weekday})`;
 }
 
 function isToday(dateStr) {
@@ -33,7 +32,7 @@ function isPast(dateStr) {
   return dateStr < kst.toISOString().slice(0, 10);
 }
 
-function EventRow({ event }) {
+function EventRow({ event, t = (k) => k }) {
   const colors = IMPACT_COLORS[event.impactLevel] || IMPACT_COLORS[1];
   const time = formatTime(event.date);
   const hasResult = event.actual !== '';
@@ -81,18 +80,18 @@ function EventRow({ event }) {
       <div className="text-right shrink-0 w-28 sm:w-36">
         {hasResult ? (
           <div className="flex items-center gap-1 justify-end">
-            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>결과:</span>
+            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('calendar.result')}:</span>
             <span className="text-xs font-bold" style={{ color: '#22c55e' }}>{event.actual}</span>
           </div>
         ) : event.forecast ? (
           <div className="flex items-center gap-1 justify-end">
-            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>예상:</span>
+            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('calendar.forecast')}:</span>
             <span className="text-xs tabular-nums">{event.forecast}</span>
           </div>
         ) : null}
         {event.previous && (
           <div className="flex items-center gap-1 justify-end">
-            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>이전:</span>
+            <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('calendar.previous')}:</span>
             <span className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{event.previous}</span>
           </div>
         )}
@@ -217,7 +216,7 @@ export default function CalendarPage({ t = (k) => k }) {
                   borderBottom: '1px solid var(--border)',
                 }}>
                   <span className="text-xs font-bold" style={{ color: today ? '#3b82f6' : 'var(--text-primary)' }}>
-                    {formatDate(date)}
+                    {formatDate(date, t('common.locale'))}
                   </span>
                   {today && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: '#3b82f620', color: '#3b82f6' }}>{t('calendar.today')}</span>}
                   <span className="text-[9px] ml-auto" style={{ color: 'var(--text-muted)' }}>
@@ -230,7 +229,7 @@ export default function CalendarPage({ t = (k) => k }) {
                 {/* Events */}
                 <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
                   {filtered[date].map((event, i) => (
-                    <EventRow key={`${event.date}-${i}`} event={event} />
+                    <EventRow key={`${event.date}-${i}`} event={event} t={t} />
                   ))}
                 </div>
               </div>
