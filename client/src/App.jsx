@@ -18,6 +18,7 @@ import MarketAlertSettings, { useMarketAlertChecker } from './components/MarketA
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
 import { useWidgetLayout } from './hooks/useWidgetLayout';
+import { LANG_KEY, resolveInitialLanguage, makeT } from './i18n';
 
 // ─── Visit Statistics ───
 const VISIT_KEY = 'pulse-visit-stats';
@@ -103,6 +104,8 @@ export default function App() {
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle, mode: themeMode, setMode: setThemeMode, colorScheme, setColorScheme } = useTheme();
   const { widgets, moveUp, moveDown, toggleVisible, toggleCollapsed, reset: resetLayout, allPresets, applyPreset, saveAsPreset, deletePreset } = useWidgetLayout();
+  const [lang, setLang] = useState(resolveInitialLanguage);
+  const t = makeT(lang);
   const [presetName, setPresetName] = useState('');
   const [showPresetSave, setShowPresetSave] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
@@ -117,6 +120,10 @@ export default function App() {
     const t = setInterval(() => { setNow(Date.now()); setMktStatus(getMarketStatus()); }, 5000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(LANG_KEY, lang);
+  }, [lang]);
 
   // Market alert checker
   useMarketAlertChecker(market);
@@ -226,13 +233,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen pb-16 sm:pb-0 transition-colors duration-200" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
-      <a href="#main-content" className="skip-link">본문으로 건너뛰기</a>
+      <a href="#main-content" className="skip-link">{t('common.skipToContent')}</a>
       <div className="max-w-5xl mx-auto">
         <header role="banner" className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${live ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} title={live ? 'LIVE (실시간)' : 'Polling (30s)'} role="status" aria-label={live ? '실시간 연결됨' : '폴링 모드'} />
             <h1 className="text-base sm:text-xl font-bold tracking-tight cursor-pointer" onClick={() => navigate('dashboard')}>PULSE</h1>
-            <nav aria-label="주요 메뉴" className="hidden sm:flex items-center gap-1 ml-2 sm:ml-4">
+            <nav aria-label={t('common.mainMenu')} className="hidden sm:flex items-center gap-1 ml-2 sm:ml-4">
               <button
                 onClick={() => navigate('dashboard')}
                 aria-current={page === 'dashboard' ? 'page' : undefined}
@@ -243,7 +250,7 @@ export default function App() {
                   fontWeight: page === 'dashboard' ? 600 : 400,
                 }}
               >
-                대시보드
+                {t('nav.dashboard')}
               </button>
               <button
                 onClick={() => navigate('briefings')}
@@ -255,7 +262,7 @@ export default function App() {
                   fontWeight: page === 'briefings' ? 600 : 400,
                 }}
               >
-                📰 브리핑
+                {t('nav.briefings')}
               </button>
               <button
                 onClick={() => navigate('portfolio')}
@@ -267,7 +274,7 @@ export default function App() {
                   fontWeight: page === 'portfolio' ? 600 : 400,
                 }}
               >
-                💼 포트폴리오
+                {t('nav.portfolio')}
               </button>
               <button
                 onClick={() => navigate('history')}
@@ -279,7 +286,7 @@ export default function App() {
                   fontWeight: page === 'history' ? 600 : 400,
                 }}
               >
-                📈 히스토리
+                {t('nav.history')}
               </button>
               <button
                 onClick={() => navigate('heatmap')}
@@ -291,7 +298,7 @@ export default function App() {
                   fontWeight: page === 'heatmap' ? 600 : 400,
                 }}
               >
-                🗺️ 히트맵
+                {t('nav.heatmap')}
               </button>
               <button
                 onClick={() => navigate('calendar')}
@@ -303,7 +310,7 @@ export default function App() {
                   fontWeight: page === 'calendar' ? 600 : 400,
                 }}
               >
-                📅 캘린더
+                {t('nav.calendar')}
               </button>
               <button
                 onClick={() => navigate('search')}
@@ -315,7 +322,7 @@ export default function App() {
                   fontWeight: page === 'search' ? 600 : 400,
                 }}
               >
-                🔍 종목
+                {t('nav.search')}
               </button>
               <button
                 onClick={() => navigate('timeline')}
@@ -327,7 +334,7 @@ export default function App() {
                   fontWeight: page === 'timeline' ? 600 : 400,
                 }}
               >
-                🌍 타임라인
+                {t('nav.timeline')}
               </button>
               <button
                 onClick={() => navigate('rss')}
@@ -339,7 +346,7 @@ export default function App() {
                   fontWeight: page === 'rss' ? 600 : 400,
                 }}
               >
-                📡 RSS
+                {t('nav.rss')}
               </button>
             </nav>
           </div>
@@ -349,6 +356,15 @@ export default function App() {
                 {relativeTime(market?.updatedAt)}
               </span>
             )}
+            <button
+              onClick={() => setLang(prev => (prev === 'ko' ? 'en' : 'ko'))}
+              className="text-[10px] sm:text-xs px-2 py-1 rounded-md transition-colors"
+              style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
+              title={t('common.languageToggle')}
+              aria-label={t('common.languageToggle')}
+            >
+              {lang === 'ko' ? 'KO' : 'EN'}
+            </button>
             <button
               onClick={() => setShowMarketAlerts(true)}
               className="p-1 transition-colors rounded hover:opacity-80"
@@ -481,7 +497,7 @@ export default function App() {
             {showLayoutSettings && (
               <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 p-3 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>⚙️ 위젯 순서 설정</span>
+                  <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{t('dashboard.widgetSettings')}</span>
                   <button onClick={resetLayout} className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>초기화</button>
                 </div>
 
@@ -674,7 +690,7 @@ export default function App() {
             </footer>
           </>
         ) : (
-          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>불러오는 중...</div></div>}>
+          <Suspense fallback={<div className="flex items-center justify-center py-20"><div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>{t('common.loading')}</div></div>}>
             {page === 'briefings' ? (
               <BriefingPage />
             ) : page === 'portfolio' ? (
@@ -697,13 +713,13 @@ export default function App() {
         </main>
       </div>
       {/* Mobile bottom navigation */}
-      <nav aria-label="모바일 메뉴" className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-1 py-1.5 safe-area-pb" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+      <nav aria-label={t('common.mobileMenu')} className="sm:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center justify-around px-1 py-1.5 safe-area-pb" style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
         {[
-          { id: 'dashboard', icon: '📊', label: '대시보드' },
-          { id: 'briefings', icon: '📰', label: '브리핑' },
-          { id: 'portfolio', icon: '💼', label: '포트폴리오' },
-          { id: 'heatmap', icon: '🗺️', label: '히트맵' },
-          { id: 'search', icon: '🔍', label: '종목' },
+          { id: 'dashboard', icon: '📊', label: t('nav.dashboard') },
+          { id: 'briefings', icon: '📰', label: t('nav.briefings') },
+          { id: 'portfolio', icon: '💼', label: t('nav.portfolio') },
+          { id: 'heatmap', icon: '🗺️', label: t('nav.heatmap') },
+          { id: 'search', icon: '🔍', label: t('nav.search') },
         ].map(tab => (
           <button
             key={tab.id}
@@ -723,10 +739,10 @@ export default function App() {
         {/* More menu for remaining pages */}
         {(() => {
           const moreTabs = [
-            { id: 'history', icon: '📈', label: '히스토리' },
-            { id: 'calendar', icon: '📅', label: '캘린더' },
-            { id: 'timeline', icon: '🌍', label: '타임라인' },
-            { id: 'rss', icon: '📡', label: 'RSS' },
+            { id: 'history', icon: '📈', label: t('nav.history') },
+            { id: 'calendar', icon: '📅', label: t('nav.calendar') },
+            { id: 'timeline', icon: '🌍', label: t('nav.timeline') },
+            { id: 'rss', icon: '📡', label: t('nav.rss') },
           ];
           const isMoreActive = moreTabs.some(t => t.id === page);
           const [showMore, setShowMore] = useState(false);
@@ -744,7 +760,7 @@ export default function App() {
                 aria-label="더보기 메뉴"
               >
                 <span className="text-base leading-none">{isMoreActive ? moreTabs.find(t => t.id === page)?.icon : '···'}</span>
-                <span className="text-[9px] font-medium">{isMoreActive ? moreTabs.find(t => t.id === page)?.label : '더보기'}</span>
+                <span className="text-[9px] font-medium">{isMoreActive ? moreTabs.find(t => t.id === page)?.label : t('nav.more')}</span>
               </button>
               {showMore && (
                 <>
@@ -785,7 +801,7 @@ export default function App() {
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>⌨️ 키보드 단축키</h3>
+              <h3 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{t('dashboard.shortcuts')}</h3>
               <button onClick={() => setShowShortcuts(false)} className="text-xs px-2 py-1 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>ESC</button>
             </div>
             <div className="space-y-1.5">
