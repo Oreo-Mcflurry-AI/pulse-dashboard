@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export default function WeatherWidget() {
+export default function WeatherWidget({ t = (k) => k }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(false);
 
@@ -19,7 +19,7 @@ export default function WeatherWidget() {
     <div
       className="mx-3 sm:mx-4 mt-2 p-3 rounded-xl"
       role="region"
-      aria-label="날씨 정보"
+      aria-label={t('weather.ariaLabel')}
       style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
     >
       <div className="flex items-center justify-between">
@@ -30,7 +30,7 @@ export default function WeatherWidget() {
             <div className="flex items-baseline gap-1">
               <span className="text-lg font-bold tabular-nums">{current.temp}°</span>
               <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-                체감 {current.feelsLike}°
+                {t('weather.feelsLike')} {current.feelsLike}°
               </span>
             </div>
             <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>

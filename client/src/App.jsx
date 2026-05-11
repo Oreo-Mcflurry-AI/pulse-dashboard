@@ -636,7 +636,7 @@ export default function App() {
             {widgets.filter(w => w.visible).map(w => {
               const content = (() => {
                 switch (w.id) {
-                  case 'weather': return <WeatherWidget key={w.id} />;
+                  case 'weather': return <WeatherWidget key={w.id} t={t} />;
                   case 'sentiment': return <MarketSentiment data={market} fearGreedHistory={market?.sparklines?.fear_greed} t={t} />;
                   case 'market': return <MarketGrid data={market} news={news} />;
                   case 'news': return (

@@ -158,6 +158,10 @@ export const translations = {
       hoursAgo: '시간 전',
       daysAgo: '일 전',
     },
+    weather: {
+      ariaLabel: '날씨 정보',
+      feelsLike: '체감',
+    },
     sentiment: {
       momentum: '모멘텀',
       safeAssets: '안전자산',
@@ -387,6 +391,10 @@ export const translations = {
       minutesAgo: 'm ago',
       hoursAgo: 'h ago',
       daysAgo: 'd ago',
+    },
+    weather: {
+      ariaLabel: 'Weather information',
+      feelsLike: 'Feels like',
     },
     sentiment: {
       momentum: 'Momentum',
