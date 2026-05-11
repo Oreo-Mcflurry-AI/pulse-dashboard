@@ -74,23 +74,37 @@ export function shouldNotify(type) {
 }
 
 // ─── Notification Center UI ───
-function timeAgo(iso) {
+function timeAgo(iso, t = null) {
+  const tt = (key, fallback) => {
+    if (!t) return fallback;
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return '방금';
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-  return `${Math.floor(diff / 86400)}일 전`;
+  if (diff < 60) return tt('notifications.justNow', '방금');
+  if (diff < 3600) return `${Math.floor(diff / 60)}${tt('notifications.minutesAgo', '분 전')}`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}${tt('notifications.hoursAgo', '시간 전')}`;
+  return `${Math.floor(diff / 86400)}${tt('notifications.daysAgo', '일 전')}`;
 }
 
 const TYPE_ICONS = { market: '📊', news: '📰', portfolio: '🎯', system: '⚙️' };
-const TYPE_LABELS = { market: '시세', news: '뉴스', portfolio: '포트폴리오', system: '시스템' };
 const TYPE_COLORS = { market: '#3b82f6', news: '#f59e0b', portfolio: '#10b981', system: '#6b7280' };
 
-export default function NotificationCenter({ isOpen, onClose }) {
+export default function NotificationCenter({ isOpen, onClose, t = (k) => k }) {
+  const tt = (key, fallback) => {
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
   const [notifications, setNotifications] = useState([]);
   const [settings, setSettings] = useState(getNotifSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [filter, setFilter] = useState('all');
+  const typeLabels = {
+    market: tt('notifications.typeMarket', '시세'),
+    news: tt('notifications.typeNews', '뉴스'),
+    portfolio: tt('notifications.typePortfolio', '포트폴리오'),
+    system: tt('notifications.typeSystem', '시스템'),
+  };
 
   useEffect(() => {
     if (isOpen) setNotifications(getNotifications());
@@ -164,7 +178,7 @@ export default function NotificationCenter({ isOpen, onClose }) {
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2">
             <span className="text-base">🔔</span>
-            <span className="text-sm font-bold">알림 센터</span>
+            <span className="text-sm font-bold">{tt('notifications.title', '알림 센터')}</span>
             {unreadCount > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: '#ef4444', color: '#fff' }}>
                 {unreadCount}
@@ -176,7 +190,7 @@ export default function NotificationCenter({ isOpen, onClose }) {
               onClick={() => setShowSettings(v => !v)}
               className="p-1.5 rounded-lg transition-colors"
               style={{ background: showSettings ? 'var(--bg-hover)' : 'transparent', color: 'var(--text-muted)' }}
-              title="알림 설정"
+              title={tt('notifications.settings', '알림 설정')}
             >
               ⚙️
             </button>
@@ -187,22 +201,22 @@ export default function NotificationCenter({ isOpen, onClose }) {
         {/* Settings Panel */}
         {showSettings && (
           <div className="px-4 py-3 space-y-3" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
-            <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>알림 설정</div>
+            <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{tt('notifications.settings', '알림 설정')}</div>
 
             {/* Master toggle */}
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-xs">알림 활성화</span>
+              <span className="text-xs">{tt('notifications.enabled', '알림 활성화')}</span>
               <input type="checkbox" checked={settings.enabled} onChange={(e) => updateSetting('enabled', e.target.checked)}
                 className="w-4 h-4 accent-blue-500" />
             </label>
 
             {/* Browser notification */}
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-xs">브라우저 알림</span>
+              <span className="text-xs">{tt('notifications.browser', '브라우저 알림')}</span>
               <div className="flex items-center gap-1">
-                {browserPermission === 'denied' && <span className="text-[9px]" style={{ color: '#ef4444' }}>차단됨</span>}
+                {browserPermission === 'denied' && <span className="text-[9px]" style={{ color: '#ef4444' }}>{tt('notifications.blocked', '차단됨')}</span>}
                 {browserPermission === 'default' && (
-                  <button onClick={requestPermission} className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: '#3b82f620', color: '#3b82f6' }}>허용</button>
+                  <button onClick={requestPermission} className="text-[9px] px-1.5 py-0.5 rounded" style={{ background: '#3b82f620', color: '#3b82f6' }}>{tt('notifications.allow', '허용')}</button>
                 )}
                 <input type="checkbox" checked={settings.browser} onChange={(e) => updateSetting('browser', e.target.checked)}
                   className="w-4 h-4 accent-blue-500" disabled={browserPermission !== 'granted'} />
@@ -211,14 +225,14 @@ export default function NotificationCenter({ isOpen, onClose }) {
 
             {/* Silent mode */}
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-xs">소리 없음</span>
+              <span className="text-xs">{tt('notifications.silent', '소리 없음')}</span>
               <input type="checkbox" checked={settings.silent} onChange={(e) => updateSetting('silent', e.target.checked)}
                 className="w-4 h-4 accent-blue-500" />
             </label>
 
             {/* Quiet hours */}
             <div>
-              <div className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>조용한 시간 (KST)</div>
+              <div className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>{tt('notifications.quietHours', '조용한 시간 (KST)')}</div>
               <div className="flex items-center gap-2">
                 <select value={settings.quietStart} onChange={(e) => updateSetting('quietStart', parseInt(e.target.value))}
                   className="text-xs px-1.5 py-1 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
@@ -229,15 +243,15 @@ export default function NotificationCenter({ isOpen, onClose }) {
                   className="text-xs px-1.5 py-1 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
                   {Array.from({ length: 24 }, (_, i) => <option key={i} value={i}>{String(i).padStart(2, '0')}:00</option>)}
                 </select>
-                {isQuietTime(settings) && <span className="text-[9px]" style={{ color: '#f59e0b' }}>🌙 조용한 시간</span>}
+                {isQuietTime(settings) && <span className="text-[9px]" style={{ color: '#f59e0b' }}>🌙 {tt('notifications.quietNow', '조용한 시간')}</span>}
               </div>
             </div>
 
             {/* Type toggles */}
             <div>
-              <div className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>알림 유형</div>
+              <div className="text-[10px] mb-1" style={{ color: 'var(--text-muted)' }}>{tt('notifications.types', '알림 유형')}</div>
               <div className="flex flex-wrap gap-1.5">
-                {Object.entries(TYPE_LABELS).map(([type, label]) => (
+                {Object.entries(typeLabels).map(([type, label]) => (
                   <button
                     key={type}
                     onClick={() => toggleType(type)}
@@ -259,9 +273,9 @@ export default function NotificationCenter({ isOpen, onClose }) {
         {/* Filter tabs */}
         <div className="flex gap-1 px-4 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
           {[
-            { key: 'all', label: '전체' },
-            { key: 'unread', label: `안읽음${unreadCount > 0 ? ` (${unreadCount})` : ''}` },
-            ...Object.entries(TYPE_LABELS).map(([k, v]) => ({ key: k, label: `${TYPE_ICONS[k]} ${v}` })),
+            { key: 'all', label: tt('notifications.filterAll', '전체') },
+            { key: 'unread', label: `${tt('notifications.filterUnread', '안읽음')}${unreadCount > 0 ? ` (${unreadCount})` : ''}` },
+            ...Object.entries(typeLabels).map(([k, v]) => ({ key: k, label: `${TYPE_ICONS[k]} ${v}` })),
           ].map(f => (
             <button
               key={f.key}
@@ -284,12 +298,12 @@ export default function NotificationCenter({ isOpen, onClose }) {
             {unreadCount > 0 && (
               <button onClick={markAllRead} className="text-[10px] px-2 py-0.5 rounded"
                 style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-                모두 읽음
+                {tt('notifications.markAllRead', '모두 읽음')}
               </button>
             )}
             <button onClick={clearAll} className="text-[10px] px-2 py-0.5 rounded"
               style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>
-              전체 삭제
+              {tt('notifications.clearAll', '전체 삭제')}
             </button>
           </div>
         )}
@@ -299,7 +313,7 @@ export default function NotificationCenter({ isOpen, onClose }) {
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48" style={{ color: 'var(--text-muted)' }}>
               <span className="text-3xl mb-2">🔕</span>
-              <span className="text-xs">알림이 없습니다</span>
+              <span className="text-xs">{tt('notifications.empty', '알림이 없습니다')}</span>
             </div>
           ) : (
             filtered.map(n => (
@@ -327,16 +341,16 @@ export default function NotificationCenter({ isOpen, onClose }) {
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[9px] px-1.5 py-0.5 rounded-full"
                         style={{ background: (TYPE_COLORS[n.type] || '#888') + '15', color: TYPE_COLORS[n.type] || '#888' }}>
-                        {TYPE_LABELS[n.type] || n.type}
+                        {typeLabels[n.type] || n.type}
                       </span>
-                      <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.timestamp)}</span>
+                      <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{timeAgo(n.timestamp, t)}</span>
                     </div>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); removeOne(n.id); }}
                     className="text-xs p-1 rounded opacity-0 hover:opacity-100 transition-opacity"
                     style={{ color: 'var(--text-muted)' }}
-                    title="삭제"
+                    title={tt('notifications.delete', '삭제')}
                   >
                     ✕
                   </button>
@@ -351,7 +365,11 @@ export default function NotificationCenter({ isOpen, onClose }) {
 }
 
 // ─── Badge component for nav ───
-export function NotificationBadge({ onClick }) {
+export function NotificationBadge({ onClick, t = (k) => k }) {
+  const tt = (key, fallback) => {
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
   const [count, setCount] = useState(0);
 
   useEffect(() => {
@@ -369,8 +387,8 @@ export function NotificationBadge({ onClick }) {
       onClick={onClick}
       className="relative p-1 transition-colors rounded hover:opacity-80"
       style={{ color: count > 0 ? '#f59e0b' : 'var(--text-muted)' }}
-      title="알림 센터"
-      aria-label={`알림 ${count > 0 ? `${count}개 안읽음` : '없음'}`}
+      title={tt('notifications.title', '알림 센터')}
+      aria-label={count > 0 ? `${tt('notifications.ariaPrefix', '알림')} ${count}${tt('notifications.ariaUnreadSuffix', '개 안읽음')}` : `${tt('notifications.ariaPrefix', '알림')} ${tt('notifications.none', '없음')}`}
     >
       🔔
       {count > 0 && (

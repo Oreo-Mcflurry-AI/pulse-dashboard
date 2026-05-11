@@ -374,7 +374,7 @@ export default function App() {
             >
               🚨
             </button>
-            <NotificationBadge onClick={() => setShowNotifications(true)} />
+            <NotificationBadge onClick={() => setShowNotifications(true)} t={t} />
             <div className="relative">
               <button
                 onClick={toggle}
@@ -786,7 +786,7 @@ export default function App() {
           );
         })()}
       </nav>
-      <NotificationCenter isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+      <NotificationCenter isOpen={showNotifications} onClose={() => setShowNotifications(false)} t={t} />
       <MarketAlertSettings isOpen={showMarketAlerts} onClose={() => setShowMarketAlerts(false)} t={t} />
 
       {/* Keyboard shortcuts help modal */}
