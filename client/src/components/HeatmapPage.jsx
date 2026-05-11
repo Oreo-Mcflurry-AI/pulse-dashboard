@@ -21,7 +21,7 @@ function getColor(change) {
   return { bg: 'var(--bg-hover)', text: 'var(--text-muted)' };
 }
 
-function Treemap({ sectors, width, height, onSelectSector }) {
+function Treemap({ sectors, width, height, onSelectSector, t }) {
   const canvasRef = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const rectsRef = useRef([]);
@@ -172,12 +172,12 @@ function Treemap({ sectors, width, height, onSelectSector }) {
         >
           <div className="font-bold mb-1">{tooltip.data.name}</div>
           <div className="space-y-0.5" style={{ color: 'var(--text-muted)' }}>
-            <div>변동률: <span style={{ color: getColor(tooltip.data.change).text, fontWeight: 600 }}>
+            <div>{t('heatmap.changeRate')}: <span style={{ color: getColor(tooltip.data.change).text, fontWeight: 600 }}>
               {tooltip.data.change >= 0 ? '+' : ''}{tooltip.data.change.toFixed(2)}%
             </span></div>
-            <div>종목: {tooltip.data.total}개 (🔺{tooltip.data.up} ➖{tooltip.data.flat} 🔻{tooltip.data.down})</div>
-            <div>상승비: {tooltip.data.upRatio}%</div>
-            {tooltip.data.weightPct != null && <div>시장 비중: {tooltip.data.weightPct}%</div>}
+            <div>{t('heatmap.stocks')}: {tooltip.data.total}{t('heatmap.countSuffix')} (🔺{tooltip.data.up} ➖{tooltip.data.flat} 🔻{tooltip.data.down})</div>
+            <div>{t('heatmap.upRatio')}: {tooltip.data.upRatio}%</div>
+            {tooltip.data.weightPct != null && <div>{t('heatmap.marketWeight')}: {tooltip.data.weightPct}%</div>}
           </div>
         </div>
       )}
@@ -185,7 +185,7 @@ function Treemap({ sectors, width, height, onSelectSector }) {
   );
 }
 
-function SectorDetailModal({ sector, onClose }) {
+function SectorDetailModal({ sector, onClose, t }) {
   const [stocks, setStocks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -211,16 +211,16 @@ function SectorDetailModal({ sector, onClose }) {
           <div>
             <h3 className="text-sm font-bold">{sector.name}</h3>
             <span className="text-[10px]" style={{ color: getColor(sector.change).text }}>
-              {sector.change >= 0 ? '+' : ''}{sector.change.toFixed(2)}% · {sector.total}종목
+              {sector.change >= 0 ? '+' : ''}{sector.change.toFixed(2)}% · {sector.total}{t('heatmap.stocksUnit')}
             </span>
           </div>
           <button onClick={onClose} className="text-lg" style={{ color: 'var(--text-muted)' }}>✕</button>
         </div>
         <div className="overflow-y-auto flex-1 px-2 py-1">
           {loading ? (
-            <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>로딩 중...</div>
+            <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>{t('heatmap.loading')}</div>
           ) : stocks.length === 0 ? (
-            <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>종목 데이터 없음</div>
+            <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>{t('heatmap.noStockData')}</div>
           ) : (
             stocks.map((s, i) => {
               const rate = parseFloat(s.changeRate) || 0;
@@ -238,7 +238,7 @@ function SectorDetailModal({ sector, onClose }) {
                 >
                   <span className="text-[10px] w-5 text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>{i + 1}</span>
                   <span className="text-xs flex-1 truncate">{s.name}</span>
-                  <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>{s.price}원</span>
+                  <span className="text-xs tabular-nums" style={{ color: 'var(--text-muted)' }}>{s.price}{t('search.currencyWon')}</span>
                   <span className="text-xs font-bold w-16 text-right tabular-nums" style={{ color: colors.text }}>
                     {s.changeRate}
                   </span>
@@ -252,7 +252,7 @@ function SectorDetailModal({ sector, onClose }) {
   );
 }
 
-function SectorList({ sectors, sortKey, onSort, onSelectSector }) {
+function SectorList({ sectors, sortKey, onSort, onSelectSector, t }) {
   const sorted = [...sectors].sort((a, b) => {
     if (sortKey === 'change_desc') return b.change - a.change;
     if (sortKey === 'change_asc') return a.change - b.change;
@@ -264,13 +264,13 @@ function SectorList({ sectors, sortKey, onSort, onSelectSector }) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="flex items-center gap-1 px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
-        <span className="text-xs font-medium flex-1" style={{ color: 'var(--text-muted)' }}>업종별 상세 ({sectors.length}개)</span>
+        <span className="text-xs font-medium flex-1" style={{ color: 'var(--text-muted)' }}>{t('heatmap.sectorDetails').replace('{count}', sectors.length)}</span>
         {[
-          { key: 'default', label: '변동폭' },
-          { key: 'change_desc', label: '▲' },
-          { key: 'change_asc', label: '▼' },
-          { key: 'name', label: 'ㄱ-ㄴ' },
-          { key: 'total', label: '규모' },
+          { key: 'default', label: t('heatmap.sortMagnitude') },
+          { key: 'change_desc', label: t('heatmap.sortUp') },
+          { key: 'change_asc', label: t('heatmap.sortDown') },
+          { key: 'name', label: t('heatmap.sortName') },
+          { key: 'total', label: t('heatmap.sortSize') },
         ].map(s => (
           <button
             key={s.key}
@@ -301,7 +301,7 @@ function SectorList({ sectors, sortKey, onSort, onSelectSector }) {
                 }} />
               </div>
               <span className="text-[10px] w-12 text-right tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                {s.total}종목
+                {s.total}{t('heatmap.stocksUnit')}
               </span>
               <span className="text-[9px] w-10 text-right tabular-nums hidden sm:inline-block" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                 {s.weightPct}%
@@ -317,7 +317,7 @@ function SectorList({ sectors, sortKey, onSort, onSelectSector }) {
   );
 }
 
-export default function HeatmapPage() {
+export default function HeatmapPage({ t }) {
   const [sectors, setSectors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -377,7 +377,7 @@ export default function HeatmapPage() {
   return (
     <div ref={containerRef} className="px-3 sm:px-4 py-4 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base sm:text-lg font-bold">🗺️ 업종별 히트맵</h2>
+        <h2 className="text-base sm:text-lg font-bold">{t('heatmap.title')}</h2>
         <div className="flex gap-1">
           <button
             onClick={() => setView('treemap')}
@@ -387,7 +387,7 @@ export default function HeatmapPage() {
               color: view === 'treemap' ? 'var(--bg-primary)' : 'var(--text-muted)',
             }}
           >
-            🗺️ 맵
+            {t('heatmap.mapView')}
           </button>
           <button
             onClick={() => setView('list')}
@@ -397,7 +397,7 @@ export default function HeatmapPage() {
               color: view === 'list' ? 'var(--bg-primary)' : 'var(--text-muted)',
             }}
           >
-            📋 목록
+            {t('heatmap.listView')}
           </button>
         </div>
       </div>
@@ -406,12 +406,12 @@ export default function HeatmapPage() {
       {sectorsWithWeight.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
           <div className="px-3 py-2 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)' }}>
-            <div className="text-[10px]" style={{ color: '#22c55e' }}>상승 업종</div>
-            <div className="text-lg font-bold" style={{ color: '#22c55e' }}>{upCount}개</div>
+            <div className="text-[10px]" style={{ color: '#22c55e' }}>{t('heatmap.upSectors')}</div>
+            <div className="text-lg font-bold" style={{ color: '#22c55e' }}>{upCount}{t('heatmap.countSuffix')}</div>
           </div>
           <div className="px-3 py-2 rounded-lg" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <div className="text-[10px]" style={{ color: '#ef4444' }}>하락 업종</div>
-            <div className="text-lg font-bold" style={{ color: '#ef4444' }}>{downCount}개</div>
+            <div className="text-[10px]" style={{ color: '#ef4444' }}>{t('heatmap.downSectors')}</div>
+            <div className="text-lg font-bold" style={{ color: '#ef4444' }}>{downCount}{t('heatmap.countSuffix')}</div>
           </div>
           <div className="px-3 py-2 rounded-lg" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <div className="text-[10px]" style={{ color: '#22c55e' }}>🔥 Top</div>
@@ -426,7 +426,7 @@ export default function HeatmapPage() {
 
       {loading ? (
         <div className="flex items-center justify-center" style={{ height: 300 }}>
-          <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>업종 데이터 불러오는 중...</div>
+          <div className="animate-pulse text-sm" style={{ color: 'var(--text-muted)' }}>{t('heatmap.loadingSectors')}</div>
         </div>
       ) : error ? (
         <div className="flex items-center justify-center" style={{ height: 300 }}>
@@ -434,13 +434,13 @@ export default function HeatmapPage() {
         </div>
       ) : view === 'treemap' ? (
         <div className="rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', padding: 8 }}>
-          <Treemap sectors={sectorsWithWeight} width={chartWidth - 16} height={chartHeight} onSelectSector={setSelectedSector} />
+          <Treemap sectors={sectorsWithWeight} width={chartWidth - 16} height={chartHeight} onSelectSector={setSelectedSector} t={t} />
         </div>
       ) : null}
 
       {/* Always show list below (or as main view) */}
       <div className={view === 'treemap' ? 'mt-4' : ''}>
-        <SectorList sectors={sectorsWithWeight} sortKey={sortKey} onSort={setSortKey} onSelectSector={setSelectedSector} />
+        <SectorList sectors={sectorsWithWeight} sortKey={sortKey} onSort={setSortKey} onSelectSector={setSelectedSector} t={t} />
       </div>
 
       {/* Global Market Timeline */}
@@ -449,7 +449,7 @@ export default function HeatmapPage() {
       </div>
 
       {selectedSector && (
-        <SectorDetailModal sector={selectedSector} onClose={() => setSelectedSector(null)} />
+        <SectorDetailModal sector={selectedSector} onClose={() => setSelectedSector(null)} t={t} />
       )}
     </div>
   );

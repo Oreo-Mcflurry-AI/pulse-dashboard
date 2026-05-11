@@ -696,7 +696,7 @@ export default function App() {
             ) : page === 'history' ? (
               <HistoryPage t={t} />
             ) : page === 'heatmap' ? (
-              <HeatmapPage />
+              <HeatmapPage t={t} />
             ) : page === 'calendar' ? (
               <CalendarPage t={t} lang={lang} />
             ) : page === 'search' ? (
