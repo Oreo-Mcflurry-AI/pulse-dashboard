@@ -24,10 +24,10 @@ const MARKET_ICONS = {
 };
 
 const CONDITION_LABELS = {
-  change_above: '변동률 ≥',
-  change_below: '변동률 ≤',
-  price_above: '가격 ≥',
-  price_below: '가격 ≤',
+  change_above: 'alerts.conditionChangeAbove',
+  change_below: 'alerts.conditionChangeBelow',
+  price_above: 'alerts.conditionPriceAbove',
+  price_below: 'alerts.conditionPriceBelow',
 };
 
 // Default thresholds (suggestions)
@@ -73,7 +73,7 @@ function wasFiredRecently(key, cooldownMs = 30 * 60 * 1000) {
 }
 
 // ─── Alert Checking Hook ───
-export function useMarketAlertChecker(market) {
+export function useMarketAlertChecker(market, t = (k) => k) {
   const prevRef = useRef(null);
 
   useEffect(() => {
@@ -127,7 +127,7 @@ export function useMarketAlertChecker(market) {
         setFired(alertKey);
         addNotification({
           type: 'market',
-          title: `🚨 ${MARKET_NAMES[alert.market]} 알림`,
+          title: `🚨 ${MARKET_NAMES[alert.market]} ${t('alerts.notificationTitleSuffix')}`,
           body: message,
         });
       }
@@ -138,7 +138,7 @@ export function useMarketAlertChecker(market) {
 }
 
 // ─── Alert Settings UI ───
-export default function MarketAlertSettings({ isOpen, onClose }) {
+export default function MarketAlertSettings({ isOpen, onClose, t = (k) => k }) {
   const [alerts, setAlerts] = useState([]);
   const [adding, setAdding] = useState(false);
   const [newAlert, setNewAlert] = useState({
@@ -212,9 +212,9 @@ export default function MarketAlertSettings({ isOpen, onClose }) {
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2">
             <span className="text-base">🚨</span>
-            <span className="text-sm font-bold">마켓 알림 설정</span>
+            <span className="text-sm font-bold">{t('alerts.settingsTitle')}</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-              {alerts.filter(a => a.enabled).length}개 활성
+              {alerts.filter(a => a.enabled).length}{t('alerts.activeSuffix')}
             </span>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-muted)' }}>✕</button>
@@ -225,14 +225,14 @@ export default function MarketAlertSettings({ isOpen, onClose }) {
           {alerts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12" style={{ color: 'var(--text-muted)' }}>
               <span className="text-3xl mb-2">📊</span>
-              <span className="text-xs mb-1">설정된 알림이 없습니다</span>
-              <span className="text-[10px] mb-4" style={{ color: 'var(--text-muted)' }}>변동률이나 가격 기준으로 알림을 받아보세요</span>
+              <span className="text-xs mb-1">{t('alerts.emptyTitle')}</span>
+              <span className="text-[10px] mb-4" style={{ color: 'var(--text-muted)' }}>{t('alerts.emptyDescription')}</span>
               <button
                 onClick={addQuickAlerts}
                 className="text-xs px-3 py-1.5 rounded-lg transition-colors"
                 style={{ background: '#3b82f620', color: '#3b82f6', border: '1px solid #3b82f640' }}
               >
-                ⚡ 추천 알림 한번에 추가
+                ⚡ {t('alerts.addRecommended')}
               </button>
             </div>
           ) : (
@@ -247,7 +247,7 @@ export default function MarketAlertSettings({ isOpen, onClose }) {
                         background: alert.condition.includes('above') ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.1)',
                         color: alert.condition.includes('above') ? '#ef4444' : '#22c55e',
                       }}>
-                        {CONDITION_LABELS[alert.condition]}
+                        {t(CONDITION_LABELS[alert.condition])}
                       </span>
                     </div>
                     <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
@@ -256,7 +256,7 @@ export default function MarketAlertSettings({ isOpen, onClose }) {
                         : alert.threshold.toLocaleString()
                       }
                       <span className="text-[9px] ml-2" style={{ color: 'var(--text-muted)' }}>
-                        쿨다운 30분
+                        {t('alerts.cooldown30m')}
                       </span>
                     </div>
                   </div>
@@ -321,7 +321,7 @@ export default function MarketAlertSettings({ isOpen, onClose }) {
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
                 >
                   {Object.entries(CONDITION_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
+                    <option key={k} value={k}>{t(v)}</option>
                   ))}
                 </select>
               </div>
@@ -334,7 +334,7 @@ export default function MarketAlertSettings({ isOpen, onClose }) {
                     onChange={(e) => setNewAlert(a => ({ ...a, threshold: e.target.value }))}
                     className="w-full text-xs px-2 py-1.5 rounded pr-8"
                     style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
-                    placeholder="임계값"
+                    placeholder={t('alerts.thresholdPlaceholder')}
                   />
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px]" style={{ color: 'var(--text-muted)' }}>
                     {isChange ? '%' : ''}
@@ -345,19 +345,19 @@ export default function MarketAlertSettings({ isOpen, onClose }) {
                   className="text-xs px-3 py-1.5 rounded-lg font-medium transition-colors"
                   style={{ background: '#3b82f6', color: '#fff' }}
                 >
-                  추가
+                  {t('alerts.add')}
                 </button>
                 <button
                   onClick={() => setAdding(false)}
                   className="text-xs px-2 py-1.5 rounded-lg transition-colors"
                   style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
                 >
-                  취소
+                  {t('alerts.cancel')}
                 </button>
               </div>
               {/* Quick suggestion */}
               <div className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
-                💡 추천: {MARKET_NAMES[newAlert.market]} {isChange ? `±${DEFAULT_THRESHOLDS[newAlert.market]?.change || 2}%` : DEFAULT_THRESHOLDS[newAlert.market]?.price || ''}
+                💡 {t('alerts.recommended')}: {MARKET_NAMES[newAlert.market]} {isChange ? `±${DEFAULT_THRESHOLDS[newAlert.market]?.change || 2}%` : DEFAULT_THRESHOLDS[newAlert.market]?.price || ''}
               </div>
             </div>
           ) : (
@@ -367,7 +367,7 @@ export default function MarketAlertSettings({ isOpen, onClose }) {
                 className="flex-1 text-xs py-2 rounded-lg font-medium transition-colors"
                 style={{ background: '#3b82f620', color: '#3b82f6', border: '1px dashed #3b82f640' }}
               >
-                + 새 알림 추가
+                + {t('alerts.addNew')}
               </button>
               {alerts.length > 0 && (
                 <button
@@ -375,7 +375,7 @@ export default function MarketAlertSettings({ isOpen, onClose }) {
                   className="text-[10px] px-2 py-1 rounded-lg transition-colors"
                   style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
                 >
-                  전체 삭제
+                  {t('alerts.deleteAll')}
                 </button>
               )}
             </div>

@@ -126,7 +126,7 @@ export default function App() {
   }, [lang]);
 
   // Market alert checker
-  useMarketAlertChecker(market);
+  useMarketAlertChecker(market, t);
 
   // Close theme menu on click outside
   useEffect(() => {
@@ -787,7 +787,7 @@ export default function App() {
         })()}
       </nav>
       <NotificationCenter isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
-      <MarketAlertSettings isOpen={showMarketAlerts} onClose={() => setShowMarketAlerts(false)} />
+      <MarketAlertSettings isOpen={showMarketAlerts} onClose={() => setShowMarketAlerts(false)} t={t} />
 
       {/* Keyboard shortcuts help modal */}
       {showShortcuts && (
