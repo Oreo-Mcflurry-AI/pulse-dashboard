@@ -54,7 +54,7 @@ function breadthScore(data) {
   return total > 0 ? (up / total) * 100 : 50;
 }
 
-function computeFearGreed(data) {
+function computeFearGreed(data, t) {
   if (!data) return { score: 50, signals: [] };
   
   const signals = [];
@@ -67,35 +67,35 @@ function computeFearGreed(data) {
   const kospiM = data.kospi ? momentumScore(data.kospi.changeRate) : 50;
   const spM = data.sp500 ? momentumScore(data.sp500.changeRate) : 50;
   const momentum = (kospiM + spM) / 2;
-  signals.push({ name: '모멘텀', score: momentum, weight: 0.20, raw: `KOSPI ${data.kospi?.changeRate || '0%'} / S&P ${data.sp500?.changeRate || '0%'}` });
+  signals.push({ name: t('sentiment.momentum'), score: momentum, weight: 0.20, raw: `KOSPI ${data.kospi?.changeRate || '0%'} / S&P ${data.sp500?.changeRate || '0%'}` });
   
   // 3. Safe haven (15%) — gold
   const gold = data.gold ? goldScore(data.gold.changeRate) : 50;
-  signals.push({ name: '안전자산', score: gold, weight: 0.15, raw: `금 ${data.gold?.changeRate || '0%'}` });
+  signals.push({ name: t('sentiment.safeAssets'), score: gold, weight: 0.15, raw: `금 ${data.gold?.changeRate || '0%'}` });
   
   // 4. FX (15%)
   const fx = data.usdkrw ? fxScore(data.usdkrw.changeRate) : 50;
-  signals.push({ name: '환율', score: fx, weight: 0.15, raw: `USD/KRW ${data.usdkrw?.changeRate || '0%'}` });
+  signals.push({ name: t('sentiment.exchangeRate'), score: fx, weight: 0.15, raw: `USD/KRW ${data.usdkrw?.changeRate || '0%'}` });
   
   // 5. Market breadth (10%)
   const breadth = breadthScore(data);
-  signals.push({ name: '시장 폭', score: breadth, weight: 0.10, raw: `${Math.round(breadth)}% 상승` });
+  signals.push({ name: t('sentiment.breadth'), score: breadth, weight: 0.10, raw: `${Math.round(breadth)}% ${t('sentiment.breadthUp')}` });
   
   const score = signals.reduce((sum, s) => sum + s.score * s.weight, 0);
   return { score: Math.round(score), signals };
 }
 
-function getSentimentFromScore(score) {
-  if (score >= 80) return { label: '극도의 탐욕', color: '#a855f7', emoji: '🟣', desc: '과매수 주의 — 안일함 경고' };
-  if (score >= 60) return { label: '탐욕', color: '#22c55e', emoji: '🟢', desc: '낙관적 분위기 — 상승 모멘텀' };
-  if (score >= 40) return { label: '중립', color: '#6b7280', emoji: '⚪', desc: '관망세 — 방향 탐색 중' };
-  if (score >= 25) return { label: '공포', color: '#f59e0b', emoji: '🟡', desc: '불안 심리 확산 — 경계 구간' };
-  if (score >= 10) return { label: '높은 공포', color: '#ef4444', emoji: '🟠', desc: '위험 회피 심화 — 변동성 확대' };
-  return { label: '극도의 공포', color: '#dc2626', emoji: '🔴', desc: '패닉 — 극단적 불확실성' };
+function getSentimentFromScore(score, t) {
+  if (score >= 80) return { label: t('sentiment.extremeGreed'), color: '#a855f7', emoji: '🟣', desc: t('sentiment.descExtremeGreed') };
+  if (score >= 60) return { label: t('sentiment.greed'), color: '#22c55e', emoji: '🟢', desc: t('sentiment.descGreed') };
+  if (score >= 40) return { label: t('sentiment.neutral'), color: '#6b7280', emoji: '⚪', desc: t('sentiment.descNeutral') };
+  if (score >= 25) return { label: t('sentiment.fear'), color: '#f59e0b', emoji: '🟡', desc: t('sentiment.descFear') };
+  if (score >= 10) return { label: t('sentiment.highFear'), color: '#ef4444', emoji: '🟠', desc: t('sentiment.descHighFear') };
+  return { label: t('sentiment.extremeFear'), color: '#dc2626', emoji: '🔴', desc: t('sentiment.descExtremeFear') };
 }
 
 // Semicircular gauge using Canvas
-function FearGreedGauge({ score, sentiment }) {
+function FearGreedGauge({ score, sentiment, t }) {
   const canvasRef = useRef(null);
   const size = 140;
   
@@ -169,15 +169,15 @@ function FearGreedGauge({ score, sentiment }) {
     ctx.fillStyle = 'rgba(128,128,128,0.7)';
     ctx.font = '8px system-ui';
     ctx.textAlign = 'left';
-    ctx.fillText('공포', 8, cy + 4);
+    ctx.fillText(t('sentiment.fear'), 8, cy + 4);
     ctx.textAlign = 'right';
-    ctx.fillText('탐욕', size - 8, cy + 4);
+    ctx.fillText(t('sentiment.greed'), size - 8, cy + 4);
   }, [score, sentiment]);
   
   return <canvas ref={canvasRef} style={{ width: size, height: size * 0.65 }} />;
 }
 
-function MarketStatus({ label, status }) {
+function MarketStatus({ label, status, t }) {
   const isOpen = status === 'OPEN' || status === 'PREOPEN';
   return (
     <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded"
@@ -189,13 +189,13 @@ function MarketStatus({ label, status }) {
       <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'animate-pulse' : ''}`}
         style={{ background: isOpen ? '#22c55e' : '#6b7280' }}
       />
-      {label} {isOpen ? '장중' : '마감'}
+      {label} {isOpen ? t('sentiment.marketOpen') : t('sentiment.marketClosed')}
     </span>
   );
 }
 
 // Mini sparkline for fear/greed history
-function FearGreedSparkline({ data }) {
+function FearGreedSparkline({ data, t }) {
   const canvasRef = useRef(null);
   const w = 200, h = 32;
 
@@ -264,19 +264,19 @@ function FearGreedSparkline({ data }) {
   return (
     <div className="mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>📈 24시간 추이</span>
-        <span className="text-[8px] tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{data.length}포인트</span>
+        <span className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>{t('sentiment.trend24h')}</span>
+        <span className="text-[8px] tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{data.length}{t('sentiment.pointsSuffix')}</span>
       </div>
       <canvas ref={canvasRef} style={{ width: '100%', height: h, maxWidth: w }} />
     </div>
   );
 }
 
-export default function MarketSentiment({ data, fearGreedHistory }) {
+export default function MarketSentiment({ data, fearGreedHistory, t }) {
   if (!data?.vix) return null;
 
-  const { score, signals } = computeFearGreed(data);
-  const sentiment = getSentimentFromScore(score);
+  const { score, signals } = computeFearGreed(data, t);
+  const sentiment = getSentimentFromScore(score, t);
   const vixVal = parseFloat(String(data.vix.value).replace(/,/g, ''));
   const vixChange = data.vix.changeRate;
 
@@ -287,7 +287,7 @@ export default function MarketSentiment({ data, fearGreedHistory }) {
     <div
       className="mx-3 sm:mx-4 mt-3 sm:mt-4 p-3 sm:p-4 rounded-xl"
       role="region"
-      aria-label="시장 심리 지표"
+      aria-label={t('sentiment.regionLabel')}
       aria-live="polite"
       style={{
         background: 'var(--bg-secondary)',
@@ -309,8 +309,8 @@ export default function MarketSentiment({ data, fearGreedHistory }) {
           </span>
         </div>
         <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-          {kospiStatus && <MarketStatus label="🇰🇷" status={kospiStatus} />}
-          {usStatus && <MarketStatus label="🇺🇸" status={usStatus} />}
+          {kospiStatus && <MarketStatus label="🇰🇷" status={kospiStatus} t={t} />}
+          {usStatus && <MarketStatus label="🇺🇸" status={usStatus} t={t} />}
           <span style={{ color: sentiment.color, fontWeight: 700 }}>VIX {vixVal.toFixed(2)}</span>
           <span>({vixChange})</span>
         </div>
@@ -320,7 +320,7 @@ export default function MarketSentiment({ data, fearGreedHistory }) {
       <div className="flex items-start gap-4">
         {/* Gauge (desktop) */}
         <div className="hidden sm:flex flex-col items-center shrink-0">
-          <FearGreedGauge score={score} sentiment={sentiment} />
+          <FearGreedGauge score={score} sentiment={sentiment} t={t} />
         </div>
 
         {/* Signal breakdown */}
@@ -354,13 +354,13 @@ export default function MarketSentiment({ data, fearGreedHistory }) {
           />
         </div>
         <div className="flex justify-between mt-0.5 text-[9px]" style={{ color: 'var(--text-muted)' }}>
-          <span>극공포 0</span>
-          <span>100 극탐욕</span>
+          <span>{t('sentiment.mobileMin')}</span>
+          <span>{t('sentiment.mobileMax')}</span>
         </div>
       </div>
 
       {/* Fear/Greed 24h history */}
-      <FearGreedSparkline data={fearGreedHistory} />
+      <FearGreedSparkline data={fearGreedHistory} t={t} />
 
       {/* KOSPI extreme move alert */}
       {data.kospi && (() => {
@@ -375,7 +375,7 @@ export default function MarketSentiment({ data, fearGreedHistory }) {
               border: `1px solid ${up ? 'rgba(34,197,94,0.3)' : 'rgba(220,38,38,0.3)'}`,
             }}>
             <span>{up ? '🚀' : '🔻'}</span>
-            <span>코스피 {data.kospi.changeRate} {Math.abs(kr) >= 8 ? (up ? '서킷브레이커급 급등' : '서킷브레이커급 급락') : (up ? '급등' : '급락')}</span>
+            <span>코스피 {data.kospi.changeRate} {Math.abs(kr) >= 8 ? (up ? t('sentiment.kospiCircuitSurge') : t('sentiment.kospiCircuitPlunge')) : (up ? t('sentiment.kospiSurge') : t('sentiment.kospiPlunge'))}</span>
           </div>
         );
       })()}
