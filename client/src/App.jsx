@@ -148,9 +148,9 @@ export default function App() {
   const relativeTime = (iso) => {
     if (!iso) return '--:--:--';
     const diff = Math.floor((now - new Date(iso).getTime()) / 1000);
-    if (diff < 5) return '방금';
-    if (diff < 60) return `${diff}초 전`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+    if (diff < 5) return t('app.justNow');
+    if (diff < 60) return `${diff}${t('app.secondsAgo')}`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}${t('app.minutesAgo')}`;
     return new Date(iso).toLocaleTimeString('ko-KR');
   };
 
@@ -237,7 +237,7 @@ export default function App() {
       <div className="max-w-5xl mx-auto">
         <header role="banner" className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${live ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} title={live ? 'LIVE (실시간)' : 'Polling (30s)'} role="status" aria-label={live ? '실시간 연결됨' : '폴링 모드'} />
+            <span className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${live ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} title={live ? t('app.liveStatusTitle') : t('app.pollingStatusTitle')} role="status" aria-label={live ? t('app.liveConnected') : t('app.pollingMode')} />
             <h1 className="text-base sm:text-xl font-bold tracking-tight cursor-pointer" onClick={() => navigate('dashboard')}>PULSE</h1>
             <nav aria-label={t('common.mainMenu')} className="hidden sm:flex items-center gap-1 ml-2 sm:ml-4">
               <button
@@ -369,8 +369,8 @@ export default function App() {
               onClick={() => setShowMarketAlerts(true)}
               className="p-1 transition-colors rounded hover:opacity-80"
               style={{ color: 'var(--text-muted)' }}
-              title="마켓 알림 설정"
-              aria-label="마켓 알림 임계값 설정"
+              title={t('app.marketAlertSettings')}
+              aria-label={t('app.marketAlertThreshold')}
             >
               🚨
             </button>
@@ -472,9 +472,9 @@ export default function App() {
           >
             <div className="flex items-center gap-2">
               <span>⚠️</span>
-              <span>서버 연결 실패 — {error.message}</span>
+              <span>{t('app.reconnectFailed')} — {error.message}</span>
               <span style={{ color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-                (마지막 데이터 표시 중)
+                ({t('app.showingLastData')})
               </span>
             </div>
             <button
@@ -484,9 +484,7 @@ export default function App() {
                 background: 'rgba(239, 68, 68, 0.15)',
                 color: '#ef4444',
               }}
-            >
-              재시도
-            </button>
+            >{t('app.retry')}</button>
           </div>
         )}
 
@@ -498,12 +496,12 @@ export default function App() {
               <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 p-3 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{t('dashboard.widgetSettings')}</span>
-                  <button onClick={resetLayout} className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>초기화</button>
+                  <button onClick={resetLayout} className="text-[10px] px-2 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>{t('app.reset')}</button>
                 </div>
 
                 {/* Presets */}
                 <div className="mb-3">
-                  <div className="text-[10px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>프리셋</div>
+                  <div className="text-[10px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>{t('app.presets')}</div>
                   <div className="flex flex-wrap gap-1.5">
                     {allPresets.map(p => (
                       <div key={p.id} className="flex items-center gap-0">
@@ -520,7 +518,7 @@ export default function App() {
                             onClick={() => deletePreset(p.id)}
                             className="text-[9px] px-1 py-1 rounded-r transition-colors hover:opacity-80"
                             style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid var(--border)' }}
-                            title="프리셋 삭제"
+                            title={t('app.deletePreset')}
                           >
                             ✕
                           </button>
@@ -537,7 +535,7 @@ export default function App() {
                         <input
                           value={presetName}
                           onChange={(e) => setPresetName(e.target.value)}
-                          placeholder="프리셋 이름"
+                          placeholder={t('app.presetNamePlaceholder')}
                           className="text-[10px] px-2 py-1 rounded w-20"
                           style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
                           autoFocus
@@ -551,7 +549,7 @@ export default function App() {
                         className="text-[10px] px-2 py-1 rounded transition-colors"
                         style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px dashed var(--border)' }}
                       >
-                        💾 저장
+                        💾 {t('app.save')}
                       </button>
                     )}
                   </div>
@@ -569,9 +567,9 @@ export default function App() {
                         onClick={() => toggleVisible(w.id)}
                         className="text-xs px-2 py-0.5 rounded"
                         style={{ background: w.visible ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: w.visible ? '#22c55e' : '#ef4444' }}
-                        aria-label={`${w.label} ${w.visible ? '숨기기' : '표시'}`}
+                        aria-label={`${w.label} ${w.visible ? '숨기기' : t('app.show')}`}
                       >
-                        {w.visible ? '표시' : '숨김'}
+                        {w.visible ? t('app.show') : t('app.hidden')}
                       </button>
                     </div>
                   ))}
@@ -595,8 +593,8 @@ export default function App() {
               return (
                 <div id="yesterday-banner" className="mx-3 sm:mx-4 mt-3 sm:mt-4 px-3 py-2.5 rounded-lg" style={{ background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-hover) 100%)', border: '1px solid var(--border)' }}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] sm:text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>📊 현재 시장 요약</span>
-                    <button onClick={dismissBanner} className="text-[10px] px-1.5 py-0.5 rounded hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>✕ 닫기</button>
+                    <span className="text-[10px] sm:text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}>{t('app.marketSummary')}</span>
+                    <button onClick={dismissBanner} className="text-[10px] px-1.5 py-0.5 rounded hover:opacity-70 transition-opacity" style={{ color: 'var(--text-muted)', background: 'var(--bg-hover)' }}>✕ {t('app.close')}</button>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1">
                     {items.map(({ key, label, data }) => {
@@ -657,26 +655,26 @@ export default function App() {
                     className="flex items-center gap-1.5 w-full px-4 py-1 text-left transition-colors hover:opacity-80"
                     style={{ color: 'var(--text-muted)' }}
                     aria-expanded={!w.collapsed}
-                    aria-label={`${w.label} ${w.collapsed ? '펼치기' : '접기'}`}
+                    aria-label={`${w.label} ${w.collapsed ? t('app.expand') : t('app.collapse')}`}
                   >
                     <span className="text-[9px] transition-transform" style={{ transform: w.collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>▼</span>
                     <span className="text-[10px] font-medium">{w.label}</span>
-                    {w.collapsed && <span className="text-[9px]" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>접힘</span>}
+                    {w.collapsed && <span className="text-[9px]" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>{t('app.collapsed')}</span>}
                   </button>
                   {!w.collapsed && content}
                 </div>
               );
             })}
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
-              <div>{live ? '🟢 실시간 스트리밍' : '30초마다 자동 업데이트'} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}{latency != null ? ` · ${latency}ms` : ''}</div>
+              <div>{live ? t('app.realtimeStreaming') : t('app.autoUpdate30s')} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}{latency != null ? ` · ${latency}ms` : ''}</div>
               <div style={{ opacity: 0.6 }}>
-                {mktStatus.krxOpen ? '🟢' : '⚫'} KRX {mktStatus.krxOpen ? '장중' : '장외'}{mktStatus.krxCountdown ? ` (${mktStatus.krxCountdown} 후 개장)` : ' (09:00-15:30)'}
+                {mktStatus.krxOpen ? '🟢' : '⚫'} KRX {mktStatus.krxOpen ? t('app.krxOpen') : t('app.krxClosed')}{mktStatus.krxCountdown ? ` (${mktStatus.krxCountdown} ${t('app.opensIn')})` : ' (09:00-15:30)'}
                 {' · '}
-                {mktStatus.nyseOpen ? '🟢' : '⚫'} NYSE {mktStatus.nyseOpen ? '장중' : '장외'}{mktStatus.nyseCountdown ? ` (${mktStatus.nyseCountdown} 후 개장)` : ' (23:30-06:00 KST)'}
+                {mktStatus.nyseOpen ? '🟢' : '⚫'} NYSE {mktStatus.nyseOpen ? t('app.nyseOpen') : t('app.nyseClosed')}{mktStatus.nyseCountdown ? ` (${mktStatus.nyseCountdown} ${t('app.opensIn')})` : ' (23:30-06:00 KST)'}
               </div>
               {visitStats && (
                 <div style={{ opacity: 0.4 }}>
-                  👤 {visitStats.count}번째 방문
+                  👤 {visitStats.count}{t('app.visitCountSuffix')}
                   {visitStats.prevLastVisit && (() => {
                     const diff = Math.floor((Date.now() - new Date(visitStats.prevLastVisit).getTime()) / 1000);
                     if (diff < 60) return ' · 방금 전 접속';
@@ -757,7 +755,7 @@ export default function App() {
                   opacity: isMoreActive ? 1 : 0.7,
                 }}
                 aria-expanded={showMore}
-                aria-label="더보기 메뉴"
+                aria-label={t('app.moreMenu')}
               >
                 <span className="text-base leading-none">{isMoreActive ? moreTabs.find(t => t.id === page)?.icon : '···'}</span>
                 <span className="text-[9px] font-medium">{isMoreActive ? moreTabs.find(t => t.id === page)?.label : t('nav.more')}</span>
@@ -828,7 +826,7 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <p className="text-[9px] mt-3 text-center" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>입력 필드 포커스 시 단축키 비활성</p>
+            <p className="text-[9px] mt-3 text-center" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{t('app.shortcutsDisabledInInput')}</p>
           </div>
         </div>
       )}
