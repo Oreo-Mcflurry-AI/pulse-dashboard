@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { getSseClientCount } from './stream.js';
+import { execSync } from 'child_process';
 
 const router = Router();
 const startedAt = Date.now();
@@ -29,10 +30,12 @@ async function loadIndex() {
 
 // Read server version from package.json once at startup
 let serverVersion = 'unknown';
+let gitCommit = 'unknown';
 try {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8'));
   serverVersion = pkg.version || 'unknown';
+  gitCommit = execSync('git rev-parse --short HEAD', { cwd: join(__dirname, '../..') }).toString().trim();
 } catch { /* ignore */ }
 
 router.get('/', async (req, res) => {
@@ -65,6 +68,7 @@ router.get('/', async (req, res) => {
   res.json({
     status: 'ok',
     version: serverVersion,
+    commit: gitCommit,
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
