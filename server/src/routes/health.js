@@ -74,6 +74,8 @@ router.get('/', async (req, res) => {
     branch: gitBranch,
     env: process.env.NODE_ENV || 'development',
     pid: process.pid,
+    platform: process.platform,
+    arch: process.arch,
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
