@@ -81,6 +81,7 @@ router.get('/', async (req, res) => {
     hostname: process.env.HOSTNAME || 'unknown',
     cpuCount: os.cpus().length,
     totalMemoryMB: Math.round(os.totalmem() / 1024 / 1024),
+    freeMemoryMB: Math.round(os.freemem() / 1024 / 1024),
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
