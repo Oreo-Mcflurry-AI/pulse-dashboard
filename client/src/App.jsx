@@ -381,8 +381,8 @@ export default function App() {
                 onContextMenu={(e) => { e.preventDefault(); setShowThemeMenu(v => !v); }}
                 className="p-1 transition-colors rounded hover:opacity-80"
                 style={{ color: 'var(--text-muted)' }}
-                title={`${dark ? '라이트' : '다크'} 모드 (우클릭: 자동 설정)`}
-                aria-label={dark ? '라이트 모드로 전환' : '다크 모드로 전환'}
+                title={`${dark ? t('app.lightMode') : t('app.darkMode')} (${t('app.rightClickAutoSetting')})`}
+                aria-label={dark ? t('app.switchToLightMode') : t('app.switchToDarkMode')}
               >
                 {dark ? '☀️' : '🌙'}
                 {themeMode !== 'manual' && (
@@ -395,9 +395,9 @@ export default function App() {
                 <div className="absolute right-0 top-full mt-1 rounded-lg py-1 z-30 min-w-[130px]"
                   style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
                   {[
-                    { mode: 'manual', label: '🎛 수동', desc: '직접 전환' },
-                    { mode: 'system', label: '🖥 시스템', desc: 'OS 테마 연동' },
-                    { mode: 'auto', label: '🕐 자동', desc: '19~07시 다크' },
+                    { mode: 'manual', label: t('app.themeModeManual'), desc: t('app.themeModeManualDesc') },
+                    { mode: 'system', label: t('app.themeModeSystem'), desc: t('app.themeModeSystemDesc') },
+                    { mode: 'auto', label: t('app.themeModeAuto'), desc: t('app.themeModeAutoDesc') },
                   ].map(opt => (
                     <button
                       key={opt.mode}
@@ -414,8 +414,8 @@ export default function App() {
                   ))}
                   <div style={{ borderTop: '1px solid var(--border)', margin: '2px 0' }} />
                   {[
-                    { scheme: 'us', label: '🇺🇸 미국식', desc: '상승=초록 하락=빨강' },
-                    { scheme: 'kr', label: '🇰🇷 한국식', desc: '상승=빨강 하락=파랑' },
+                    { scheme: 'us', label: t('app.colorSchemeUs'), desc: t('app.colorSchemeUsDesc') },
+                    { scheme: 'kr', label: t('app.colorSchemeKr'), desc: t('app.colorSchemeKrDesc') },
                   ].map(opt => (
                     <button
                       key={opt.scheme}
@@ -439,8 +439,8 @@ export default function App() {
                   onClick={() => setShowLayoutSettings(v => !v)}
                   className="p-1 transition-colors rounded hover:opacity-80"
                   style={{ color: showLayoutSettings ? 'var(--text-primary)' : 'var(--text-muted)' }}
-                  title="위젯 설정"
-                  aria-label="위젯 레이아웃 설정"
+                  title={t('app.widgetSettingsTitle')}
+                  aria-label={t('app.widgetLayoutSettingsAria')}
                   aria-pressed={showLayoutSettings}
                 >
                   ⚙️
@@ -449,8 +449,8 @@ export default function App() {
                   onClick={refetch}
                   className="p-1 transition-colors"
                   style={{ color: 'var(--text-muted)' }}
-                  title="새로고침"
-                  aria-label="데이터 새로고침"
+                  title={t('app.refresh')}
+                  aria-label={t('app.refreshDataAria')}
                 >
                   <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -804,18 +804,18 @@ export default function App() {
             </div>
             <div className="space-y-1.5">
               {[
-                ['1', '대시보드'],
-                ['2', '📰 브리핑'],
-                ['3', '💼 포트폴리오'],
-                ['4', '📈 히스토리'],
-                ['5', '🗺 히트맵'],
-                ['6', '📅 캘린더'],
-                ['7', '🔍 종목 검색'],
-                ['8', '🌍 타임라인'],
-                ['9', '📡 RSS 피드'],
-                ['R', '새로고침 (대시보드)'],
-                ['?', '이 도움말 토글'],
-                ['ESC', '모달 닫기'],
+                ['1', t('app.shortcutDashboard')],
+                ['2', t('app.shortcutBriefings')],
+                ['3', t('app.shortcutPortfolio')],
+                ['4', t('app.shortcutHistory')],
+                ['5', t('app.shortcutHeatmap')],
+                ['6', t('app.shortcutCalendar')],
+                ['7', t('app.shortcutSearch')],
+                ['8', t('app.shortcutTimeline')],
+                ['9', t('app.shortcutRss')],
+                ['R', t('app.shortcutRefreshDashboard')],
+                ['?', t('app.shortcutToggleHelp')],
+                ['ESC', t('app.shortcutCloseModal')],
               ].map(([key, desc]) => (
                 <div key={key} className="flex items-center justify-between py-1 px-2 rounded" style={{ background: 'var(--bg-hover)' }}>
                   <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{desc}</span>
