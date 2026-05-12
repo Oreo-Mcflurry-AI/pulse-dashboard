@@ -31,11 +31,13 @@ async function loadIndex() {
 // Read server version from package.json once at startup
 let serverVersion = 'unknown';
 let gitCommit = 'unknown';
+let gitBranch = 'unknown';
 try {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8'));
   serverVersion = pkg.version || 'unknown';
   gitCommit = execSync('git rev-parse --short HEAD', { cwd: join(__dirname, '../..') }).toString().trim();
+  gitBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: join(__dirname, '../..') }).toString().trim();
 } catch { /* ignore */ }
 
 router.get('/', async (req, res) => {
@@ -69,6 +71,7 @@ router.get('/', async (req, res) => {
     status: 'ok',
     version: serverVersion,
     commit: gitCommit,
+    branch: gitBranch,
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
