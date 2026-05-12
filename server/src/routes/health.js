@@ -82,6 +82,7 @@ router.get('/', async (req, res) => {
     cpuCount: os.cpus().length,
     totalMemoryMB: Math.round(os.totalmem() / 1024 / 1024),
     freeMemoryMB: Math.round(os.freemem() / 1024 / 1024),
+    memoryUsagePercent: Math.round(((os.totalmem() - os.freemem()) / os.totalmem()) * 100),
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
