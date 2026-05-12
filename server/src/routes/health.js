@@ -87,6 +87,7 @@ router.get('/', async (req, res) => {
     loadAverage5m: Number(os.loadavg()[1].toFixed(2)),
     loadAverage15m: Number(os.loadavg()[2].toFixed(2)),
     systemUptimeSeconds: Math.floor(os.uptime()),
+    processUptimeSeconds: Math.floor(process.uptime()),
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
