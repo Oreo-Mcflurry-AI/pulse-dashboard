@@ -83,14 +83,14 @@ function getSourceBadge(source) {
   return null;
 }
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, t) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}분 전`;
+  if (mins < 60) return t('newsPanel.timeAgoMinutes').replace('{value}', mins);
   const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}시간 전`;
-  return `${Math.floor(hrs / 24)}일 전`;
+  if (hrs < 24) return t('newsPanel.timeAgoHours').replace('{value}', hrs);
+  return t('newsPanel.timeAgoDays').replace('{value}', Math.floor(hrs / 24));
 }
 
 // ─── Estimated reading time ───
@@ -207,7 +207,7 @@ function highlightKeywords(text, keywords) {
   );
 }
 
-function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, readUrls, onMarkRead, alertKeywords }) {
+function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, readUrls, onMarkRead, alertKeywords, t }) {
   const bmUrls = new Set(bookmarks.map(b => b.url));
   const readSet = new Set(readUrls || []);
   return (
@@ -263,8 +263,8 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
                   })()}
                 </span>
                 <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
-                  {timeAgo(a.pubDate)}
-                  <span className="hidden sm:inline text-[8px]" title="예상 읽기 시간">
+                  {timeAgo(a.pubDate, t)}
+                  <span className="hidden sm:inline text-[8px]" title={t('newsPanel.readTimeTooltip')}>
                     · {estimateReadTime(a.title, a.source)}
                   </span>
                 </span>
@@ -289,8 +289,8 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
                 }}
                 className="text-xs p-0.5 rounded hover:opacity-70 transition-opacity"
                 style={{ color: 'var(--text-muted)' }}
-                title="링크 복사"
-                aria-label={`${a.title} 링크 복사`}
+                title={t('newsPanel.copyLink')}
+                aria-label={`${a.title} ${t('newsPanel.copyLink')}`}
               >
                 🔗
               </button>
@@ -298,8 +298,8 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
                 onClick={(e) => { e.stopPropagation(); onToggleBookmark(a); }}
                 className="text-sm p-0.5 rounded hover:opacity-70 transition-opacity"
                 style={{ color: bmUrls.has(a.url) ? '#f59e0b' : 'var(--text-muted)' }}
-                title={bmUrls.has(a.url) ? '북마크 해제' : '북마크'}
-                aria-label={bmUrls.has(a.url) ? `${a.title} 북마크 해제` : `${a.title} 북마크`}
+                title={bmUrls.has(a.url) ? t('newsPanel.removeBookmark') : t('newsPanel.bookmark')}
+                aria-label={bmUrls.has(a.url) ? `${a.title} ${t('newsPanel.removeBookmark')}` : `${a.title} ${t('newsPanel.bookmark')}`}
                 aria-pressed={bmUrls.has(a.url)}
               >
                 {bmUrls.has(a.url) ? '★' : '☆'}
@@ -710,6 +710,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
             readUrls={readUrls}
             onMarkRead={handleMarkRead}
             alertKeywords={alertKeywords}
+            t={t}
           />
         )
       ) : filtered.length === 0 && q ? (
@@ -717,7 +718,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
           {t('newsPanel.noSearchResults').replace('{search}', search)}
         </div>
       ) : filtered.map((section, i) => (
-        <NewsSection key={i} {...section} bookmarks={bookmarks} onToggleBookmark={toggleBookmark} readUrls={readUrls} onMarkRead={handleMarkRead} alertKeywords={alertKeywords} />
+        <NewsSection key={i} {...section} bookmarks={bookmarks} onToggleBookmark={toggleBookmark} readUrls={readUrls} onMarkRead={handleMarkRead} alertKeywords={alertKeywords} t={t} />
       ))}
     </div>
   );
