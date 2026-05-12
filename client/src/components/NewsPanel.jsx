@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { addNotification, shouldNotify } from './NotificationCenter';
+import { LANG_KEY, makeT, resolveInitialLanguage } from '../i18n';
 
 // ─── News Alert Keywords ───
 const ALERTS_KEY = 'pulse-news-alerts';
@@ -379,6 +380,11 @@ function NewsAlertSettings({ keywords, onAdd, onRemove }) {
 }
 
 export default function NewsPanel({ data, lastFetchAt, interval, live }) {
+  const lang = useMemo(() => {
+    try { return localStorage.getItem(LANG_KEY) || resolveInitialLanguage(); } catch { return 'ko'; }
+  }, []);
+  const t = useMemo(() => makeT(lang), [lang]);
+
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [bookmarks, setBookmarks] = useState(getBookmarks);
@@ -472,7 +478,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
     <div className="p-4">
       <div className="flex items-center justify-between mb-3 px-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>📰 뉴스 브리핑</h2>
+          <h2 className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>{t('newsPanel.title')}</h2>
           {data?.sentiment && (
             <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{
               background: data.sentiment.avgScore > 0 ? 'rgba(34,197,94,0.15)' : data.sentiment.avgScore < 0 ? 'rgba(239,68,68,0.15)' : 'rgba(234,179,8,0.15)',
@@ -488,8 +494,8 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
               background: showAlertSettings ? 'rgba(59,130,246,0.15)' : 'transparent',
               color: alertKeywords.length > 0 ? '#3b82f6' : 'var(--text-muted)',
             }}
-            title="뉴스 알림 설정"
-            aria-label="뉴스 알림 키워드 설정"
+            title={t('newsPanel.alertSettings')}
+            aria-label={t('newsPanel.alertSettingsAria')}
           >
             🔔{alertKeywords.length > 0 ? ` ${alertKeywords.length}` : ''}
           </button>
@@ -500,12 +506,12 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
               onClick={handleClearRead}
               className="px-1.5 py-0.5 rounded hover:opacity-70 transition-opacity"
               style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-              title="읽음 표시 초기화"
+              title={t('newsPanel.clearRead')}
             >
-              👁 {readUrls.length}읽음 ✕
+              👁 {readUrls.length}{t('newsPanel.readCountSuffix')} ✕
             </button>
           )}
-          {q ? `${filteredCount}/${totalCount}건` : `${totalCount}건`}
+          {q ? `${filteredCount}/${totalCount}${t('newsPanel.countSuffix')}` : `${totalCount}${t('newsPanel.countSuffix')}`}
           {data.updatedAt && ` · ${new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`}
           {' · '}
           <RefreshCountdown lastFetchAt={lastFetchAt} interval={interval} live={live} />
@@ -519,8 +525,8 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
             type="search"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="뉴스 검색..."
-            aria-label="뉴스 키워드 검색"
+            placeholder={t('newsPanel.searchPlaceholder')}
+            aria-label={t('newsPanel.searchAria')}
             className="w-full pl-8 pr-8 py-1.5 text-xs rounded-lg outline-none transition-colors"
             style={{
               background: 'var(--bg-hover)',
@@ -535,7 +541,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
               onClick={() => setSearch('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs"
               style={{ color: 'var(--text-muted)' }}
-              aria-label="검색어 지우기"
+              aria-label={t('newsPanel.clearSearchAria')}
             >✕</button>
           )}
         </div>
@@ -653,7 +659,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
         </div>
       )}
       {/* Category filter tabs */}
-      <div role="tablist" aria-label="뉴스 카테고리" className="flex gap-1 px-2 mb-3 overflow-x-auto scrollbar-hide">
+      <div role="tablist" aria-label={t('newsPanel.categoriesAria')} className="flex gap-1 px-2 mb-3 overflow-x-auto scrollbar-hide">
         {categories.map(cat => (
           <button
             key={cat}
@@ -667,7 +673,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
               fontWeight: filter === cat ? 600 : 400,
             }}
           >
-            {cat === 'all' ? '전체' : cat === 'bookmarks' ? `★ 저장됨${bookmarks.length ? ` (${bookmarks.length})` : ''}` : ((data?.sections || []).find(s => s.category === cat)?.icon || '') + ' ' + cat}
+            {cat === 'all' ? t('newsPanel.all') : cat === 'bookmarks' ? `★ ${t('newsPanel.saved')}${bookmarks.length ? ` (${bookmarks.length})` : ''}` : ((data?.sections || []).find(s => s.category === cat)?.icon || '') + ' ' + cat}
                 {cat !== 'all' && cat !== 'bookmarks' && (() => {
                   const count = (data?.sections || []).find(s => s.category === cat)?.articles?.length || 0;
                   return count > 0 ? (
@@ -692,12 +698,12 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
       {filter === 'bookmarks' ? (
         bookmarks.length === 0 ? (
           <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>
-            저장된 뉴스가 없습니다. 기사에 마우스를 올려 ☆를 클릭하세요.
+            {t('newsPanel.noSaved')}
           </div>
         ) : (
           <NewsSection
             icon="★"
-            category="저장된 뉴스"
+            category={t('newsPanel.savedCategory')}
             articles={q ? bookmarks.filter(a => (a.title || '').toLowerCase().includes(q) || (a.source || '').toLowerCase().includes(q)) : bookmarks}
             bookmarks={bookmarks}
             onToggleBookmark={toggleBookmark}
@@ -708,7 +714,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
         )
       ) : filtered.length === 0 && q ? (
         <div className="text-center py-8 text-sm" style={{ color: 'var(--text-muted)' }}>
-          '{search}'에 대한 검색 결과가 없습니다
+          {t('newsPanel.noSearchResults').replace('{search}', search)}
         </div>
       ) : filtered.map((section, i) => (
         <NewsSection key={i} {...section} bookmarks={bookmarks} onToggleBookmark={toggleBookmark} readUrls={readUrls} onMarkRead={handleMarkRead} alertKeywords={alertKeywords} />
