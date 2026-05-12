@@ -77,6 +77,7 @@ router.get('/', async (req, res) => {
     platform: process.platform,
     arch: process.arch,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    hostname: process.env.HOSTNAME || 'unknown',
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
