@@ -4,6 +4,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { getSseClientCount } from './stream.js';
 import { execSync } from 'child_process';
+import os from 'os';
 
 const router = Router();
 const startedAt = Date.now();
@@ -78,6 +79,7 @@ router.get('/', async (req, res) => {
     arch: process.arch,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     hostname: process.env.HOSTNAME || 'unknown',
+    cpuCount: os.cpus().length,
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
