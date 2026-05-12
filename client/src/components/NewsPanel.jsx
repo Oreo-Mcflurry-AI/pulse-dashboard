@@ -94,7 +94,7 @@ function timeAgo(dateStr, t) {
 }
 
 // ─── Estimated reading time ───
-function estimateReadTime(title, source) {
+function estimateReadTime(title, source, t) {
   // Korean news articles average ~600-1200 chars, English ~300-800 words
   // Estimate based on source type and title complexity
   const isKorean = /[가-힣]/.test(title);
@@ -106,7 +106,7 @@ function estimateReadTime(title, source) {
   const badge = getSourceBadge(source);
   const premiumBonus = badge?.tier === 1 ? 1 : 0;
   const mins = Math.max(1, Math.round(baseMin + extra + premiumBonus));
-  return `${mins}분`;
+  return t('newsPanel.readMinutes').replace('{value}', mins);
 }
 
 // ─── OG Data (Image + Description) ───
@@ -265,12 +265,12 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
                 <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                   {timeAgo(a.pubDate, t)}
                   <span className="hidden sm:inline text-[8px]" title={t('newsPanel.readTimeTooltip')}>
-                    · {estimateReadTime(a.title, a.source)}
+                    · {estimateReadTime(a.title, a.source, t)}
                   </span>
                 </span>
                 {a.altSources?.length > 0 && (
                   <span className="text-[8px] flex items-center gap-0.5 mt-0.5" style={{ color: 'var(--text-muted)', opacity: 0.6 }} title={a.altSources.map(s => s.source).join(', ')}>
-                    +{a.altSources.length}개 매체
+                    +{a.altSources.length}{t('newsPanel.altSources')}
                   </span>
                 )}
               </div>
@@ -313,7 +313,7 @@ function NewsSection({ icon, category, articles, bookmarks, onToggleBookmark, re
   );
 }
 
-function RefreshCountdown({ lastFetchAt, interval, live }) {
+function RefreshCountdown({ lastFetchAt, interval, live, t }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (live) return; // SSE mode, no countdown needed
@@ -321,7 +321,7 @@ function RefreshCountdown({ lastFetchAt, interval, live }) {
     return () => clearInterval(t);
   }, [live]);
 
-  if (live) return <span style={{ color: '#22c55e' }}>🟢 실시간</span>;
+  if (live) return <span style={{ color: '#22c55e' }}>🟢 {t('newsPanel.live')}</span>;
   if (!lastFetchAt || !interval) return null;
 
   const elapsed = now - lastFetchAt;
@@ -342,7 +342,7 @@ function RefreshCountdown({ lastFetchAt, interval, live }) {
   );
 }
 
-function NewsAlertSettings({ keywords, onAdd, onRemove }) {
+function NewsAlertSettings({ keywords, onAdd, onRemove, t }) {
   const [input, setInput] = useState('');
   const handleAdd = () => {
     const kw = input.trim();
@@ -351,19 +351,19 @@ function NewsAlertSettings({ keywords, onAdd, onRemove }) {
   return (
     <div className="px-3 mb-3 p-2.5 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
       <div className="flex items-center gap-1.5 mb-2">
-        <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>🔔 뉴스 알림 키워드</span>
-        <span className="text-[9px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>매칭 시 브라우저 알림</span>
+        <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>🔔 {t('newsPanel.alertKeywordsTitle')}</span>
+        <span className="text-[9px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{t('newsPanel.alertKeywordsDesc')}</span>
       </div>
       <div className="flex gap-1.5 mb-2">
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
-          placeholder="키워드 입력 (예: 코스피, 트럼프, 금리)"
+          placeholder={t('newsPanel.alertKeywordPlaceholder')}
           className="flex-1 px-2 py-1 text-xs rounded"
           style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
         />
-        <button onClick={handleAdd} className="px-2 py-1 text-xs rounded font-medium" style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>추가</button>
+        <button onClick={handleAdd} className="px-2 py-1 text-xs rounded font-medium" style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>{t('newsPanel.add')}</button>
       </div>
       {keywords.length > 0 && (
         <div className="flex flex-wrap gap-1">
@@ -426,7 +426,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
         if (shouldNotify('news')) {
           addNotification({
             type: 'news',
-            title: `뉴스 알림: "${matched}"`,
+            title: t('newsPanel.newsAlertTitle').replace('{keyword}', matched),
             body: article.title,
           });
         }
@@ -514,7 +514,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
           {q ? `${filteredCount}/${totalCount}${t('newsPanel.countSuffix')}` : `${totalCount}${t('newsPanel.countSuffix')}`}
           {data.updatedAt && ` · ${new Date(data.updatedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`}
           {' · '}
-          <RefreshCountdown lastFetchAt={lastFetchAt} interval={interval} live={live} />
+          <RefreshCountdown lastFetchAt={lastFetchAt} interval={interval} live={live} t={t} />
         </span>
       </div>
       {/* Search bar */}
@@ -548,30 +548,30 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
       </div>
       {/* Alert keyword settings */}
       {showAlertSettings && (
-        <NewsAlertSettings keywords={alertKeywords} onAdd={addAlertKeyword} onRemove={removeAlertKeyword} />
+        <NewsAlertSettings keywords={alertKeywords} onAdd={addAlertKeyword} onRemove={removeAlertKeyword} t={t} />
       )}
       {/* Sentiment bar */}
       {data?.sentiment && (
         <div className="mx-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>뉴스 감성 분석</span>
-            <span className="text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{data.sentiment.total}건 분석</span>
+            <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>{t('newsPanel.sentimentAnalysis')}</span>
+            <span className="text-[9px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{t('newsPanel.analysisCount').replace('{count}', data.sentiment.total)}</span>
           </div>
           <div className="flex h-2 rounded-full overflow-hidden mb-1">
             {data.sentiment.positiveRatio > 0 && (
-              <div style={{ width: `${data.sentiment.positiveRatio}%`, background: '#22c55e' }} title={`긍정 ${data.sentiment.positiveRatio}%`} />
+              <div style={{ width: `${data.sentiment.positiveRatio}%`, background: '#22c55e' }} title={t('newsPanel.positiveRatioTitle').replace('{value}', data.sentiment.positiveRatio)} />
             )}
             {data.sentiment.neutralRatio > 0 && (
-              <div style={{ width: `${data.sentiment.neutralRatio}%`, background: '#6b7280' }} title={`중립 ${data.sentiment.neutralRatio}%`} />
+              <div style={{ width: `${data.sentiment.neutralRatio}%`, background: '#6b7280' }} title={t('newsPanel.neutralRatioTitle').replace('{value}', data.sentiment.neutralRatio)} />
             )}
             {data.sentiment.negativeRatio > 0 && (
-              <div style={{ width: `${data.sentiment.negativeRatio}%`, background: '#ef4444' }} title={`부정 ${data.sentiment.negativeRatio}%`} />
+              <div style={{ width: `${data.sentiment.negativeRatio}%`, background: '#ef4444' }} title={t('newsPanel.negativeRatioTitle').replace('{value}', data.sentiment.negativeRatio)} />
             )}
           </div>
           <div className="flex justify-between text-[9px]">
-            <span style={{ color: '#22c55e' }}>🟢 긍정 {data.sentiment.positive}건 ({data.sentiment.positiveRatio}%)</span>
-            <span style={{ color: '#6b7280' }}>⚪ 중립 {data.sentiment.neutral}건</span>
-            <span style={{ color: '#ef4444' }}>🔴 부정 {data.sentiment.negative}건 ({data.sentiment.negativeRatio}%)</span>
+            <span style={{ color: '#22c55e' }}>🟢 {t('newsPanel.positive')} {data.sentiment.positive}{t('newsPanel.countUnit')} ({data.sentiment.positiveRatio}%)</span>
+            <span style={{ color: '#6b7280' }}>⚪ {t('newsPanel.neutral')} {data.sentiment.neutral}{t('newsPanel.countUnit')}</span>
+            <span style={{ color: '#ef4444' }}>🔴 {t('newsPanel.negative')} {data.sentiment.negative}{t('newsPanel.countUnit')} ({data.sentiment.negativeRatio}%)</span>
           </div>
         </div>
       )}
@@ -596,7 +596,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
         return (
           <div className="mx-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>📊 시간대별 뉴스 분포</span>
+              <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>📊 {t('newsPanel.hourlyDistribution')}</span>
               <div className="flex gap-2">
                 {cats.map(c => (
                   <span key={c} className="text-[8px] flex items-center gap-0.5" style={{ color: 'var(--text-muted)' }}>
@@ -610,7 +610,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
               {hours.map(h => {
                 const total = cats.reduce((s, c) => s + (hourBuckets[h]?.[c] || 0), 0);
                 return (
-                  <div key={h} className="flex-1 flex flex-col justify-end" style={{ height: '100%' }} title={`${h}시: ${total}건`}>
+                  <div key={h} className="flex-1 flex flex-col justify-end" style={{ height: '100%' }} title={t('newsPanel.hourlyCountTitle').replace('{hour}', h).replace('{count}', total)}>
                     {cats.map(c => {
                       const count = hourBuckets[h]?.[c] || 0;
                       if (count === 0) return null;
@@ -622,8 +622,8 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
               })}
             </div>
             <div className="flex justify-between mt-0.5">
-              <span className="text-[8px] tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>{hours[0]}시</span>
-              <span className="text-[8px] tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>{hours[hours.length - 1]}시</span>
+              <span className="text-[8px] tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>{t('newsPanel.hourLabel').replace('{hour}', hours[0])}</span>
+              <span className="text-[8px] tabular-nums" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>{t('newsPanel.hourLabel').replace('{hour}', hours[hours.length - 1])}</span>
             </div>
           </div>
         );
@@ -631,7 +631,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
       {/* News digest card */}
       {data?.digest && data.digest.themes?.length > 0 && (
         <div className="mx-2 mb-3 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
-          <div className="text-[10px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>📋 뉴스 요약</div>
+          <div className="text-[10px] font-medium mb-1.5" style={{ color: 'var(--text-muted)' }}>📋 {t('newsPanel.digest')}</div>
           <div className="text-[10px] mb-2" style={{ color: 'var(--text-muted)', opacity: 0.8 }}>{data.digest.headline}</div>
           <div className="flex flex-wrap gap-1 mb-2">
             {data.digest.keywords.slice(0, 8).map(k => (
@@ -646,7 +646,7 @@ export default function NewsPanel({ data, lastFetchAt, interval, live }) {
             {data.digest.themes.map((theme, i) => (
               <div key={i} className="pl-2" style={{ borderLeft: `2px solid ${theme.articles[0]?.sentiment === 'positive' ? '#22c55e' : theme.articles[0]?.sentiment === 'negative' ? '#ef4444' : '#6b7280'}` }}>
                 <div className="text-[10px] font-bold" style={{ color: 'var(--text-primary)' }}>
-                  #{theme.keyword} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({theme.count}건)</span>
+                  #{theme.keyword} <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>({theme.count}{t('newsPanel.countUnit')})</span>
                 </div>
                 {theme.articles.slice(0, 2).map((a, j) => (
                   <div key={j} className="text-[9px] truncate" style={{ color: 'var(--text-muted)' }}>
