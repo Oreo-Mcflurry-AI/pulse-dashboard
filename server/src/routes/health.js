@@ -103,6 +103,7 @@ router.get('/', async (req, res) => {
     nodeUv: process.versions.uv,
     nodeOpenSSL: process.versions.openssl,
     nodeZlib: process.versions.zlib,
+    nodeAres: process.versions.ares,
     execPath: process.execPath,
     cwd: process.cwd(),
     node: process.version,
