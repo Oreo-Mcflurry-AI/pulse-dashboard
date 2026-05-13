@@ -94,6 +94,7 @@ router.get('/', async (req, res) => {
     hrtimeNs: Number(process.hrtime.bigint()),
     timestampMs: Date.now(),
     timestampSec: Math.floor(Date.now() / 1000),
+    isoTime: new Date().toISOString(),
     execPath: process.execPath,
     cwd: process.cwd(),
     node: process.version,
