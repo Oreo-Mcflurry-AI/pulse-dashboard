@@ -98,6 +98,7 @@ router.get('/', async (req, res) => {
     localeTime: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
     utcOffsetMinutes: new Date().getTimezoneOffset(),
     processTitle: process.title,
+    pidHex: `0x${process.pid.toString(16)}`, 
     execPath: process.execPath,
     cwd: process.cwd(),
     node: process.version,
