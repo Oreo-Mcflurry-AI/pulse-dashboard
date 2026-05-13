@@ -89,6 +89,8 @@ router.get('/', async (req, res) => {
     systemUptimeSeconds: Math.floor(os.uptime()),
     processUptimeSeconds: Math.floor(process.uptime()),
     cpuUsage: process.cpuUsage(),
+    cpuUsageUserMs: Math.round(process.cpuUsage().user / 1000),
+    cpuUsageSystemMs: Math.round(process.cpuUsage().system / 1000),
     execPath: process.execPath,
     cwd: process.cwd(),
     node: process.version,
