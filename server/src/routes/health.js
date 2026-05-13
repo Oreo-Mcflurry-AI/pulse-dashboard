@@ -92,6 +92,7 @@ router.get('/', async (req, res) => {
     cpuUsageUserMs: Math.round(process.cpuUsage().user / 1000),
     cpuUsageSystemMs: Math.round(process.cpuUsage().system / 1000),
     hrtimeNs: Number(process.hrtime.bigint()),
+    timestampMs: Date.now(),
     execPath: process.execPath,
     cwd: process.cwd(),
     node: process.version,
