@@ -97,6 +97,7 @@ router.get('/', async (req, res) => {
     memoryMB: currentRss,
     heapUsedMB: currentHeap,
     heapTotalMB: Math.round(mem.heapTotal / 1024 / 1024),
+    heapUsagePercent: Math.round((mem.heapUsed / mem.heapTotal) * 100),
     peakRssMB,
     peakHeapMB,
     sseClients: getSseClientCount(),
