@@ -90,6 +90,7 @@ router.get('/', async (req, res) => {
     processUptimeSeconds: Math.floor(process.uptime()),
     cpuUsage: process.cpuUsage(),
     execPath: process.execPath,
+    cwd: process.cwd(),
     node: process.version,
     uptime: `${days}d ${hours}h ${mins}m`,
     uptimeSeconds: uptime,
