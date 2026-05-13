@@ -96,6 +96,7 @@ router.get('/', async (req, res) => {
     timestampSec: Math.floor(Date.now() / 1000),
     isoTime: new Date().toISOString(),
     localeTime: new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+    utcOffsetMinutes: new Date().getTimezoneOffset(),
     execPath: process.execPath,
     cwd: process.cwd(),
     node: process.version,
