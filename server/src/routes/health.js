@@ -100,6 +100,7 @@ router.get('/', async (req, res) => {
     processTitle: process.title,
     pidHex: `0x${process.pid.toString(16)}`,
     nodeV8: process.versions.v8,
+    nodeUv: process.versions.uv,
     execPath: process.execPath,
     cwd: process.cwd(),
     node: process.version,
