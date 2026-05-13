@@ -108,6 +108,7 @@ router.get('/', async (req, res) => {
     nodeBrotli: process.versions.brotli,
     nodeLlhttp: process.versions.llhttp,
     nodeModules: process.versions.modules,
+    nodeNapi: process.versions.napi,
     execPath: process.execPath,
     cwd: process.cwd(),
     node: process.version,
