@@ -63,8 +63,10 @@ function GeopoliticalRiskBanner({ market, t }) {
     alerts.push({
       icon: '🛢️',
       severity: oilVal >= 120 ? 'critical' : 'warning',
-      title: `유가 $${oilVal.toFixed(1)} (${oilRate >= 0 ? '+' : ''}${oilRate.toFixed(2)}%)`,
-      desc: oilVal >= 120 ? '오일쇼크 경계 수준 — 인플레이션·경기 침체 리스크 급상승' : '유가 100달러 돌파 — 인플레이션 압력 확대',
+      title: t('briefing.oilTitle')
+        .replace('{value}', oilVal.toFixed(1))
+        .replace('{rate}', `${oilRate >= 0 ? '+' : ''}${oilRate.toFixed(2)}`),
+      desc: oilVal >= 120 ? t('briefing.oilShockRisk') : t('briefing.oilInflationPressure'),
     });
   }
 
@@ -74,8 +76,8 @@ function GeopoliticalRiskBanner({ market, t }) {
     alerts.push({
       icon: '😱',
       severity: vixVal >= 40 ? 'critical' : 'warning',
-      title: `VIX ${vixVal.toFixed(1)} — ${vixVal >= 40 ? '극공포' : '공포 구간'}`,
-      desc: '시장 변동성 극대화 — 대규모 매도 압력 주의',
+      title: `VIX ${vixVal.toFixed(1)} — ${vixVal >= 40 ? t('briefing.vixExtremeFearLabel') : t('briefing.vixFearZoneLabel')}`,
+      desc: t('briefing.vixVolatilityWarning'),
     });
   }
 
@@ -85,8 +87,8 @@ function GeopoliticalRiskBanner({ market, t }) {
     alerts.push({
       icon: '💵',
       severity: fxVal >= 1500 ? 'critical' : 'warning',
-      title: `원/달러 ${fxVal.toFixed(1)}원`,
-      desc: fxVal >= 1500 ? '환율 1,500원 돌파 — 외국인 이탈·수입물가 급등 우려' : '환율 고공행진 — 외국인 매도 압력 지속',
+      title: t('briefing.usdkrwTitle').replace('{value}', fxVal.toFixed(1)),
+      desc: fxVal >= 1500 ? t('briefing.usdkrwBreakoutRisk') : t('briefing.usdkrwRallyWarning'),
     });
   }
 

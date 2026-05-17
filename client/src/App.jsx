@@ -18,7 +18,7 @@ import MarketAlertSettings, { useMarketAlertChecker } from './components/MarketA
 import { useMarketData } from './hooks/useMarketData';
 import { useTheme } from './hooks/useTheme';
 import { useWidgetLayout } from './hooks/useWidgetLayout';
-import { LANG_KEY, resolveInitialLanguage, makeT } from './i18n';
+import { useI18n } from './i18n';
 
 // ─── Visit Statistics ───
 const VISIT_KEY = 'pulse-visit-stats';
@@ -40,7 +40,7 @@ function recordVisit() {
   } catch { return { count: 1, firstVisit: null, lastVisit: null }; }
 }
 
-function getMarketStatus() {
+function getMarketStatus(t) {
   const now = new Date();
   const kst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
   const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
@@ -82,9 +82,9 @@ function getMarketStatus() {
     const d = Math.floor(mins / 1440);
     const h = Math.floor((mins % 1440) / 60);
     const m = mins % 60;
-    if (d > 0) return `${d}일 ${h}시간`;
-    if (h > 0) return `${h}시간 ${m}분`;
-    return `${m}분`;
+    if (d > 0) return t('app.countdownDaysHours').replace('{days}', d).replace('{hours}', h);
+    if (h > 0) return t('app.countdownHoursMinutes').replace('{hours}', h).replace('{minutes}', m);
+    return t('app.countdownMinutes').replace('{minutes}', m);
   }
 
   return { krxOpen, nyseOpen, krxCountdown: fmtCountdown(krxNext), nyseCountdown: fmtCountdown(nyseNext) };
@@ -104,8 +104,7 @@ export default function App() {
   const { market, news, loading, live, error, latency, lastFetchAt, interval, refetch } = useMarketData(30000);
   const { dark, toggle, mode: themeMode, setMode: setThemeMode, colorScheme, setColorScheme } = useTheme();
   const { widgets, moveUp, moveDown, toggleVisible, toggleCollapsed, reset: resetLayout, allPresets, applyPreset, saveAsPreset, deletePreset } = useWidgetLayout();
-  const [lang, setLang] = useState(resolveInitialLanguage);
-  const t = makeT(lang);
+  const { lang, t, toggleLanguage } = useI18n();
   const [presetName, setPresetName] = useState('');
   const [showPresetSave, setShowPresetSave] = useState(false);
   const [showLayoutSettings, setShowLayoutSettings] = useState(false);
@@ -114,16 +113,12 @@ export default function App() {
   const [showMarketAlerts, setShowMarketAlerts] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [now, setNow] = useState(Date.now());
-  const [mktStatus, setMktStatus] = useState(getMarketStatus());
+  const [mktStatus, setMktStatus] = useState(getMarketStatus(t));
   const [visitStats] = useState(recordVisit);
   useEffect(() => {
-    const t = setInterval(() => { setNow(Date.now()); setMktStatus(getMarketStatus()); }, 5000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(LANG_KEY, lang);
-  }, [lang]);
+    const tmr = setInterval(() => { setNow(Date.now()); setMktStatus(getMarketStatus(t)); }, 5000);
+    return () => clearInterval(tmr);
+  }, [t]);
 
   // Market alert checker
   useMarketAlertChecker(market, t);
@@ -151,7 +146,7 @@ export default function App() {
     if (diff < 5) return t('app.justNow');
     if (diff < 60) return `${diff}${t('app.secondsAgo')}`;
     if (diff < 3600) return `${Math.floor(diff / 60)}${t('app.minutesAgo')}`;
-    return new Date(iso).toLocaleTimeString('ko-KR');
+    return new Date(iso).toLocaleTimeString(t('common.locale'));
   };
 
   const navigate = (p) => {
@@ -159,7 +154,7 @@ export default function App() {
     window.location.hash = p === 'dashboard' ? '' : p;
   };
 
-  // Keyboard shortcuts: 1=대시보드, 2=브리핑, 3=포트폴리오, r=새로고침
+  // Keyboard shortcuts: 1=dashboard, 2=briefings, 3=portfolio, r=refresh
   useEffect(() => {
     const onKey = (e) => {
       // Ignore when typing in inputs
@@ -357,13 +352,15 @@ export default function App() {
               </span>
             )}
             <button
-              onClick={() => setLang(prev => (prev === 'ko' ? 'en' : 'ko'))}
+              onClick={toggleLanguage}
               className="text-[10px] sm:text-xs px-2 py-1 rounded-md transition-colors"
               style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
               title={t('common.languageToggle')}
-              aria-label={t('common.languageToggle')}
+              aria-label={`${t('common.languageToggle')}: ${lang.toUpperCase()}`}
             >
-              {lang === 'ko' ? 'KO' : 'EN'}
+              <span aria-hidden="true" style={{ color: lang === 'ko' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: lang === 'ko' ? 700 : 400 }}>KO</span>
+              <span aria-hidden="true" className="mx-1" style={{ color: 'var(--text-muted)' }}>/</span>
+              <span aria-hidden="true" style={{ color: lang === 'en' ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: lang === 'en' ? 700 : 400 }}>EN</span>
             </button>
             <button
               onClick={() => setShowMarketAlerts(true)}
@@ -509,7 +506,7 @@ export default function App() {
                           onClick={() => applyPreset(p.id)}
                           className="text-[10px] px-2 py-1 rounded-l transition-colors"
                           style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRight: 'none' }}
-                          title={`${p.name} 프리셋 적용`}
+                          title={`${p.name} ${t('app.applyPreset')}`}
                         >
                           {p.icon} {p.name}
                         </button>
@@ -559,15 +556,15 @@ export default function App() {
                   {widgets.map((w, i) => (
                     <div key={w.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg" style={{ background: w.visible ? 'var(--bg-hover)' : 'transparent', opacity: w.visible ? 1 : 0.5 }}>
                       <div className="flex flex-col gap-0.5">
-                        <button onClick={() => moveUp(w.id)} disabled={i === 0} className="text-[10px] leading-none disabled:opacity-20" style={{ color: 'var(--text-muted)' }} aria-label={`${w.label} 위로`}>▲</button>
-                        <button onClick={() => moveDown(w.id)} disabled={i === widgets.length - 1} className="text-[10px] leading-none disabled:opacity-20" style={{ color: 'var(--text-muted)' }} aria-label={`${w.label} 아래로`}>▼</button>
+                        <button onClick={() => moveUp(w.id)} disabled={i === 0} className="text-[10px] leading-none disabled:opacity-20" style={{ color: 'var(--text-muted)' }} aria-label={`${w.label} ${t('app.moveUp')}`}>▲</button>
+                        <button onClick={() => moveDown(w.id)} disabled={i === widgets.length - 1} className="text-[10px] leading-none disabled:opacity-20" style={{ color: 'var(--text-muted)' }} aria-label={`${w.label} ${t('app.moveDown')}`}>▼</button>
                       </div>
                       <span className="text-xs flex-1">{w.label}</span>
                       <button
                         onClick={() => toggleVisible(w.id)}
                         className="text-xs px-2 py-0.5 rounded"
                         style={{ background: w.visible ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)', color: w.visible ? '#22c55e' : '#ef4444' }}
-                        aria-label={`${w.label} ${w.visible ? '숨기기' : t('app.show')}`}
+                        aria-label={`${w.label} ${w.visible ? t('app.hide') : t('app.show')}`}
                       >
                         {w.visible ? t('app.show') : t('app.hidden')}
                       </button>
@@ -579,8 +576,8 @@ export default function App() {
             {/* Yesterday's market summary banner (shows once per session) */}
             {!sessionStorage.getItem('pulse-yesterday-dismissed') && market && (() => {
               const items = [
-                { key: 'kospi', label: '코스피', data: market.kospi },
-                { key: 'kosdaq', label: '코스닥', data: market.kosdaq },
+                { key: 'kospi', label: t('app.marketKospi'), data: market.kospi },
+                { key: 'kosdaq', label: t('app.marketKosdaq'), data: market.kosdaq },
                 { key: 'sp500', label: 'S&P500', data: market.sp500 },
                 { key: 'usdkrw', label: 'USD/KRW', data: market.usdkrw },
                 { key: 'btc', label: 'BTC', data: market.btc },
@@ -655,7 +652,7 @@ export default function App() {
                     className="flex items-center gap-1.5 w-full px-4 py-1 text-left transition-colors hover:opacity-80"
                     style={{ color: 'var(--text-muted)' }}
                     aria-expanded={!w.collapsed}
-                    aria-label={`${w.label} ${w.collapsed ? t('app.expand') : t('app.collapse')}`}
+                    aria-label={t('app.collapseWidgetAria').replace('{label}', w.label).replace('{action}', w.collapsed ? t('app.expand') : t('app.collapse'))}
                   >
                     <span className="text-[9px] transition-transform" style={{ transform: w.collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>▼</span>
                     <span className="text-[10px] font-medium">{w.label}</span>
@@ -666,23 +663,23 @@ export default function App() {
               );
             })}
             <footer className="text-center text-xs py-4 space-y-1" style={{ color: 'var(--text-muted)' }}>
-              <div>{live ? t('app.realtimeStreaming') : t('app.autoUpdate30s')} · {new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}{latency != null ? ` · ${latency}ms` : ''}</div>
+              <div>{live ? t('app.realtimeStreaming') : t('app.autoUpdate30s')} · {new Date().toLocaleDateString(t('common.locale'), { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })}{latency != null ? ` · ${latency}ms` : ''}</div>
               <div style={{ opacity: 0.6 }}>
-                {mktStatus.krxOpen ? '🟢' : '⚫'} KRX {mktStatus.krxOpen ? t('app.krxOpen') : t('app.krxClosed')}{mktStatus.krxCountdown ? ` (${mktStatus.krxCountdown} ${t('app.opensIn')})` : ' (09:00-15:30)'}
+                {mktStatus.krxOpen ? '🟢' : '⚫'} KRX {mktStatus.krxOpen ? t('app.krxOpen') : t('app.krxClosed')}{mktStatus.krxCountdown ? ` (${mktStatus.krxCountdown} ${t('app.opensIn')})` : ` (${t('app.krxHours')})`}
                 {' · '}
-                {mktStatus.nyseOpen ? '🟢' : '⚫'} NYSE {mktStatus.nyseOpen ? t('app.nyseOpen') : t('app.nyseClosed')}{mktStatus.nyseCountdown ? ` (${mktStatus.nyseCountdown} ${t('app.opensIn')})` : ' (23:30-06:00 KST)'}
+                {mktStatus.nyseOpen ? '🟢' : '⚫'} NYSE {mktStatus.nyseOpen ? t('app.nyseOpen') : t('app.nyseClosed')}{mktStatus.nyseCountdown ? ` (${mktStatus.nyseCountdown} ${t('app.opensIn')})` : ` (${t('app.nyseHours')})`}
               </div>
               {visitStats && (
                 <div style={{ opacity: 0.4 }}>
                   👤 {visitStats.count}{t('app.visitCountSuffix')}
                   {visitStats.prevLastVisit && (() => {
                     const diff = Math.floor((Date.now() - new Date(visitStats.prevLastVisit).getTime()) / 1000);
-                    if (diff < 60) return ' · 방금 전 접속';
-                    if (diff < 3600) return ` · ${Math.floor(diff / 60)}분 전 접속`;
-                    if (diff < 86400) return ` · ${Math.floor(diff / 3600)}시간 전 접속`;
-                    return ` · ${Math.floor(diff / 86400)}일 전 접속`;
+                    if (diff < 60) return ` · ${t('app.visitPrevJustNow')}`;
+                    if (diff < 3600) return ` · ${t('app.visitPrevMinutesAgo').replace('{value}', Math.floor(diff / 60))}`;
+                    if (diff < 86400) return ` · ${t('app.visitPrevHoursAgo').replace('{value}', Math.floor(diff / 3600))}`;
+                    return ` · ${t('app.visitPrevDaysAgo').replace('{value}', Math.floor(diff / 86400))}`;
                   })()}
-                  {visitStats.firstVisit && ` · ${Math.floor((Date.now() - new Date(visitStats.firstVisit).getTime()) / 86400000)}일째 이용 중`}
+                  {visitStats.firstVisit && ` · ${t('app.visitUsingDays').replace('{value}', Math.floor((Date.now() - new Date(visitStats.firstVisit).getTime()) / 86400000))}`}
                 </div>
               )}
             </footer>

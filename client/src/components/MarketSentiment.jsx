@@ -71,7 +71,7 @@ function computeFearGreed(data, t) {
   
   // 3. Safe haven (15%) — gold
   const gold = data.gold ? goldScore(data.gold.changeRate) : 50;
-  signals.push({ name: t('sentiment.safeAssets'), score: gold, weight: 0.15, raw: `금 ${data.gold?.changeRate || '0%'}` });
+  signals.push({ name: t('sentiment.safeAssets'), score: gold, weight: 0.15, raw: `${t('sentiment.goldRaw')} ${data.gold?.changeRate || '0%'}` });
   
   // 4. FX (15%)
   const fx = data.usdkrw ? fxScore(data.usdkrw.changeRate) : 50;
@@ -375,7 +375,7 @@ export default function MarketSentiment({ data, fearGreedHistory, t }) {
               border: `1px solid ${up ? 'rgba(34,197,94,0.3)' : 'rgba(220,38,38,0.3)'}`,
             }}>
             <span>{up ? '🚀' : '🔻'}</span>
-            <span>코스피 {data.kospi.changeRate} {Math.abs(kr) >= 8 ? (up ? t('sentiment.kospiCircuitSurge') : t('sentiment.kospiCircuitPlunge')) : (up ? t('sentiment.kospiSurge') : t('sentiment.kospiPlunge'))}</span>
+            <span>{t('sentiment.kospiLabel')} {data.kospi.changeRate} {Math.abs(kr) >= 8 ? (up ? t('sentiment.kospiCircuitSurge') : t('sentiment.kospiCircuitPlunge')) : (up ? t('sentiment.kospiSurge') : t('sentiment.kospiPlunge'))}</span>
           </div>
         );
       })()}

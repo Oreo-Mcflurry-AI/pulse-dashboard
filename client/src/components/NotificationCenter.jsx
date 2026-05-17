@@ -81,10 +81,10 @@ function timeAgo(iso, t = null) {
     return v === key ? fallback : v;
   };
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60) return tt('notifications.justNow', '방금');
-  if (diff < 3600) return `${Math.floor(diff / 60)}${tt('notifications.minutesAgo', '분 전')}`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}${tt('notifications.hoursAgo', '시간 전')}`;
-  return `${Math.floor(diff / 86400)}${tt('notifications.daysAgo', '일 전')}`;
+  if (diff < 60) return tt('notifications.justNow', 'Just now');
+  if (diff < 3600) return `${Math.floor(diff / 60)}${tt('notifications.minutesAgo', 'm ago')}`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}${tt('notifications.hoursAgo', 'h ago')}`;
+  return `${Math.floor(diff / 86400)}${tt('notifications.daysAgo', 'd ago')}`;
 }
 
 const TYPE_ICONS = { market: '📊', news: '📰', portfolio: '🎯', system: '⚙️' };
@@ -100,10 +100,10 @@ export default function NotificationCenter({ isOpen, onClose, t = (k) => k }) {
   const [showSettings, setShowSettings] = useState(false);
   const [filter, setFilter] = useState('all');
   const typeLabels = {
-    market: tt('notifications.typeMarket', '시세'),
-    news: tt('notifications.typeNews', '뉴스'),
-    portfolio: tt('notifications.typePortfolio', '포트폴리오'),
-    system: tt('notifications.typeSystem', '시스템'),
+    market: tt('notifications.typeMarket', 'Market'),
+    news: tt('notifications.typeNews', 'News'),
+    portfolio: tt('notifications.typePortfolio', 'Portfolio'),
+    system: tt('notifications.typeSystem', 'System'),
   };
 
   useEffect(() => {
@@ -178,7 +178,7 @@ export default function NotificationCenter({ isOpen, onClose, t = (k) => k }) {
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2">
             <span className="text-base">🔔</span>
-            <span className="text-sm font-bold">{tt('notifications.title', '알림 센터')}</span>
+            <span className="text-sm font-bold">{tt('notifications.title', 'Notification Center')}</span>
             {unreadCount > 0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: '#ef4444', color: '#fff' }}>
                 {unreadCount}
@@ -190,7 +190,7 @@ export default function NotificationCenter({ isOpen, onClose, t = (k) => k }) {
               onClick={() => setShowSettings(v => !v)}
               className="p-1.5 rounded-lg transition-colors"
               style={{ background: showSettings ? 'var(--bg-hover)' : 'transparent', color: 'var(--text-muted)' }}
-              title={tt('notifications.settings', '알림 설정')}
+              title={tt('notifications.settings', 'Notification settings')}
             >
               ⚙️
             </button>
@@ -201,11 +201,11 @@ export default function NotificationCenter({ isOpen, onClose, t = (k) => k }) {
         {/* Settings Panel */}
         {showSettings && (
           <div className="px-4 py-3 space-y-3" style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
-            <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{tt('notifications.settings', '알림 설정')}</div>
+            <div className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>{tt('notifications.settings', 'Notification settings')}</div>
 
             {/* Master toggle */}
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="text-xs">{tt('notifications.enabled', '알림 활성화')}</span>
+              <span className="text-xs">{tt('notifications.enabled', 'Enable notifications')}</span>
               <input type="checkbox" checked={settings.enabled} onChange={(e) => updateSetting('enabled', e.target.checked)}
                 className="w-4 h-4 accent-blue-500" />
             </label>
@@ -273,8 +273,8 @@ export default function NotificationCenter({ isOpen, onClose, t = (k) => k }) {
         {/* Filter tabs */}
         <div className="flex gap-1 px-4 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
           {[
-            { key: 'all', label: tt('notifications.filterAll', '전체') },
-            { key: 'unread', label: `${tt('notifications.filterUnread', '안읽음')}${unreadCount > 0 ? ` (${unreadCount})` : ''}` },
+            { key: 'all', label: tt('notifications.filterAll', 'All') },
+            { key: 'unread', label: `${tt('notifications.filterUnread', 'Unread')}${unreadCount > 0 ? ` (${unreadCount})` : ''}` },
             ...Object.entries(typeLabels).map(([k, v]) => ({ key: k, label: `${TYPE_ICONS[k]} ${v}` })),
           ].map(f => (
             <button

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { LANG_KEY, makeT, resolveInitialLanguage } from '../i18n';
+import { useI18n } from '../i18n';
 
 function DetailChart({ data = [], color = '#94a3b8', width = 500, height = 200, noDataLabel = 'No data' }) {
   const canvasRef = useRef(null);
@@ -155,16 +155,7 @@ function CurrencyConverter({ exchangeRate, t, locale }) {
 }
 
 export default function ChartModal({ card, sparkline, onClose }) {
-  const [lang, setLang] = useState(resolveInitialLanguage());
-  const t = makeT(lang);
-
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === LANG_KEY && (e.newValue === 'ko' || e.newValue === 'en')) setLang(e.newValue);
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  const { t } = useI18n();
 
   if (!card) return null;
 

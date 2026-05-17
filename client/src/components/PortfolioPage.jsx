@@ -109,7 +109,7 @@ function recordSnapshot(totalValue, totalPnl, pfId) {
   saveHistory(history, pfId);
 }
 
-function PortfolioChart({ history }) {
+function PortfolioChart({ history, t }) {
   const canvasRef = useRef(null);
   const [benchmark, setBenchmark] = useState(null);
   const [showBenchmark, setShowBenchmark] = useState(true);
@@ -285,7 +285,7 @@ function PortfolioChart({ history }) {
     <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📈 포트폴리오 추이</span>
+          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📈 {t('portfolio.chartTitle')}</span>
           {benchmark && (
             <button
               onClick={() => setShowBenchmark(v => !v)}
@@ -296,18 +296,18 @@ function PortfolioChart({ history }) {
                 border: `1px solid ${showBenchmark ? '#6366f140' : 'var(--border)'}`,
               }}
             >
-              {showBenchmark ? '📊 벤치마크 ON' : '벤치마크 OFF'}
+              {showBenchmark ? t('portfolio.benchmarkOn') : t('portfolio.benchmarkOff')}
             </button>
           )}
         </div>
         <div className="flex flex-col items-end gap-0.5">
           <span className="text-xs font-medium" style={{ color: totalReturn >= 0 ? '#22c55e' : '#ef4444' }}>
-            내 수익: {totalReturn >= 0 ? '+' : ''}{totalReturn.toFixed(1)}% ({history.length}일)
+            {t('portfolio.myReturn')}: {totalReturn >= 0 ? '+' : ''}{totalReturn.toFixed(1)}% ({history.length}{t('portfolio.daysUnit')})
           </span>
           {bmReturn !== null && showBenchmark && (
             <div className="flex items-center gap-2">
               <span className="text-[9px]" style={{ color: '#6366f1' }}>
-                코스피: {bmReturn >= 0 ? '+' : ''}{bmReturn.toFixed(1)}%
+                {t('portfolio.kospi')}: {bmReturn >= 0 ? '+' : ''}{bmReturn.toFixed(1)}%
               </span>
               <span className="text-[9px] font-bold px-1 py-0.5 rounded" style={{
                 background: alpha >= 0 ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
@@ -327,7 +327,7 @@ function PortfolioChart({ history }) {
 }
 
 // ─── Returns Calendar Heatmap ───
-function ReturnCalendar({ history }) {
+function ReturnCalendar({ history, t }) {
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -384,20 +384,22 @@ function ReturnCalendar({ history }) {
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <button onClick={prevMonth} className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>◀</button>
-          <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>📅 {year}년 {mon}월 수익률</span>
+          <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
+            {t('portfolio.monthReturnTitle').replace('{year}', year).replace('{month}', mon)}
+          </span>
           <button onClick={nextMonth} className="text-xs px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>▶</button>
         </div>
         <div className="flex items-center gap-2 text-[9px]" style={{ color: 'var(--text-muted)' }}>
-          <span style={{ color: '#22c55e' }}>▲{winDays}일</span>
-          <span style={{ color: '#ef4444' }}>▼{lossDays}일</span>
+          <span style={{ color: '#22c55e' }}>▲{winDays}{t('portfolio.daysUnit')}</span>
+          <span style={{ color: '#ef4444' }}>▼{lossDays}{t('portfolio.daysUnit')}</span>
           <span className="font-bold" style={{ color: totalRet >= 0 ? '#22c55e' : '#ef4444' }}>
-            월 {totalRet >= 0 ? '+' : ''}{totalRet.toFixed(2)}%
+            {t('portfolio.monthPrefix')} {totalRet >= 0 ? '+' : ''}{totalRet.toFixed(2)}%
           </span>
         </div>
       </div>
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-0.5 mb-0.5">
-        {['일','월','화','수','목','금','토'].map(d => (
+        {t('portfolio.weekdays').split(',').map(d => (
           <div key={d} className="text-center text-[8px] font-medium py-0.5" style={{ color: 'var(--text-muted)' }}>{d}</div>
         ))}
       </div>
@@ -431,7 +433,7 @@ function ReturnCalendar({ history }) {
 
 const DONUT_COLORS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'];
 
-function AllocationChart({ holdings, prices }) {
+function AllocationChart({ holdings, prices, t }) {
   const canvasRef = useRef(null);
   const size = 160;
 
@@ -476,7 +478,7 @@ function AllocationChart({ holdings, prices }) {
     ctx.font = 'bold 10px system-ui';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('총 자산', cx, cy - 8);
+    ctx.fillText(t('portfolio.totalAssets'), cx, cy - 8);
     ctx.fillStyle = getComputedStyle(canvas).color || '#fff';
     ctx.font = 'bold 13px system-ui';
     const totalStr = total >= 100000000 ? `${(total / 100000000).toFixed(1)}억` : total >= 10000 ? `${(total / 10000).toFixed(0)}만` : fmt(total);
@@ -487,7 +489,7 @@ function AllocationChart({ holdings, prices }) {
 
   return (
     <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-      <div className="text-xs font-bold mb-3" style={{ color: 'var(--text-muted)' }}>🥧 자산 비중</div>
+      <div className="text-xs font-bold mb-3" style={{ color: 'var(--text-muted)' }}>🥧 {t('portfolio.allocationTitle')}</div>
       <div className="flex items-center gap-4">
         <canvas ref={canvasRef} style={{ width: size, height: size, flexShrink: 0, color: 'var(--text-primary)' }} />
         <div className="flex-1 space-y-1.5 min-w-0">
@@ -517,33 +519,33 @@ const ASSET_TYPES = {
 };
 
 const ASSET_TYPE_LABELS = {
-  domestic_equity: { name: '국내 주식', icon: '🇰🇷', color: '#3b82f6' },
-  us_equity: { name: '미국 주식', icon: '🇺🇸', color: '#8b5cf6' },
-  crypto: { name: '암호화폐', icon: '₿', color: '#f59e0b' },
-  fx: { name: '외환', icon: '💱', color: '#10b981' },
-  commodity: { name: '원자재', icon: '🛢️', color: '#ef4444' },
-  hedge: { name: '헷지', icon: '🛡️', color: '#6b7280' },
-  other: { name: '기타', icon: '📦', color: '#94a3b8' },
+  domestic_equity: { nameKey: 'portfolio.assetDomesticEquity', icon: '🇰🇷', color: '#3b82f6' },
+  us_equity: { nameKey: 'portfolio.assetUsEquity', icon: '🇺🇸', color: '#8b5cf6' },
+  crypto: { nameKey: 'portfolio.assetCrypto', icon: '₿', color: '#f59e0b' },
+  fx: { nameKey: 'portfolio.assetFx', icon: '💱', color: '#10b981' },
+  commodity: { nameKey: 'portfolio.assetCommodity', icon: '🛢️', color: '#ef4444' },
+  hedge: { nameKey: 'portfolio.assetHedge', icon: '🛡️', color: '#6b7280' },
+  other: { nameKey: 'portfolio.assetOther', icon: '📦', color: '#94a3b8' },
 };
 
 // Recommended allocations by risk profile
 const ALLOCATION_PROFILES = {
   conservative: {
-    name: '안정형',
+    nameKey: 'portfolio.profileConservative',
     icon: '🛡️',
-    desc: '안정적 수익, 낮은 변동성',
+    descKey: 'portfolio.profileConservativeDesc',
     allocations: { domestic_equity: 20, us_equity: 20, crypto: 0, fx: 10, commodity: 15, hedge: 5, other: 30 },
   },
   balanced: {
-    name: '균형형',
+    nameKey: 'portfolio.profileBalanced',
     icon: '⚖️',
-    desc: '성장과 안정의 균형',
+    descKey: 'portfolio.profileBalancedDesc',
     allocations: { domestic_equity: 25, us_equity: 30, crypto: 5, fx: 5, commodity: 10, hedge: 5, other: 20 },
   },
   aggressive: {
-    name: '공격형',
+    nameKey: 'portfolio.profileAggressive',
     icon: '🔥',
-    desc: '높은 수익 추구, 높은 변동성 감수',
+    descKey: 'portfolio.profileAggressiveDesc',
     allocations: { domestic_equity: 25, us_equity: 35, crypto: 15, fx: 0, commodity: 5, hedge: 5, other: 15 },
   },
 };
@@ -555,7 +557,7 @@ function getRebalanceSettings() {
   try { return JSON.parse(localStorage.getItem(REBALANCE_KEY) || '{}'); } catch { return {}; }
 }
 
-function AllocationRecommendation({ holdings, prices }) {
+function AllocationRecommendation({ holdings, prices, t }) {
   const [profile, setProfile] = useState('balanced');
   const [rebalanceThreshold, setRebalanceThreshold] = useState(() => getRebalanceSettings().threshold || 15);
   const [showRebalanceSettings, setShowRebalanceSettings] = useState(false);
@@ -595,7 +597,7 @@ function AllocationRecommendation({ holdings, prices }) {
     return sum + Math.abs(curr - rec);
   }, 0) / 2;
 
-  const deviationLabel = deviation < 10 ? '✅ 양호' : deviation < 25 ? '⚠️ 조정 필요' : '🔴 편중됨';
+  const deviationLabel = deviation < 10 ? t('portfolio.deviationGood') : deviation < 25 ? t('portfolio.deviationNeedsAdjust') : t('portfolio.deviationConcentrated');
   const deviationColor = deviation < 10 ? '#22c55e' : deviation < 25 ? '#f59e0b' : '#ef4444';
 
   // Rebalance alert: notify when any asset type exceeds threshold
@@ -612,11 +614,14 @@ function AllocationRecommendation({ holdings, prices }) {
     rebalanceNotifiedRef.current.add(alertKey);
     sessionStorage.setItem(REBALANCE_NOTIFIED_KEY, JSON.stringify([...rebalanceNotifiedRef.current]));
     if (shouldNotify('portfolio')) {
-      const typeNames = overThreshold.map(t => (ASSET_TYPE_LABELS[t] || { name: t }).name);
+      const typeNames = overThreshold.map(type => {
+        const info = ASSET_TYPE_LABELS[type] || ASSET_TYPE_LABELS.other;
+        return t(info.nameKey);
+      });
       addNotification({
         type: 'portfolio',
-        title: '⚖️ 리밸런싱 필요',
-        body: `${typeNames.join(', ')} 비중이 목표 대비 ${rebalanceThreshold}%p 이상 벗어났습니다`,
+        title: t('portfolio.rebalanceNeededTitle'),
+        body: t('portfolio.rebalanceNeededBody').replace('{types}', typeNames.join(', ')).replace('{threshold}', rebalanceThreshold),
       });
     }
   }, [overThreshold.length, profile, rebalanceThreshold]);
@@ -625,7 +630,7 @@ function AllocationRecommendation({ holdings, prices }) {
     <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📊 자산 배분 분석</span>
+          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📊 {t('portfolio.allocationAnalysis')}</span>
           <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: deviationColor + '20', color: deviationColor }}>
             {deviationLabel}
           </span>
@@ -633,7 +638,7 @@ function AllocationRecommendation({ holdings, prices }) {
             onClick={() => setShowRebalanceSettings(v => !v)}
             className="text-[9px] px-1.5 py-0.5 rounded transition-colors"
             style={{ background: showRebalanceSettings ? 'rgba(168,85,247,0.15)' : 'transparent', color: overThreshold.length > 0 ? '#a855f7' : 'var(--text-muted)' }}
-            title="리밸런싱 알림 설정"
+            title={t('portfolio.rebalanceSettingsTitle')}
           >
             ⚖️{overThreshold.length > 0 ? ` ${overThreshold.length}` : ''}
           </button>
@@ -649,9 +654,9 @@ function AllocationRecommendation({ holdings, prices }) {
                 color: profile === key ? 'var(--bg-primary)' : 'var(--text-muted)',
                 fontWeight: profile === key ? 600 : 400,
               }}
-              title={p.desc}
+              title={t(p.descKey)}
             >
-              {p.icon} {p.name}
+              {p.icon} {t(p.nameKey)}
             </button>
           ))}
         </div>
@@ -661,11 +666,11 @@ function AllocationRecommendation({ holdings, prices }) {
       {showRebalanceSettings && (
         <div className="mb-3 p-2.5 rounded-lg" style={{ background: 'var(--bg-hover)', border: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>⚖️ 리밸런싱 알림</span>
-            <span className="text-[9px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>자산 비중이 목표 대비 임계값 이상 벗어나면 알림</span>
+            <span className="text-[10px] font-bold" style={{ color: 'var(--text-muted)' }}>⚖️ {t('portfolio.rebalanceAlert')}</span>
+            <span className="text-[9px]" style={{ color: 'var(--text-muted)', opacity: 0.6 }}>{t('portfolio.rebalanceAlertDesc')}</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>임계값</span>
+            <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{t('portfolio.threshold')}</span>
             <input
               type="range" min="5" max="30" step="5"
               value={rebalanceThreshold}
@@ -681,7 +686,9 @@ function AllocationRecommendation({ holdings, prices }) {
           </div>
           {overThreshold.length > 0 && (
             <div className="mt-2 text-[9px] px-2 py-1.5 rounded" style={{ background: 'rgba(168,85,247,0.1)', color: '#a855f7' }}>
-              ⚠️ {overThreshold.map(t => (ASSET_TYPE_LABELS[t] || { name: t }).name).join(', ')} — 목표 비중 대비 {rebalanceThreshold}%p 이상 편차
+              {t('portfolio.overThresholdMessage')
+                .replace('{types}', overThreshold.map(type => t((ASSET_TYPE_LABELS[type] || ASSET_TYPE_LABELS.other).nameKey)).join(', '))
+                .replace('{threshold}', rebalanceThreshold)}
             </div>
           )}
         </div>
@@ -695,14 +702,14 @@ function AllocationRecommendation({ holdings, prices }) {
           const rec = recommended[type] || 0;
           const diff = curr - rec;
           const diffColor = Math.abs(diff) < 5 ? 'var(--text-muted)' : diff > 0 ? '#ef4444' : '#3b82f6';
-          const diffLabel = Math.abs(diff) < 5 ? '적정' : diff > 0 ? '과다' : '부족';
+          const diffLabel = Math.abs(diff) < 5 ? t('portfolio.diffOk') : diff > 0 ? t('portfolio.diffOver') : t('portfolio.diffUnder');
 
           return (
             <div key={type}>
               <div className="flex items-center justify-between mb-0.5">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px]">{info.icon}</span>
-                  <span className="text-[11px] font-medium">{info.name}</span>
+                  <span className="text-[11px] font-medium">{t(info.nameKey)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
@@ -724,7 +731,7 @@ function AllocationRecommendation({ holdings, prices }) {
                   <div
                     className="absolute top-0 bottom-0 w-0.5"
                     style={{ left: `${Math.min(rec, 100)}%`, background: 'var(--text-primary)', opacity: 0.6 }}
-                    title={`추천: ${rec}%`}
+                    title={t('portfolio.recommendedWeight').replace('{value}', rec)}
                   />
                 )}
               </div>
@@ -737,14 +744,14 @@ function AllocationRecommendation({ holdings, prices }) {
       <div className="flex items-center gap-3 mt-3 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="flex items-center gap-1">
           <span className="w-3 h-1.5 rounded-sm" style={{ background: '#3b82f6', opacity: 0.8 }} />
-          <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>현재 비중</span>
+          <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('portfolio.currentWeight')}</span>
         </div>
         <div className="flex items-center gap-1">
           <span className="w-0.5 h-3" style={{ background: 'var(--text-primary)', opacity: 0.6 }} />
-          <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>추천 비중 ({ALLOCATION_PROFILES[profile].name})</span>
+          <span className="text-[9px]" style={{ color: 'var(--text-muted)' }}>{t('portfolio.recommendedWeightLabel').replace('{profile}', t(ALLOCATION_PROFILES[profile].nameKey))}</span>
         </div>
         <span className="text-[9px] ml-auto" style={{ color: 'var(--text-muted)' }}>
-          편차 점수: {deviation.toFixed(0)}
+          {t('portfolio.deviationScore')}: {deviation.toFixed(0)}
         </span>
       </div>
     </div>
@@ -752,7 +759,7 @@ function AllocationRecommendation({ holdings, prices }) {
 }
 
 // ─── Sector Heatmap ───
-function SectorHeatmap({ holdings, prices }) {
+function SectorHeatmap({ holdings, prices, t }) {
   if (!holdings || holdings.length === 0 || Object.keys(prices).length === 0) return null;
 
   // Group holdings by asset type with P&L
@@ -778,7 +785,7 @@ function SectorHeatmap({ holdings, prices }) {
 
   return (
     <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-      <div className="text-xs font-bold mb-3" style={{ color: 'var(--text-muted)' }}>🗺️ 섹터 히트맵</div>
+      <div className="text-xs font-bold mb-3" style={{ color: 'var(--text-muted)' }}>🗺️ {t('portfolio.sectorHeatmap')}</div>
       <div className="flex flex-wrap gap-1.5">
         {sectorList.map(sec => {
           const info = ASSET_TYPE_LABELS[sec.type] || ASSET_TYPE_LABELS.other;
@@ -806,13 +813,13 @@ function SectorHeatmap({ holdings, prices }) {
             >
               <div className="flex items-center gap-1 mb-1">
                 <span className="text-[10px]">{info.icon}</span>
-                <span className="text-[10px] font-bold truncate">{info.name}</span>
+                <span className="text-[10px] font-bold truncate">{t(info.nameKey)}</span>
               </div>
               <div className="text-sm font-bold tabular-nums" style={{ color: textColor }}>
                 {returnPct >= 0 ? '+' : ''}{returnPct.toFixed(1)}%
               </div>
               <div className="text-[9px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {pct.toFixed(0)}% 비중 · {sec.items.length}종목
+                {t('portfolio.weightAndItems').replace('{weight}', pct.toFixed(0)).replace('{count}', sec.items.length)}
               </div>
               {/* Mini items */}
               <div className="mt-1 space-y-0.5">
@@ -852,7 +859,7 @@ const SYMBOL_KEYWORDS = {
   'VIX': ['VIX', '공포지수', '변동성'],
 };
 
-function HoldingsNews({ holdings }) {
+function HoldingsNews({ holdings, t }) {
   const [news, setNews] = useState(null);
   const [expanded, setExpanded] = useState(false);
 
@@ -891,9 +898,9 @@ function HoldingsNews({ holdings }) {
     <div className="mb-4 p-3 sm:p-4 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📰 보유 종목 관련 뉴스</span>
+          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📰 {t('portfolio.holdingsNews')}</span>
           <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-            {matched.length}건
+            {matched.length}{t('portfolio.countSuffix')}
           </span>
         </div>
       </div>
@@ -931,14 +938,14 @@ function HoldingsNews({ holdings }) {
           className="mt-2 text-[10px] px-2 py-1 rounded transition-colors w-full"
           style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
         >
-          {expanded ? '접기' : `더보기 (${matched.length - 3}건)`}
+          {expanded ? t('portfolio.collapse') : t('portfolio.moreItems').replace('{count}', matched.length - 3)}
         </button>
       )}
     </div>
   );
 }
 
-function TradeLogSection({ pfId }) {
+function TradeLogSection({ pfId, t }) {
   const [expanded, setExpanded] = useState(false);
   const [log, setLog] = useState([]);
 
@@ -954,19 +961,19 @@ function TradeLogSection({ pfId }) {
     <div className="mb-4 rounded-xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
       <div className="flex items-center justify-between px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📋 거래 내역</span>
+          <span className="text-xs font-bold" style={{ color: 'var(--text-muted)' }}>📋 {t('portfolio.tradeLog')}</span>
           <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>
-            {log.length}건
+            {log.length}{t('portfolio.countSuffix')}
           </span>
         </div>
         <div className="flex items-center gap-1">
           {log.length > 0 && (
             <button
-              onClick={() => { if (confirm('거래 내역을 모두 삭제하시겠습니까?')) { clearTradeLog(pfId); setLog([]); } }}
+              onClick={() => { if (confirm(t('portfolio.clearTradeLogConfirm'))) { clearTradeLog(pfId); setLog([]); } }}
               className="text-[9px] px-1.5 py-0.5 rounded"
               style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
             >
-              전체 삭제
+              {t('portfolio.clearAll')}
             </button>
           )}
           {log.length > 5 && (
@@ -975,21 +982,21 @@ function TradeLogSection({ pfId }) {
               className="text-[9px] px-1.5 py-0.5 rounded"
               style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
             >
-              {expanded ? '접기' : `전체 보기 (${log.length})`}
+              {expanded ? t('portfolio.collapse') : t('portfolio.viewAll').replace('{count}', log.length)}
             </button>
           )}
         </div>
       </div>
       {log.length === 0 ? (
         <div className="px-3 py-4 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
-          종목 추가/삭제 시 자동으로 기록됩니다
+          {t('portfolio.tradeLogEmpty')}
         </div>
       ) : (
         <div className={expanded ? 'max-h-64 overflow-y-auto' : ''}>
           {displayLog.map(t => {
             const isBuy = t.action === 'BUY';
             const actionColor = isBuy ? '#3b82f6' : '#ef4444';
-            const actionLabel = isBuy ? '매수' : '매도';
+            const actionLabel = isBuy ? t('portfolio.buy') : t('portfolio.sell');
             const pnlColor = t.pnl > 0 ? '#22c55e' : t.pnl < 0 ? '#ef4444' : 'var(--text-muted)';
             return (
               <div key={t.id} className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -1007,9 +1014,9 @@ function TradeLogSection({ pfId }) {
                   )}
                 </div>
                 <span className="text-[9px] shrink-0" style={{ color: 'var(--text-muted)' }}>
-                  {new Date(t.timestamp).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                  {new Date(t.timestamp).toLocaleDateString(t('common.locale'), { month: 'short', day: 'numeric' })}
                   {' '}
-                  {new Date(t.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(t.timestamp).toLocaleTimeString(t('common.locale'), { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             );
@@ -1036,7 +1043,7 @@ export default function PortfolioPage({ t = (k) => k }) {
 
   const addPortfolio = useCallback(() => {
     const id = 'pf_' + Date.now().toString(36);
-    const name = `포트폴리오 ${pfList.length + 1}`;
+    const name = t('portfolio.newPortfolioName').replace('{count}', pfList.length + 1);
     const next = [...pfList, { id, name }];
     setPfList(next);
     savePortfolioList(next);
@@ -1046,7 +1053,7 @@ export default function PortfolioPage({ t = (k) => k }) {
 
   const deletePortfolio = useCallback((id) => {
     if (pfList.length <= 1) return; // can't delete last one
-    if (!confirm('이 포트폴리오를 삭제하시겠습니까?')) return;
+    if (!confirm(t('portfolio.deletePortfolioConfirm'))) return;
     const next = pfList.filter(p => p.id !== id);
     setPfList(next);
     savePortfolioList(next);
@@ -1184,7 +1191,7 @@ export default function PortfolioPage({ t = (k) => k }) {
   };
 
   const selectPreset = (preset) => {
-    setForm({ ...form, symbol: preset.symbol, name: preset.name });
+    setForm({ ...form, symbol: preset.symbol, name: t(`portfolio.presets.${preset.symbol}`) });
   };
 
   // Drag-to-reorder handlers
@@ -1223,12 +1230,12 @@ export default function PortfolioPage({ t = (k) => k }) {
       const key = `${h.id}_${target}_${dir}`;
       if (hit && !notifiedRef.current.has(key)) {
         notifiedRef.current.add(key);
-        const label = dir === 'above' ? '이상' : '이하';
+        const label = dir === 'above' ? t('portfolio.above') : t('portfolio.below');
         if (shouldNotify('portfolio')) {
           addNotification({
             type: 'portfolio',
-            title: `${h.name} 목표가 도달!`,
-            body: `현재가 ${fmt(current)} → 목표 ${fmt(target)} ${label}`,
+            title: t('portfolio.targetReachedTitle').replace('{name}', h.name),
+            body: t('portfolio.targetReachedBody').replace('{current}', fmt(current)).replace('{target}', fmt(target)).replace('{label}', label),
           });
         }
       }
@@ -1252,8 +1259,8 @@ export default function PortfolioPage({ t = (k) => k }) {
           if (shouldNotify('portfolio')) {
             addNotification({
               type: 'portfolio',
-              title: `🔴 ${h.name} 손절 라인 도달`,
-              body: `수익률 ${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}% (손절 기준: ${stopLoss}%)`,
+              title: t('portfolio.stopLossReachedTitle').replace('{name}', h.name),
+              body: t('portfolio.stopLossReachedBody').replace('{pnl}', `${pnlPct >= 0 ? '+' : ''}${pnlPct.toFixed(1)}`).replace('{stopLoss}', stopLoss),
             });
           }
         }
@@ -1265,8 +1272,8 @@ export default function PortfolioPage({ t = (k) => k }) {
           if (shouldNotify('portfolio')) {
             addNotification({
               type: 'portfolio',
-              title: `🟢 ${h.name} 익절 라인 도달`,
-              body: `수익률 +${pnlPct.toFixed(1)}% (익절 기준: +${takeProfit}%)`,
+              title: t('portfolio.takeProfitReachedTitle').replace('{name}', h.name),
+              body: t('portfolio.takeProfitReachedBody').replace('{pnl}', pnlPct.toFixed(1)).replace('{takeProfit}', takeProfit),
             });
           }
         }
@@ -1319,8 +1326,8 @@ export default function PortfolioPage({ t = (k) => k }) {
             localStorage.setItem(alertKey, '1');
             addNotification({
               type: 'portfolio',
-              title: dailyReturn > 0 ? '📈 포트폴리오 급등!' : '📉 포트폴리오 급락!',
-              body: `일간 수익률 ${dailyReturn > 0 ? '+' : ''}${dailyReturn.toFixed(2)}% (${fmt(today.value - yesterday.value)}원)`,
+              title: dailyReturn > 0 ? t('portfolio.dailySurgeTitle') : t('portfolio.dailyDropTitle'),
+              body: t('portfolio.dailyReturnBody').replace('{return}', `${dailyReturn > 0 ? '+' : ''}${dailyReturn.toFixed(2)}`).replace('{value}', fmt(today.value - yesterday.value)),
             });
           }
         }
@@ -1330,6 +1337,7 @@ export default function PortfolioPage({ t = (k) => k }) {
 
   const history = loadHistory(activePfId);
   const activePf = pfList.find(p => p.id === activePfId) || pfList[0];
+  const displayPortfolioName = (pf) => (pf?.id === 'default' && pf.name === '기본 포트폴리오') ? t('portfolio.defaultPortfolio') : pf?.name;
 
   return (
     <div className="px-4 sm:px-6 py-4 sm:py-6">
@@ -1359,9 +1367,9 @@ export default function PortfolioPage({ t = (k) => k }) {
                   fontWeight: activePfId === pf.id ? 600 : 400,
                   border: `1px solid ${activePfId === pf.id ? 'transparent' : 'var(--border)'}`,
                 }}
-                title="더블클릭으로 이름 변경"
+                title={t('portfolio.renameHint')}
               >
-                {pf.name}
+                {displayPortfolioName(pf)}
               </button>
             )}
             {activePfId === pf.id && pfList.length > 1 && (
@@ -1369,7 +1377,7 @@ export default function PortfolioPage({ t = (k) => k }) {
                 onClick={() => deletePortfolio(pf.id)}
                 className="text-[10px] px-1 py-0.5 rounded ml-0.5 opacity-40 hover:opacity-100 transition-opacity"
                 style={{ color: '#ef4444' }}
-                title="포트폴리오 삭제"
+                title={t('portfolio.deletePortfolio')}
               >
                 ✕
               </button>
@@ -1380,7 +1388,7 @@ export default function PortfolioPage({ t = (k) => k }) {
           onClick={addPortfolio}
           className="px-2 py-1.5 text-xs rounded-lg transition-colors shrink-0"
           style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px dashed var(--border)' }}
-          title="새 포트폴리오 추가"
+          title={t('portfolio.addPortfolio')}
         >
           +
         </button>
@@ -1389,10 +1397,10 @@ export default function PortfolioPage({ t = (k) => k }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4 sm:mb-6">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold">💼 {activePf?.name || t('portfolio.titleFallback')}</h2>
+          <h2 className="text-lg sm:text-xl font-bold">💼 {displayPortfolioName(activePf) || t('portfolio.titleFallback')}</h2>
           {hasPnl && (
             <p className="text-sm mt-1" style={{ color: pctColor(totalPnl) }}>
-              {t('portfolio.totalPnl')}: {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}원
+              {t('portfolio.totalPnl')}: {totalPnl >= 0 ? '+' : ''}{fmt(totalPnl)}{t('portfolio.currencyWon')}
               {showUsd && usdkrw > 0 && (
                 <span className="text-[10px] ml-1.5" style={{ color: 'var(--text-muted)', opacity: 0.8 }}>
                   (${(totalPnl / usdkrw).toLocaleString('en-US', { maximumFractionDigits: 0 })})
@@ -1400,11 +1408,11 @@ export default function PortfolioPage({ t = (k) => k }) {
               )}
               {totalAnnualDividend > 0 && (
                 <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}>
-                  💰 {t('portfolio.annualDividend')} {fmt(totalAnnualDividend)}원 ({portfolioDividendYield.toFixed(2)}%)
+                  💰 {t('portfolio.annualDividend')} {fmt(totalAnnualDividend)}{t('portfolio.currencyWon')} ({portfolioDividendYield.toFixed(2)}%)
                 </span>
               )}
               <span className="text-[9px] ml-2 px-1.5 py-0.5 rounded cursor-pointer" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}
-                title="일간 수익률 알림 임계값 설정 (클릭)"
+                title={t('portfolio.dailyAlertTitle')}
                 onClick={() => {
                   const cur = localStorage.getItem('pulse_pf_alert_threshold') || '3';
                   const val = prompt(`${t('portfolio.dailyAlertPrompt')}`, cur);
@@ -1417,7 +1425,7 @@ export default function PortfolioPage({ t = (k) => k }) {
           )}
           {totalValue > 0 && (
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              {t('portfolio.totalValue')}: {fmt(totalValue)}원
+              {t('portfolio.totalValue')}: {fmt(totalValue)}{t('portfolio.currencyWon')}
               {showUsd && usdkrw > 0 && (
                 <span className="ml-1.5" style={{ opacity: 0.8 }}>
                   (${(totalValue / usdkrw).toLocaleString('en-US', { maximumFractionDigits: 0 })})
@@ -1448,7 +1456,7 @@ export default function PortfolioPage({ t = (k) => k }) {
           )}
           <button
             onClick={() => {
-              const csv = ['종목코드,종목명,매수가,수량,메모,손절(%),익절(%),연배당금/주'];
+              const csv = [t('portfolio.csvHeader')];
               for (const h of holdings) {
                 csv.push([
                   h.symbol, h.name, h.buyPrice ?? '', h.qty ?? '',
@@ -1475,7 +1483,7 @@ export default function PortfolioPage({ t = (k) => k }) {
             style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
             title={t('portfolio.importCsv')}
           >
-            📤 가져오기
+            📤 {t('portfolio.import')}
             <input type="file" accept=".csv" className="hidden" onChange={(e) => {
               const file = e.target.files?.[0];
               if (!file) return;
@@ -1511,7 +1519,7 @@ export default function PortfolioPage({ t = (k) => k }) {
                   });
                 }
                 if (imported.length > 0) {
-                  const merge = confirm(`${imported.length}개 종목을 가져옵니다. 기존 보유종목에 추가할까요?\n(취소 시 기존 종목을 대체합니다)`);
+                  const merge = confirm(t('portfolio.importConfirm').replace('{count}', imported.length));
                   const next = merge ? [...holdings, ...imported] : imported;
                   setHoldings(next);
                   savePortfolio(next, activePfId);
@@ -1532,25 +1540,25 @@ export default function PortfolioPage({ t = (k) => k }) {
       </div>
 
       {/* Performance Chart */}
-      <PortfolioChart history={history} />
+      <PortfolioChart history={history} t={t} />
 
       {/* Returns Calendar Heatmap */}
-      <ReturnCalendar history={history} />
+      <ReturnCalendar history={history} t={t} />
 
       {/* Allocation Donut Chart */}
-      <AllocationChart holdings={holdings} prices={prices} />
+      <AllocationChart holdings={holdings} prices={prices} t={t} />
 
       {/* Allocation Recommendation */}
-      <AllocationRecommendation holdings={holdings} prices={prices} />
+      <AllocationRecommendation holdings={holdings} prices={prices} t={t} />
 
       {/* Sector Heatmap */}
-      <SectorHeatmap holdings={holdings} prices={prices} />
+      <SectorHeatmap holdings={holdings} prices={prices} t={t} />
 
       {/* Trade Log */}
-      <TradeLogSection pfId={activePfId} />
+      <TradeLogSection pfId={activePfId} t={t} />
 
       {/* Holdings Related News */}
-      <HoldingsNews holdings={holdings} />
+      <HoldingsNews holdings={holdings} t={t} />
 
       {/* Add Form */}
       {showAdd && (
@@ -1567,7 +1575,7 @@ export default function PortfolioPage({ t = (k) => k }) {
                   border: '1px solid var(--border)',
                 }}
               >
-                {p.name}
+                {t(`portfolio.presets.${p.symbol}`)}
               </button>
             ))}
           </div>
@@ -1610,11 +1618,11 @@ export default function PortfolioPage({ t = (k) => k }) {
               className="px-2 py-1.5 text-xs sm:text-sm rounded-md"
               style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
             >
-              <option value="above">🎯 목표 ↑ 이상</option>
-              <option value="below">🎯 목표 ↓ 이하</option>
+              <option value="above">{t('portfolio.targetAboveOption')}</option>
+              <option value="below">{t('portfolio.targetBelowOption')}</option>
             </select>
             <input
-              placeholder="목표가 (선택)"
+              placeholder={t('portfolio.targetPricePlaceholder')}
               type="number"
               value={form.targetPrice}
               onChange={e => setForm({ ...form, targetPrice: e.target.value })}
@@ -1624,7 +1632,7 @@ export default function PortfolioPage({ t = (k) => k }) {
           </div>
           <div className="flex gap-2">
             <input
-              placeholder="손절 % (예: -10)"
+              placeholder={t('portfolio.stopLossPlaceholder')}
               type="number"
               value={form.stopLoss}
               onChange={e => setForm({ ...form, stopLoss: e.target.value })}
@@ -1632,7 +1640,7 @@ export default function PortfolioPage({ t = (k) => k }) {
               style={{ background: 'var(--bg-primary)', color: '#ef4444', border: '1px solid var(--border)' }}
             />
             <input
-              placeholder="익절 % (예: 20)"
+              placeholder={t('portfolio.takeProfitPlaceholder')}
               type="number"
               value={form.takeProfit}
               onChange={e => setForm({ ...form, takeProfit: e.target.value })}
@@ -1640,7 +1648,7 @@ export default function PortfolioPage({ t = (k) => k }) {
               style={{ background: 'var(--bg-primary)', color: '#22c55e', border: '1px solid var(--border)' }}
             />
             <input
-              placeholder="연간배당금/주 (선택)"
+              placeholder={t('portfolio.dividendPlaceholder')}
               type="number"
               value={form.dividend}
               onChange={e => setForm({ ...form, dividend: e.target.value })}
@@ -1650,7 +1658,7 @@ export default function PortfolioPage({ t = (k) => k }) {
           </div>
           <div className="flex gap-2">
             <input
-              placeholder="메모 (선택)"
+              placeholder={t('portfolio.memoPlaceholder')}
               value={form.memo}
               onChange={e => setForm({ ...form, memo: e.target.value })}
               className="flex-1 px-2 py-1.5 text-xs sm:text-sm rounded-md"
@@ -1701,7 +1709,7 @@ export default function PortfolioPage({ t = (k) => k }) {
                 }}
               >
                 {/* Drag handle */}
-                <div className="flex items-center mr-2 sm:mr-3 select-none" style={{ color: 'var(--text-muted)', cursor: 'grab' }} title="드래그하여 순서 변경">
+                <div className="flex items-center mr-2 sm:mr-3 select-none" style={{ color: 'var(--text-muted)', cursor: 'grab' }} title={t('portfolio.dragReorder')}>
                   <span className="text-xs leading-none">⠿</span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1721,7 +1729,7 @@ export default function PortfolioPage({ t = (k) => k }) {
                         }}
                         className="flex-1 px-1.5 py-0.5 text-xs rounded"
                         style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
-                        placeholder="메모 입력..."
+                        placeholder={t('portfolio.memoInputPlaceholder')}
                       />
                       <button onClick={() => { updateHolding(h.id, { memo: editMemo }); setEditingId(null); setEditField(null); }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>✓</button>
                     </div>
@@ -1730,9 +1738,9 @@ export default function PortfolioPage({ t = (k) => k }) {
                       className="text-xs mt-0.5 cursor-pointer hover:underline"
                       style={{ color: 'var(--text-muted)' }}
                       onClick={() => { setEditingId(h.id); setEditField('memo'); setEditMemo(h.memo || ''); }}
-                      title="클릭하여 메모 수정"
+                      title={t('portfolio.editMemoTitle')}
                     >
-                      {h.memo || '메모 추가...'}
+                      {h.memo || t('portfolio.addMemo')}
                     </p>
                   )}
                   {editingId === h.id && editField === 'trade' ? (
@@ -1779,9 +1787,9 @@ export default function PortfolioPage({ t = (k) => k }) {
                       className="text-xs mt-0.5 cursor-pointer hover:underline"
                       style={{ color: 'var(--text-muted)' }}
                       onClick={() => { setEditingId(h.id); setEditField('trade'); setEditBuyPrice(h.buyPrice ? String(h.buyPrice) : ''); setEditQty(h.qty ? String(h.qty) : ''); }}
-                      title="클릭하여 매수가/수량 수정"
+                      title={t('portfolio.editTradeTitle')}
                     >
-                      {h.buyPrice ? `매수 ${fmt(h.buyPrice)} × ${h.qty || '-'}` : '매수가/수량 입력...'}
+                      {h.buyPrice ? `${t('portfolio.buy')} ${fmt(h.buyPrice)} × ${h.qty || '-'}` : t('portfolio.enterBuyQty')}
                     </p>
                   )}
                   {/* Target Price */}
@@ -1793,8 +1801,8 @@ export default function PortfolioPage({ t = (k) => k }) {
                         className="px-1 py-0.5 text-xs rounded"
                         style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
                       >
-                        <option value="above">↑ 이상</option>
-                        <option value="below">↓ 이하</option>
+                        <option value="above">{t('portfolio.aboveShort')}</option>
+                        <option value="below">{t('portfolio.belowShort')}</option>
                       </select>
                       <input
                         autoFocus
@@ -1807,25 +1815,28 @@ export default function PortfolioPage({ t = (k) => k }) {
                         }}
                         className="w-24 px-1.5 py-0.5 text-xs rounded"
                         style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border)', outline: 'none' }}
-                        placeholder="목표가"
+                        placeholder={t('portfolio.targetPrice')}
                       />
                       <button onClick={() => { updateHolding(h.id, { targetPrice: editTargetPrice ? parseFloat(editTargetPrice) : null, targetDir: editTargetDir }); setEditingId(null); setEditField(null); }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'var(--bg-hover)', color: 'var(--text-muted)' }}>✓</button>
-                      {h.targetPrice && <button onClick={() => { updateHolding(h.id, { targetPrice: null, targetDir: null }); setEditingId(null); setEditField(null); }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(220,38,38,0.15)', color: '#ef4444' }}>삭제</button>}
+                      {h.targetPrice && <button onClick={() => { updateHolding(h.id, { targetPrice: null, targetDir: null }); setEditingId(null); setEditField(null); }} className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(220,38,38,0.15)', color: '#ef4444' }}>{t('portfolio.delete')}</button>}
                     </div>
                   ) : (
                     <p
                       className="text-xs mt-0.5 cursor-pointer hover:underline"
                       style={{ color: h.targetPrice ? ((() => { const cur = prices[h.symbol]?.price; const hit = h.targetDir === 'below' ? cur <= h.targetPrice : cur >= h.targetPrice; return hit ? '#22c55e' : '#f59e0b'; })()) : 'var(--text-muted)' }}
                       onClick={() => { setEditingId(h.id); setEditField('target'); setEditTargetPrice(h.targetPrice ? String(h.targetPrice) : ''); setEditTargetDir(h.targetDir || 'above'); }}
-                      title="클릭하여 목표가 설정"
+                      title={t('portfolio.editTargetTitle')}
                     >
                       {h.targetPrice ? (() => {
                         const cur = prices[h.symbol]?.price;
                         const dir = h.targetDir || 'above';
                         const hit = cur && (dir === 'above' ? cur >= h.targetPrice : cur <= h.targetPrice);
                         const label = dir === 'above' ? '↑' : '↓';
-                        return `🎯 목표 ${fmt(h.targetPrice)} ${label} ${hit ? '✅ 도달!' : `(${cur ? ((h.targetPrice - cur) / cur * 100).toFixed(1) : '?'}%)`}`;
-                      })() : '🎯 목표가 설정...'}
+                        return t('portfolio.targetDisplay')
+                          .replace('{target}', fmt(h.targetPrice))
+                          .replace('{label}', label)
+                          .replace('{status}', hit ? t('portfolio.reached') : `(${cur ? ((h.targetPrice - cur) / cur * 100).toFixed(1) : '?'}%)`);
+                      })() : t('portfolio.setTarget')}
                     </p>
                   )}
                   {/* Stop-loss / Take-profit display */}
@@ -1837,13 +1848,13 @@ export default function PortfolioPage({ t = (k) => k }) {
                         style={{ background: 'rgba(245,158,11,0.1)', color: '#f59e0b' }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          const val = prompt(`${h.name} 연간 주당배당금 (현재: ${h.dividend}원)`, h.dividend);
+                          const val = prompt(t('portfolio.dividendPromptCurrent').replace('{name}', h.name).replace('{value}', h.dividend), h.dividend);
                           if (val !== null) updateHolding(h.id, { dividend: val ? parseFloat(val) : null });
                         }}
-                        title="클릭하여 배당금 수정"
+                        title={t('portfolio.editDividendTitle')}
                       >
-                        💰 배당 {fmt(h.dividend)}원/주
-                        {h.qty ? ` · 연 ${fmt(h.dividend * h.qty)}원` : ''}
+                        {t('portfolio.dividendPerShare').replace('{value}', fmt(h.dividend))}
+                        {h.qty ? ` · ${t('portfolio.annualAmount').replace('{value}', fmt(h.dividend * h.qty))}` : ''}
                         {h.buyPrice && h.buyPrice > 0 ? ` · ${(h.dividend / h.buyPrice * 100).toFixed(2)}%` : ''}
                       </span>
                     </div>
@@ -1854,11 +1865,11 @@ export default function PortfolioPage({ t = (k) => k }) {
                       style={{ color: 'var(--text-muted)', opacity: 0.5 }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        const val = prompt(`${h.name} 연간 주당배당금 (원)`);
+                        const val = prompt(t('portfolio.dividendPrompt').replace('{name}', h.name));
                         if (val && parseFloat(val) > 0) updateHolding(h.id, { dividend: parseFloat(val) });
                       }}
                     >
-                      💰 배당금 설정...
+                      {t('portfolio.setDividend')}
                     </p>
                   )}
                   {(h.stopLoss != null || h.takeProfit != null) && (() => {
@@ -1866,32 +1877,29 @@ export default function PortfolioPage({ t = (k) => k }) {
                     return (
                       <div className="flex gap-2 mt-0.5">
                         {h.stopLoss != null && (
-                          <span className="text-[9px] px-1 py-0.5 rounded" style={{
-                            background: (pnlPct != null && pnlPct <= h.stopLoss) ? 'rgba(220,38,38,0.2)' : 'rgba(220,38,38,0.08)',
-                            color: '#ef4444',
-                          }}
+                          <span className="text-[9px] px-1 py-0.5 rounded"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const val = prompt(`${h.name} 손절 % (현재: ${h.stopLoss}%)`, h.stopLoss);
+                              const val = prompt(t('portfolio.stopLossPrompt').replace('{name}', h.name).replace('{value}', h.stopLoss), h.stopLoss);
                               if (val !== null) updateHolding(h.id, { stopLoss: val ? parseFloat(val) : null });
                             }}
-                            title="클릭하여 손절 라인 수정"
+                            title={t('portfolio.editStopLossTitle')}
                             style={{ cursor: 'pointer', background: (pnlPct != null && pnlPct <= h.stopLoss) ? 'rgba(220,38,38,0.2)' : 'rgba(220,38,38,0.08)', color: '#ef4444' }}
                           >
-                            🔴 손절 {h.stopLoss}%{pnlPct != null && pnlPct <= h.stopLoss ? ' ⚠️' : ''}
+                            {t('portfolio.stopLossBadge').replace('{value}', h.stopLoss)}{pnlPct != null && pnlPct <= h.stopLoss ? ' ⚠️' : ''}
                           </span>
                         )}
                         {h.takeProfit != null && (
                           <span className="text-[9px] px-1 py-0.5 rounded"
                             onClick={(e) => {
                               e.stopPropagation();
-                              const val = prompt(`${h.name} 익절 % (현재: +${h.takeProfit}%)`, h.takeProfit);
+                              const val = prompt(t('portfolio.takeProfitPrompt').replace('{name}', h.name).replace('{value}', h.takeProfit), h.takeProfit);
                               if (val !== null) updateHolding(h.id, { takeProfit: val ? parseFloat(val) : null });
                             }}
-                            title="클릭하여 익절 라인 수정"
+                            title={t('portfolio.editTakeProfitTitle')}
                             style={{ cursor: 'pointer', background: (pnlPct != null && pnlPct >= h.takeProfit) ? 'rgba(34,197,94,0.2)' : 'rgba(34,197,94,0.08)', color: '#22c55e' }}
                           >
-                            🟢 익절 +{h.takeProfit}%{pnlPct != null && pnlPct >= h.takeProfit ? ' 🎉' : ''}
+                            {t('portfolio.takeProfitBadge').replace('{value}', h.takeProfit)}{pnlPct != null && pnlPct >= h.takeProfit ? ' 🎉' : ''}
                           </span>
                         )}
                       </div>
@@ -1907,7 +1915,7 @@ export default function PortfolioPage({ t = (k) => k }) {
                       </div>
                       {pnl != null && (
                         <div className="text-xs font-medium" style={{ color: pctColor(pnl) }}>
-                          {pnl >= 0 ? '+' : ''}{fmt(pnl)}원 ({pnlPct >= 0 ? '+' : ''}{pnlPct?.toFixed(1)}%)
+                          {pnl >= 0 ? '+' : ''}{fmt(pnl)}{t('portfolio.currencyWon')} ({pnlPct >= 0 ? '+' : ''}{pnlPct?.toFixed(1)}%)
                           {showUsd && usdkrw > 0 && (
                             <span className="text-[9px] ml-1" style={{ color: 'var(--text-muted)', opacity: 0.7 }}>
                               ${(pnl / usdkrw).toLocaleString('en-US', { maximumFractionDigits: 0 })}
@@ -1917,14 +1925,14 @@ export default function PortfolioPage({ t = (k) => k }) {
                       )}
                     </>
                   ) : (
-                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>시세 없음</div>
+                    <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('portfolio.noPrice')}</div>
                   )}
                 </div>
                 <button
                   onClick={() => removeHolding(h.id)}
                   className="ml-2 p-1 rounded hover:opacity-60 transition-opacity"
                   style={{ color: 'var(--text-muted)' }}
-                  title="삭제"
+                  title={t('portfolio.delete')}
                 >
                   ✕
                 </button>

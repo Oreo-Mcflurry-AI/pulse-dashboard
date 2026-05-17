@@ -100,25 +100,37 @@ export function useMarketAlertChecker(market, t = (k) => k) {
         case 'change_above':
           if (Math.abs(changeRate) >= alert.threshold) {
             triggered = true;
-            message = `${MARKET_NAMES[alert.market]} 변동률 ${changeRate > 0 ? '+' : ''}${changeRate.toFixed(2)}% (임계값: ±${alert.threshold}%)`;
+            message = t('alerts.messageChangeAbove')
+              .replace('{market}', MARKET_NAMES[alert.market])
+              .replace('{change}', `${changeRate > 0 ? '+' : ''}${changeRate.toFixed(2)}`)
+              .replace('{threshold}', alert.threshold);
           }
           break;
         case 'change_below':
           if (changeRate <= -alert.threshold) {
             triggered = true;
-            message = `${MARKET_NAMES[alert.market]} ${changeRate.toFixed(2)}% 하락 (임계값: -${alert.threshold}%)`;
+            message = t('alerts.messageChangeBelow')
+              .replace('{market}', MARKET_NAMES[alert.market])
+              .replace('{change}', changeRate.toFixed(2))
+              .replace('{threshold}', alert.threshold);
           }
           break;
         case 'price_above':
           if (currentPrice >= alert.threshold) {
             triggered = true;
-            message = `${MARKET_NAMES[alert.market]} ${currentPrice.toLocaleString()} 돌파 (목표: ${alert.threshold.toLocaleString()})`;
+            message = t('alerts.messagePriceAbove')
+              .replace('{market}', MARKET_NAMES[alert.market])
+              .replace('{price}', currentPrice.toLocaleString())
+              .replace('{threshold}', alert.threshold.toLocaleString());
           }
           break;
         case 'price_below':
           if (currentPrice <= alert.threshold) {
             triggered = true;
-            message = `${MARKET_NAMES[alert.market]} ${currentPrice.toLocaleString()} 하회 (기준: ${alert.threshold.toLocaleString()})`;
+            message = t('alerts.messagePriceBelow')
+              .replace('{market}', MARKET_NAMES[alert.market])
+              .replace('{price}', currentPrice.toLocaleString())
+              .replace('{threshold}', alert.threshold.toLocaleString());
           }
           break;
       }

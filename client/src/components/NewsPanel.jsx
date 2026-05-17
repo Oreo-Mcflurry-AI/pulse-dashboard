@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { addNotification, shouldNotify } from './NotificationCenter';
-import { LANG_KEY, makeT, resolveInitialLanguage } from '../i18n';
+import { useI18n } from '../i18n';
 
 // ─── News Alert Keywords ───
 const ALERTS_KEY = 'pulse-news-alerts';
@@ -380,10 +380,7 @@ function NewsAlertSettings({ keywords, onAdd, onRemove, t }) {
 }
 
 export default function NewsPanel({ data, lastFetchAt, interval, live }) {
-  const lang = useMemo(() => {
-    try { return localStorage.getItem(LANG_KEY) || resolveInitialLanguage(); } catch { return 'ko'; }
-  }, []);
-  const t = useMemo(() => makeT(lang), [lang]);
+  const { t } = useI18n();
 
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
